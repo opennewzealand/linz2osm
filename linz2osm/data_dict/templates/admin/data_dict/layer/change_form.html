@@ -24,9 +24,11 @@
 {% endblock %}
 
 {% block content %}
+{% if original %}
 <div id="linz_dd">
-    <h4>LINZ Data Definition</h4>
+    <h4><a href="{{ original.linz_dictionary_url}}">LINZ Data Definition</a></h4>
     <iframe src="{{ original.linz_dictionary_url}}#nav"></iframe>
 </div>
+{% endif %}
 {{block.super}}
 {% endblock %}
