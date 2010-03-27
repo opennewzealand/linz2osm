@@ -1,0 +1,13 @@
+.code_exec_results {
+    margin: 2px 10px;
+    border: 1px solid lightgrey;
+}
+
+body .exec_label {
+    background: url(/media/admin/img/admin/tooltag-arrowright.gif) 0 50% no-repeat;
+    padding-left: 20px;
+}
+
+.inline-group .exec_label {
+    float: none;
+}

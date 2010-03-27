@@ -75,7 +75,10 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.sites',
+    'django.contrib.admin',
+    'django.contrib.admindocs',
+    
+    'linz2osm.data_dict',
 )
 
 TEST_RUNNER='django.contrib.gis.tests.run_tests'

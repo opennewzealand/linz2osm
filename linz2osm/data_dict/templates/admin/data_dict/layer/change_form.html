@@ -1,0 +1,32 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_modify adminmedia %}
+
+{% block extrahead %}
+{{ block.super }}
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style type="text/css">
+    #linz_dd {
+        float: right;
+        width: 45%;
+    }
+    #linz_dd iframe {
+        border: 1px solid black;
+        min-height: 600px;
+        width: 100%;
+    }
+    #content-main {
+        width: 45%
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="linz_dd">
+    <h4>LINZ Data Definition</h4>
+    <iframe src="{{ original.linz_dictionary_url}}#nav"></iframe>
+</div>
+{{block.super}}
+{% endblock %}
