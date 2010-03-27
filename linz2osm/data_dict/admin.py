@@ -21,7 +21,7 @@ class LayerAdmin(admin.ModelAdmin):
         css = {
             'all': ('code_exec.css',),
         }
-        js = ("code_exec.js",)
+        js = ("jquery.cookie.js", "code_exec.js",)
             
     def tag_count(self, obj):
         return obj.tags.count()
@@ -36,7 +36,7 @@ class TagAdmin(admin.ModelAdmin):
         css = {
             'all': ('code_exec.css',),
         }
-        js = ("code_exec.js",)
+        js = ("jquery.cookie.js", "code_exec.js",)
             
     def queryset(self, request):
         # only tags without layers (default tags)

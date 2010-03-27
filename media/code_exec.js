@@ -9,11 +9,11 @@
             
             var isInline = ($(nCode).parents('.inline-group').length != 0);
             
-            var nData = $('<textarea>').attr({rows:10, cols:45}).val(EXAMPLE_DATA);
+            var nData = $('<textarea>').attr({rows:10, cols:45}).val($.cookie('linz2osm_execdata') || EXAMPLE_DATA);
             var nResults = $('<textarea>').attr({rows:10, cols:45, readOnly:true}).val('');
             var nContainer = $('<div>').css('display', 'none');
             var nLabel = $('<label>')
-                .text('Execute Code')
+                .text('Test Code')
                 .addClass('exec_label')
                 .click(function(e) {
                     nContainer.slideToggle();
@@ -26,7 +26,7 @@
                         $('<span>').addClass('exec_data_label').text('Field Data'),
                         $('<br>'),
                         nData,
-                        $('<button>').text('Execute').click(function(e) {
+                        $('<button>').html('Run &rarr;').click(function(e) {
                             e.preventDefault();
                             nResults.val('');
                             try {
@@ -35,21 +35,27 @@
                                 alert("Couldn't parse data");
                                 return;
                             }
-                            $.getJSON(
-                                '/data_dict/tag/eval/', 
-                                {
+                            $.ajax({
+                                url: '/data_dict/tag/eval/',
+                                dataType: 'json',
+                                data: {
                                     'fields':nData.val(), 
                                     'code':nCode.val()
-                                }, 
-                                function(data, textStatus) {
+                                },
+                                success: function(data, textStatus) {
+                                    $.cookie('linz2osm_execdata', nData.val(), {path:'/data_dict/'});
                                     if (data.status == 'ok') {
                                         nResults.css({borderColor:'green'}).val(data.value);
                                     } else {
                                         nResults.css({borderColor:'red'}).val(data.error);
                                     }
-                            })
+                                },
+                                error: function(xhr, textStatus, e) {
+                                    console.log("EVAL XHR Error:", xhr, textStatus, e);
+                                    nResults.css({borderColor:'red'}).val("Server Error: " + textStatus);
+                                }
+                            });
                         }),
-                        $('<span>&rarr;</span>'),
                         nResults
                     )
                 )

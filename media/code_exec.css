@@ -5,7 +5,9 @@
 
 body .exec_label {
     background: url(/media/admin/img/admin/tooltag-arrowright.gif) 0 50% no-repeat;
-    padding-left: 20px;
+    padding-left: 2em;
+    cursor: pointer;
+    width: 6em;
 }
 
 .inline-group .exec_label {

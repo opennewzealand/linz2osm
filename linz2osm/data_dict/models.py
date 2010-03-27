@@ -1,5 +1,6 @@
 import traceback
 
+import pydermonkey
 from django.db import models
 from django.utils import text
 from django.core.exceptions import ValidationError
@@ -38,12 +39,26 @@ class Layer(models.Model):
 
 class TagManager(models.Manager):
     def eval(self, code, fields):
-        c_in = {
-            'fields': fields,
-        }
-        c_out = {}
-        exec code in c_in, c_out
-        return c_out.get('value')
+        js = pydermonkey.Runtime().new_context()
+        try:
+            script = js.compile_script(code, '<Tag Code>', 1)
+
+            context = js.new_object()
+            js.init_standard_classes(context)
+            
+            js.define_property(context, 'value', None);
+            context_fields = js.new_object()
+            for fk,fv in fields.items():
+                js.define_property(context_fields, fk, fv)
+            js.define_property(context, 'fields', context_fields) 
+            
+            js.execute_script(context, script)
+            value = js.get_property(context, 'value')
+            return value
+        except pydermonkey.error, e:
+            e_msg = js.get_property(e.args[0], 'message')
+            e_lineno = js.get_property(e.args[0], 'lineNumber')
+            raise Tag.ScriptError("%s (line %d)" % (e_msg, e_lineno))
 
 class Tag(models.Model):
     objects = TagManager()
@@ -57,18 +72,12 @@ class Tag(models.Model):
         verbose_name = 'Default Tag'
         verbose_name_plural = 'Default Tags'
     
+    class ScriptError(Exception):
+        pass
+    
     def __unicode__(self):
         return self.tag
     
-    def clean(self):
-        # Don't allow code that doesn't compile.
-        self.code = self.code.replace('\r\n', '\n')
-        try:
-            compile(self.code, '<tag code>', 'exec')
-        except SyntaxError, e:
-            raise ValidationError('Error compiling code:' + str(e))
-
     def eval(self, fields):
         return Tag.objects.eval(self.code, fields)
         
-    

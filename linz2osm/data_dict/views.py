@@ -17,12 +17,11 @@ def tag_eval(request, object_id=None):
     fields = simplejson.loads(request.GET.get('fields', '{}'))
     
     try:
-        code = code.replace('\r\n', '\n')
         value = Tag.objects.eval(code, fields)
-    except:
+    except Tag.ScriptError, e:
         r = {
             'status': 'error',
-            'error': traceback.format_exc(),
+            'error': "ScriptError: " + str(e),
         }
     else:
         r = {
