@@ -9,7 +9,7 @@ class TagInline(admin.StackedInline):
     verbose_name_plural = 'Tags'
 
 class LayerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'entity', 'get_geometry_type_display', 'tag_count')
+    list_display = ('name', 'entity', 'get_geometry_type_display', 'tag_count', 'notes',)
     list_filter = ('entity',)
     inlines = [
         TagInline,

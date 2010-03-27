@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 class Layer(models.Model):
     name = models.CharField(max_length=100, primary_key=True)
     entity = models.CharField(max_length=200, blank=True, db_index=True)
+    notes = models.TextField(blank=True)
     
     def __unicode__(self):
         return unicode(self.name)
@@ -66,6 +67,7 @@ class Tag(models.Model):
     layer = models.ForeignKey(Layer, null=True, related_name='tags')
     tag = models.CharField(max_length=100)
     code = models.TextField(blank=True)
+    
     
     class Meta:
         unique_together = ('layer', 'tag',)
