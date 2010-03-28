@@ -37,6 +37,13 @@ class Layer(models.Model):
     def linz_dictionary_url(self):
         BASE_URL = "http://www.linz.govt.nz/topography/technical-specs/data-dictionary/index.aspx?page=class-%s"
         return BASE_URL % self.name
+    
+    def get_all_tags(self):
+        # if we override a default one, use the specific one
+        tags = dict([(t.tag, t) for t in Tag.objects.default()])
+        for t in self.tags.all():
+            tags[t.tag] = t
+        return tags.values()
 
 class TagManager(models.Manager):
     def eval(self, code, fields):
@@ -60,6 +67,9 @@ class TagManager(models.Manager):
             e_msg = js.get_property(e.args[0], 'message')
             e_lineno = js.get_property(e.args[0], 'lineNumber')
             raise Tag.ScriptError("%s (line %d)" % (e_msg, e_lineno))
+
+    def default(self):
+        return self.get_query_set().filter(layer__isnull=True)
 
 class Tag(models.Model):
     objects = TagManager()
