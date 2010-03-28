@@ -12,7 +12,7 @@ class LayerDataForm(forms.Form):
     DATASET_CHOICES = [(k,v['_description']) for k,v in settings.DATABASES.items() if k != 'default']
     
     dataset = forms.ChoiceField(choices=DATASET_CHOICES)
-    layer = forms.ModelChoiceField(Layer.objects.all())
+    layer = forms.ModelChoiceField(Layer.objects.order_by('name'))
     bounds = forms.RegexField(regex=r'((-?(\d+)(\.\d+)?),){3}(-?(\d+)(\.\d+)?)', required=False, help_text='minx,miny,maxx,maxy')
     
     def clean_bounds(self):

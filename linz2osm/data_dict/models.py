@@ -1,4 +1,5 @@
 import traceback
+import decimal
 
 import pydermonkey
 from django.db import models
@@ -57,11 +58,17 @@ class TagManager(models.Manager):
             js.define_property(context, 'value', None);
             context_fields = js.new_object()
             for fk,fv in fields.items():
+                if isinstance(fv, decimal.Decimal):
+                    fv = float(fv)
+                
                 js.define_property(context_fields, fk, fv)
             js.define_property(context, 'fields', context_fields) 
             
             js.execute_script(context, script)
+            
             value = js.get_property(context, 'value')
+            if value is pydermonkey.undefined:
+                value = None
             return value
         except pydermonkey.error, e:
             e_msg = js.get_property(e.args[0], 'message')

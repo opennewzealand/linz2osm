@@ -32,7 +32,13 @@ class _Export(object):
         self.n_create = ElementTree.SubElement(n_root, 'create', version="0.6", generator="linz2osm")
         
         columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, db_info['_srid'])] + ['"%s"' % c for c in data_columns]
-        cursor.execute('SELECT %s FROM "%s";' % (",".join(columns), layer.name))
+        sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
+        if bbox is None:
+            cursor.execute(sql_base)
+        else:
+            sql = sql_base + ' WHERE %s && st_transform(st_setsrid(ST_MakeBox2D(ST_MakePoint(%%s, %%s), ST_MakePoint(%%s, %%s)), 4326), %d)' % (geom_column, db_info['_srid'])
+            cursor.execute(sql, bbox)
+        
         for row in cursor:
             if row[0] is None:
                 continue
@@ -46,7 +52,7 @@ class _Export(object):
             for tag in layer_tags:
                 v = tag.eval(row_data)
                 if v is not None:
-                    row_tags[tag.name] = v
+                    row_tags[tag.tag] = v
             
             self._build_geom(row_geom, row_tags)
         
@@ -98,17 +104,21 @@ class _Export(object):
     
     def _build_geom(self, geom, tags):
         if isinstance(geom, (geos.MultiPolygon, geos.Polygon)):
-            return self._build_polygon(geom, tags)
+            self._build_polygon(geom, tags)
+    
+        elif isinstance(geom, geos.GeometryCollection):
+            for g in geom:
+                self._build_geom(g, tags)
         
         elif isinstance(geom, geos.Point):
             # node
             n = ElementTree.SubElement(self.n_create, 'node', id=self._next_id, lat=str(geom.y), lon=str(geom.x))
             self._build_tags(n, tags)
-            return n.get('id')
+            n.get('id')
         
         elif isinstance(geom, geos.LineString):
             # way
-            return self._build_way(geom.tuple, tags)
+            self._build_way(geom.tuple, tags)
         
     def _build_tags(self, parent_node, tags):
         if tags:
