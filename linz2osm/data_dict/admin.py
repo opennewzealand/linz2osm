@@ -16,6 +16,7 @@ class LayerAdmin(admin.ModelAdmin):
     ]
     ordering = ('name',)
     readonly_fields = ('name', 'entity',)
+    search_fields = ('name', 'notes',)
 
     class Media:
         css = {
