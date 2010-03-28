@@ -1,0 +1,34 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% load adminmedia %}{% admin_media_prefix %}css/dashboard.css" />
+<style type="text/css">
+    input[type="submit"].default {
+        float: none;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+     <a href="../../">{% trans "Home" %}</a> &rsaquo;
+     Convert &rsaquo; 
+     Layer Data
+</div>
+{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+{% block bodyclass %}dashboard{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <form action="" method="post">
+        {{ form.as_p }}
+        
+        <p><input type="submit" value="Download" class="default" /></p>
+    </form>
+</div>
+{% endblock %}
+

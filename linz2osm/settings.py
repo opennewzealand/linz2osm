@@ -9,12 +9,22 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
-DATABASE_ENGINE = 'postgresql_psycopg2'
-DATABASE_NAME = ''             # Or path to database file if using sqlite3.
-DATABASE_USER = ''             # Not used with sqlite3.
-DATABASE_PASSWORD = ''         # Not used with sqlite3.
-DATABASE_HOST = ''             # Set to empty string for localhost. Not used with sqlite3.
-DATABASE_PORT = ''             # Set to empty string for default. Not used with sqlite3.
+DATABASES = {
+    'default': {
+        'ENGINE' : 'postgresql_psycopg2',
+        'NAME' : '',
+        'USER' : '',
+        'PASSWORD' : '',
+    },
+#    'linz_dataset': {
+#        '_description': "Chathams V16",
+#        '_srid': 3793,
+#        'ENGINE' : 'postgresql_psycopg2',
+#        'NAME' : '',
+#        'USER' : '',
+#        'PASSWORD' : '',
+#    },
+}
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -79,9 +89,14 @@ INSTALLED_APPS = (
     'django.contrib.admindocs',
     
     'linz2osm.data_dict',
+    'linz2osm.convert',
 )
 
 TEST_RUNNER='django.contrib.gis.tests.run_tests'
+
+LINZ_DATASETS = {
+    #name : (connection-string, srid)
+}
 
 # Override anything here with a settings_site.py file
 try:
