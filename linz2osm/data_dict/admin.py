@@ -40,7 +40,7 @@ class TagAdmin(admin.ModelAdmin):
             
     def queryset(self, request):
         # only tags without layers (default tags)
-        return self.model._default_manager.get_query_set().filter(layer__isnull=True)
+        return self.model.objects.default()
 
 admin.site.register(Layer, LayerAdmin)
 admin.site.register(Tag, TagAdmin)
