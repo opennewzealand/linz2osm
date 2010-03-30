@@ -9,11 +9,6 @@ Requirements
  * PostgreSQL + PostGIS
  * Pydermonkey
  
- Optionally:
- * BeautifulSoup (to populate layers from LINZ's data dictionary)
- * linz_topo scripts to convert IFF data to a PostGIS DB, from: 
-   http://code.google.com/p/nz-geodata-scripts/wiki/LinzTopo
-   
 Install
 -------
 
@@ -36,7 +31,6 @@ Install
    
  * run `manage.py runserver` and head to http://localhost:8000
  * have fun! :)
- 
 
 Support, Bugs, Ideas
 --------------------
@@ -46,3 +40,11 @@ Support, Bugs, Ideas
  * Ask on the NZOpenGIS mailing list:
    http://groups.google.co.nz/group/nzopengis
 
+New Datasets
+------------
+
+To load some other IFF data, use the linz_topo scripts from nz-geodata-scripts
+to populate a PostGIS DB. Then, add it as a database in the settings file,
+(make sure it has _description and _srid defined) and it should just work.
+
+ * http://code.google.com/p/nz-geodata-scripts/wiki/LinzTopo   
