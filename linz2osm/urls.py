@@ -12,7 +12,7 @@ else:
     urlpatterns = patterns('')
 
 urlpatterns += patterns('',
-    (r'data_dict/tag/eval/$', 'data_dict.views.tag_eval'),
+    (r'data_dict/tag/eval/$', 'linz2osm.data_dict.views.tag_eval'),
     (r'convert/', include('linz2osm.convert.urls')),
 
     (r'^doc/', include('django.contrib.admindocs.urls')),
