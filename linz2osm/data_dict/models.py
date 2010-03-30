@@ -91,8 +91,8 @@ class Tag(models.Model):
     objects = TagManager()
     
     layer = models.ForeignKey(Layer, null=True, related_name='tags')
-    tag = models.CharField(max_length=100)
-    code = models.TextField(blank=True)
+    tag = models.CharField(max_length=100, help_text="OSM tag name")
+    code = models.TextField(blank=True, help_text="Javascript code that sets the 'value' paramter to a non-null value to set the tag. 'fields' is an object with all available attributes for the current record")
     
     
     class Meta:
