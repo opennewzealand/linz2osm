@@ -48,6 +48,12 @@ class Layer(models.Model):
 
 class TagManager(models.Manager):
     def eval(self, code, fields):
+        eval_fields = {}
+        for fk,fv in fields.items():
+            if isinstance(fv, decimal.Decimal):
+                fv = float(fv)
+            eval_fields[fk] = fv
+        
         js = pydermonkey.Runtime().new_context()
         try:
             script = js.compile_script(code, '<Tag Code>', 1)
@@ -57,10 +63,7 @@ class TagManager(models.Manager):
             
             js.define_property(context, 'value', None);
             context_fields = js.new_object()
-            for fk,fv in fields.items():
-                if isinstance(fv, decimal.Decimal):
-                    fv = float(fv)
-                
+            for fk,fv in eval_fields.items():
                 js.define_property(context_fields, fk, fv)
             js.define_property(context, 'fields', context_fields) 
             
@@ -73,7 +76,9 @@ class TagManager(models.Manager):
         except pydermonkey.error, e:
             e_msg = js.get_property(e.args[0], 'message')
             e_lineno = js.get_property(e.args[0], 'lineNumber')
-            raise Tag.ScriptError("%s (line %d)" % (e_msg, e_lineno))
+            en = Tag.ScriptError("%s (line %d)" % (e_msg, e_lineno))
+            en.data = eval_fields
+            raise en
 
     def default(self):
         return self.get_query_set().filter(layer__isnull=True)
@@ -92,7 +97,7 @@ class Tag(models.Model):
         verbose_name_plural = 'Default Tags'
     
     class ScriptError(Exception):
-        pass
+        data = None
     
     def __unicode__(self):
         return self.tag

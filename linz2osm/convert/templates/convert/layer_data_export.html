@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% load adminmedia %}{% admin_media_prefix %}css/dashboard.css" />
+<style type="text/css">
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+     <a href="../../../">{% trans "Home" %}</a> &rsaquo;
+     <a href="../../">Convert</a> &rsaquo;
+     {{ dataset_name }} &rsaquo;
+     {{ layer }}
+</div>
+{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+{% block bodyclass %}dashboard{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    {% if error %}
+    <ul class="errorlist"><li>{{ error|linebreaksbr }}</li></ul>
+    {% endif %}
+    
+    <form method="GET" action="{{request.get_full_path}}">
+        <input type="submit" class="default" value="Go Again" style="float:none">
+        or
+        <button href="../../">Head to Export Form</button>
+    </form>
+</div>
+{% endblock %}
+

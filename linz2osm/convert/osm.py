@@ -4,6 +4,21 @@ from cStringIO import StringIO
 from django.db import connections
 from django.conf import settings
 from django.contrib.gis import geos
+from django.utils import simplejson
+
+class Error(Exception):
+    pass
+
+def has_layer(database_id, layer):
+    cursor = connections[database_id].cursor()
+    cursor.execute('SELECT count(*) FROM information_schema.tables WHERE table_name=%s;', [layer.name])
+    count = cursor.fetchone()[0]
+    return (count == 1)
+
+def dataset_tables(database_id):
+    cursor = connections[database_id].cursor()
+    cursor.execute('SELECT table_name FROM information_schema.tables;')
+    return [r[0] for r in cursor]
 
 def export(database_id, layer, bbox=None):
     e = _Export(database_id, layer, bbox)
@@ -50,9 +65,16 @@ class _Export(object):
             
             row_tags = {}
             for tag in layer_tags:
-                v = tag.eval(row_data)
+                try:
+                    v = tag.eval(row_data)
+                except tag.ScriptError, e:
+                    emsg = "Error evaluating '%s' tag against record:\n" % tag
+                    emsg += simplejson.dumps(e.data, indent=2) + "\n"
+                    emsg += str(e)
+                    raise Error(emsg)
                 if v is not None:
                     row_tags[tag.tag] = v
+            print layer_tags, row_tags
             
             self._build_geom(row_geom, row_tags)
         
