@@ -100,6 +100,7 @@ class _Export(object):
         if not root: 
             r = ElementTree.Element('relation', id=self._next_id)
             ElementTree.SubElement(r, 'tag', k='type', v='multipolygon')
+            self._build_tags(r, tags)
         else:
             r = root
         
