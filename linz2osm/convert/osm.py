@@ -83,7 +83,6 @@ class _Export(object):
                     raise Error(emsg)
                 if v is not None:
                     row_tags[tag.tag] = v
-            print layer_tags, row_tags
             
             self._build_geom(row_geom, row_tags)
         
