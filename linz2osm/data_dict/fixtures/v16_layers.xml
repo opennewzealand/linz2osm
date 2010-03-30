@@ -1,0 +1,667 @@
+<?xml version="1.0" encoding="utf-8"?>
+<django-objects version="1.0">
+  <object pk="airport_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Airport</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="airport_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Airport</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="beacon_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Beacon</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="bivouac_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Bivouac</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="blowhole_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Blowhole</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="boatramp_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Boatramp</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="bog_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Wetland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="boom_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Breakwater</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="breakwtr_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Breakwater</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="bridge_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Bridge</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="building_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Building</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="building_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Building</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="buoy_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Buoy</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="cad_road_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Road</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="canal_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Watercourse</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="canal_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Watercourse</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="cattlstp_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Gate</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="cave_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Cave</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="cblwy_ind_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Cableway</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="cblwy_peo_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Cableway</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="cemetery_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Cemetery</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="cemetery_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Cemetery</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="chimney_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Chimney</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="cliff_edge" model="data_dict.layer">
+    <field type="CharField" name="entity">Cliff</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="coastline" model="data_dict.layer">
+    <field type="CharField" name="entity">Shoreline</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="contour" model="data_dict.layer">
+    <field type="CharField" name="entity">Ground surface</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="crevasse_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Crevasse</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="cutting_edge" model="data_dict.layer">
+    <field type="CharField" name="entity">Cutting</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="dam_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Dam</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="depform_edge" model="data_dict.layer">
+    <field type="CharField" name="entity">Basin</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="descrip_text" model="data_dict.layer">
+    <field type="CharField" name="entity">Text</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="distice_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Icefield</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="drain_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Watercourse</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="dredg_tl_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Dumping ground</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="dredge_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Dredge</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="dry_dock_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Dry dock</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="embankmnt_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Embankment</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="exotic_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Woodland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="fastice_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Icefield</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="fence_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Fence</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="ferry_cr_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Lane</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="fish_fm_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Aquaculture area</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="flare_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Chimney</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="floodgte_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Gate</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="flume_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Watercourse</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="flume_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Watercourse</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="ford_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Ford</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="fumarole_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Fumarole</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="gas_val_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Transmission line</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="gate_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Gate</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="geo_bore_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Well</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="geo_name" model="data_dict.layer">
+    <field type="CharField" name="entity">Text</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="gl_lake_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Lake</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="golf_crs_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Golf course</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="grav_pit_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Mine</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="grave_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Grave site</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="height_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Spot height</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="helipad_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Helipad</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="hist_ste_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Historical site</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="ice_clf_edge" model="data_dict.layer">
+    <field type="CharField" name="entity">Cliff</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="ice_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Icefield</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="ice_shelf_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Icefield</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="ice_strm_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Watercourse</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="iceberg_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Iceberg</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="island_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Island</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="kiln_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Kiln</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="ladder_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Ladder</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="ladder_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Ladder</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="lagoon_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Lagoon</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="lake_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Lake</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="landfill_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Dumping ground</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="mangrove_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Wetland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="mari_complex_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Woodland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="marne_fm_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Aquaculture area</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="marne_fm_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Aquaculture area</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="mast_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Tower</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="melt_strm_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Meltstrm</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="mine_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Mine</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="mine_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Mine</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="mixed_scrub_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Woodland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="monument_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Monument</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="moraine_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Ground</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="moran_wl_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Ground</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="mud_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Ground</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="named_feat" model="data_dict.layer">
+    <field type="CharField" name="entity">Text</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="native_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Woodland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="orchard_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Cropland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="pa_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Historical site</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="pipeline_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Transmission line</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="plantatn_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Cropland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="pond_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Lake</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="powerline_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Transmission line</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="pumce_pt_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Mine</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="pylon_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Tower</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="quarry_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Mine</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="racetrk_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Racetrack</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="racetrk_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Racetrack</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="racetrk_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Racetrack</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="radar_dm_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Radar dome</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="rail_stn_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Building</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="railway_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Railway</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="rapid_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Rapids</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="rapid_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Rapids</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="redoubt_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Historical site</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="reef_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Reef</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="res_area_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Place</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="reservr_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Tank</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="rifle_rg_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Restricted area</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="river_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Watercourse</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="river_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Watercourse</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="rock_out_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Pinnacle</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="rock_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Shore</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="rock_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Shore</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="rr_crossing_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Intersection</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="runway_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Runway</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="saddle_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Gap</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="sand_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Ground</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="sat_stn_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Antenna</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="scatscrb_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Woodland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="scree_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Talus</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="scrub_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Woodland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="shaft_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Shaft</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="shelt_blt_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Shelterbelt</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="shingle_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Ground</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="shoal_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Bar</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="showgrd_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Show ground</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="sinkhole_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Sinkhole</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="siphon_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Siphon</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="siphon_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Siphon</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="ski_lift_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Cableway</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="ski_tow_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Cableway</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="slip_edge" model="data_dict.layer">
+    <field type="CharField" name="entity">Ground surface</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="slipway_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Boatramp</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="snow_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Snowfield</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="soakhole_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Soakhole</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="spillwy_edge" model="data_dict.layer">
+    <field type="CharField" name="entity">Spillway</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="spring_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Spring</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="sprtfld_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Sports field</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="stockyard_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Stockyard</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="swamp_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Wetland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="swamp_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Wetland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="tank_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Tank</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="tank_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Tank</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="telephn_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Transmission line</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="tower_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Tower</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="track_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Road</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="tree_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Tree</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="trig_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Control point</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="tundra_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Woodland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="tunnel_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Tunnel</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="tussock_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Woodland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="version_poly" model="data_dict.layer">
+    <field type="CharField" name="entity"></field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="vineyard_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Cropland</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="walkwire_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Bridge</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="water_r_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Watercourse</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="waterfal_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Waterfall</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="waterfal_edg" model="data_dict.layer">
+    <field type="CharField" name="entity">Waterfall</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="waterfal_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Waterfall</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="waterfal_poly" model="data_dict.layer">
+    <field type="CharField" name="entity">Waterfall</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="weir_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Dam</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="well_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Well</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="wharf_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Wharf</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="wharf_edge" model="data_dict.layer">
+    <field type="CharField" name="entity">Wharf</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="windmill_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Windmill</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="wreck_pnt" model="data_dict.layer">
+    <field type="CharField" name="entity">Wreck</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="road_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Road</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+</django-objects>
