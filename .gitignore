@@ -1,3 +1,4 @@
 linz2osm/settings_site.py
+conf/linz2osm.wsgi
 *.pyc
 *.pyo
