@@ -45,6 +45,10 @@ class Layer(models.Model):
         for t in self.tags.all():
             tags[t.tag] = t
         return tags.values()
+    
+    def get_datasets(self):
+        from linz2osm.convert.osm import get_layer_datasets
+        return get_layer_datasets(self)
 
 class TagManager(models.Manager):
     def eval(self, code, fields):

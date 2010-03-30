@@ -8,11 +8,11 @@
 {% block extrastyle %}
 {{ block.super }}
 <style type="text/css">
-    #linz_dd {
+    .rpanel {
         float: right;
         width: 45%;
     }
-    #linz_dd iframe {
+    #linz_dd {
         border: 1px solid black;
         min-height: 600px;
         width: 100%;
@@ -23,26 +23,22 @@
 </style>
 {% endblock %}
 
-{% block object-tools %}
-{% if change %}{% if not is_popup %}
-  <ul class="object-tools">
-    <li><a href="/convert/layer/{{ original.name }}/">Export</a></li>
-    <li><a href="history/" class="historylink">{% trans "History" %}</a></li>
-    {% if has_absolute_url %}
-        <li><a href="../../../r/{{ content_type_id }}/{{ object_id }}/" class="viewsitelink">
-            {% trans "View on site" %}</a>
-        </li>
-    {% endif%}
-  </ul>
-{% endif %}{% endif %}
-{% endblock %}
-
-
 {% block content %}
 {% if original %}
-<div id="linz_dd">
+<div class="rpanel">
+    {% with original.get_datasets as lds %}
+    {% if lds %}
+    <h4>Export Data:</h4>
+    <ul>
+    {% for ds in lds %}
+    <li><a href="/convert/{{ds.0}}/{{original.name}}/">{{ds.1}}</a></li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
     <h4><a href="{{ original.linz_dictionary_url}}">LINZ Data Definition</a></h4>
-    <iframe src="{{ original.linz_dictionary_url}}#nav"></iframe>
+    <iframe id="linz_dd" src="{{ original.linz_dictionary_url}}#nav"></iframe>
 </div>
 {% endif %}
 {{block.super}}

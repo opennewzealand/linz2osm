@@ -9,6 +9,15 @@ from django.utils import simplejson
 class Error(Exception):
     pass
 
+def get_layer_datasets(layer):
+    db = []
+    for ds_id, ds_info in settings.DATABASES.items():
+        if ds_id == 'default':
+            continue
+        if has_layer(ds_id, layer):
+            db.append((ds_id, ds_info.get('_description', ds_id),))
+    return db
+
 def has_layer(database_id, layer):
     cursor = connections[database_id].cursor()
     cursor.execute('SELECT count(*) FROM information_schema.tables WHERE table_name=%s;', [layer.name])

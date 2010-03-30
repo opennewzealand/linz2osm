@@ -26,10 +26,10 @@
     <ul class="errorlist"><li>{{ error|linebreaksbr }}</li></ul>
     {% endif %}
     
-    <form method="GET" action="{{request.get_full_path}}">
-        <input type="submit" class="default" value="Go Again" style="float:none">
-        or
-        <button href="../../">Head to Export Form</button>
+    <form method="POST" action="">
+        {{ form.as_p }}
+    
+        <p><input type="submit" class="default" value="Export" style="float:none"></p>
     </form>
 </div>
 {% endblock %}

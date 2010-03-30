@@ -80,22 +80,25 @@ def layer_data_export(request, dataset_id, layer_name):
     if not osm.has_layer(dataset_id, layer):
         raise Http404('Layer %s not available in dataset %s' % (layer_name, DATASETS[dataset_id]))
     
-    form = BoundsForm(request.REQUEST)
     ctx = {
         'dataset_id': dataset_id,
         'dataset_name': DATASETS[dataset_id],
         'layer': layer,
-        'form': form,
         'title': 'Export %s from %s' % (str(layer), DATASETS[dataset_id]),
     }
-    if form.is_valid():
-        try:
-            data = osm.export(dataset_id, layer, form.cleaned_data['bounds'])
-        except osm.Error, e:
-            ctx['error'] = str(e)
-        else:
-            response = HttpResponse(data, content_type='text/xml')
-            #response['Content-Disposition'] = 'attachment; filename=%s.xml' % form.cleaned_data['layer'].name
-            return response
-    
+    if request.method == "POST":
+        form = BoundsForm(request.REQUEST)
+        if form.is_valid():
+            try:
+                data = osm.export(dataset_id, layer, form.cleaned_data['bounds'])
+            except osm.Error, e:
+                ctx['error'] = str(e)
+            else:
+                response = HttpResponse(data, content_type='text/xml')
+                #response['Content-Disposition'] = 'attachment; filename=%s.xml' % form.cleaned_data['layer'].name
+                return response
+    else:
+        form = BoundsForm()
+        
+    ctx['form'] = form
     return render_to_response('convert/layer_data_export.html', ctx, context_instance=RequestContext(request))
