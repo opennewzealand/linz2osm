@@ -81,7 +81,7 @@ class _Export(object):
                     emsg += simplejson.dumps(e.data, indent=2) + "\n"
                     emsg += str(e)
                     raise Error(emsg)
-                if v is not None:
+                if (v is not None) and (v != ""):
                     row_tags[tag.tag] = v
             
             self._build_geom(row_geom, row_tags)
