@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<django-objects version="1.0">
+  <object pk="road_cl" model="data_dict.layer">
+    <field type="CharField" name="entity">Road</field>
+    <field type="TextField" name="notes"></field>
+  </object>
+  <object pk="2" model="data_dict.tag">
+    <field to="data_dict.layer" name="layer" rel="ManyToOneRel">road_cl</field>
+    <field type="CharField" name="tag">highway</field>
+    <field type="TextField" name="code">value = 'road';</field>
+  </object>
+  <object pk="11" model="data_dict.tag">
+    <field to="data_dict.layer" name="layer" rel="ManyToOneRel"><None></None></field>
+    <field type="CharField" name="tag">LINZ:source_version</field>
+    <field type="TextField" name="code">value = "V16"</field>
+  </object>
+  <object pk="10" model="data_dict.tag">
+    <field to="data_dict.layer" name="layer" rel="ManyToOneRel"><None></None></field>
+    <field type="CharField" name="tag">source_ref</field>
+    <field type="TextField" name="code">value = "http://www.linz.govt.nz/topography/topo-maps/index.aspx"</field>
+  </object>
+  <object pk="1" model="data_dict.tag">
+    <field to="data_dict.layer" name="layer" rel="ManyToOneRel">road_cl</field>
+    <field type="CharField" name="tag">name</field>
+    <field type="TextField" name="code">function capFirst(s) {
+  s = s.toLowerCase();
+  return s.substr(0,1).toUpperCase() + s.substr(1);
+}
+
+if (fields.name === null) {
+  value =null;
+} else {
+  var words = fields.name.split(" ");
+  for (var i=0; i&lt;words.length; i++) {
+    words[i] = capFirst(words[i]);
+  }
+  value = words.join(" ");
+}</field>
+  </object>
+  <object pk="9" model="data_dict.tag">
+    <field to="data_dict.layer" name="layer" rel="ManyToOneRel"><None></None></field>
+    <field type="CharField" name="tag">attribution</field>
+    <field type="TextField" name="code">value = "http://wiki.openstreetmap.org/wiki/Attribution#LINZ"</field>
+  </object>
+  <object pk="3" model="data_dict.tag">
+    <field to="data_dict.layer" name="layer" rel="ManyToOneRel">road_cl</field>
+    <field type="CharField" name="tag">LINZ:road_name_id</field>
+    <field type="TextField" name="code">value = fields.road_name_id;</field>
+  </object>
+  <object pk="4" model="data_dict.tag">
+    <field to="data_dict.layer" name="layer" rel="ManyToOneRel">road_cl</field>
+    <field type="CharField" name="tag">access</field>
+    <field type="TextField" name="code">if (fields.road_name_id) {
+  value = 'unknown';
+}</field>
+  </object>
+  <object pk="5" model="data_dict.tag">
+    <field to="data_dict.layer" name="layer" rel="ManyToOneRel">road_cl</field>
+    <field type="CharField" name="tag">surface</field>
+    <field type="TextField" name="code">switch (fields.road_surface) {
+  case "sealed":
+    value = 'paved'; break;
+  case "metalled":
+    value = 'gravel'; break;
+  case "unmetalled":
+    value = 'dirt'; break;
+}</field>
+  </object>
+  <object pk="6" model="data_dict.tag">
+    <field to="data_dict.layer" name="layer" rel="ManyToOneRel">road_cl</field>
+    <field type="CharField" name="tag">lanes</field>
+    <field type="TextField" name="code">value = fields.road_number_of_lanes;</field>
+  </object>
+  <object pk="7" model="data_dict.tag">
+    <field to="data_dict.layer" name="layer" rel="ManyToOneRel">road_cl</field>
+    <field type="CharField" name="tag">ref</field>
+    <field type="TextField" name="code">if (fields.road_highway_number &gt; 0) {
+  value = fields.road_highw;
+}</field>
+  </object>
+  <object pk="8" model="data_dict.tag">
+    <field to="data_dict.layer" name="layer" rel="ManyToOneRel">road_cl</field>
+    <field type="CharField" name="tag">oneway</field>
+    <field type="TextField" name="code">if (fields.road_one_way_two_way == 'one way') {
+  value = 'yes';
+}</field>
+  </object>
+</django-objects>
