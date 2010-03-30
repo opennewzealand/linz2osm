@@ -9,7 +9,7 @@ if settings.DEBUG:
         (r'^media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
     )
 else:
-    urlpatterns = patterns('', ())
+    urlpatterns = patterns('')
 
 urlpatterns += patterns('',
     (r'data_dict/tag/eval/$', 'data_dict.views.tag_eval'),
