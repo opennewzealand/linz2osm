@@ -1,0 +1,11 @@
+import os
+import sys
+import site
+ 
+site.addsitedir('/path/to/virtualenv/lib/python2.5/site-packages')
+ 
+os.environ['DJANGO_SETTINGS_MODULE'] = 'linz2osm.settings'
+ 
+import django.core.handlers.wsgi
+
+application = django.core.handlers.wsgi.WSGIHandler()
