@@ -110,7 +110,7 @@ class _Export(object):
         else:
             for i,ring in enumerate(geom):
                 w_id = self._build_way(ring.tuple, None, True)
-                ElementTree.SubElement(r, 'member', id=w_id, role=('outer' if (i == 0) else 'inner'))
+                ElementTree.SubElement(r, 'member', type="way", ref=w_id, role=('outer' if (i == 0) else 'inner'))
 
         if not root:
             self.n_create.append(r)
