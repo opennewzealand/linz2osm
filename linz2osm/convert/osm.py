@@ -60,7 +60,7 @@ class _Export(object):
         if bbox is None:
             cursor.execute(sql_base)
         else:
-            sql = sql_base + ' WHERE %s && st_transform(st_setsrid(ST_MakeBox2D(ST_MakePoint(%%s, %%s), ST_MakePoint(%%s, %%s)), 4326), %d)' % (geom_column, db_info['_srid'])
+            sql = sql_base + ' WHERE setsrid(%s,%d) && st_transform(st_setsrid(ST_MakeBox2D(ST_MakePoint(%%s, %%s), ST_MakePoint(%%s, %%s)), 4326), %d)' % (geom_column, db_info['_srid'], db_info['_srid'])
             cursor.execute(sql, bbox)
         
         for row in cursor:
