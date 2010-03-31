@@ -95,7 +95,7 @@ def layer_data_export(request, dataset_id, layer_name):
                 ctx['error'] = str(e)
             else:
                 response = HttpResponse(data, content_type='text/xml')
-                #response['Content-Disposition'] = 'attachment; filename=%s.xml' % form.cleaned_data['layer'].name
+                response['Content-Disposition'] = 'attachment; filename=%s.osm' % form.cleaned_data['layer'].name
                 return response
     else:
         form = BoundsForm()
