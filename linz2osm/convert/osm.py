@@ -5,29 +5,41 @@ from django.db import connections
 from django.conf import settings
 from django.contrib.gis import geos
 from django.utils import simplejson
+from django.core.cache import cache
 
 class Error(Exception):
     pass
 
 def get_layer_datasets(layer):
-    db = []
-    for ds_id, ds_info in settings.DATABASES.items():
-        if ds_id == 'default':
-            continue
-        if has_layer(ds_id, layer):
-            db.append((ds_id, ds_info.get('_description', ds_id),))
-    return db
+    r = cache.get('convert:osm:layer_datasets:%s' % layer.name)
+    if r is None:
+        r = []
+        for ds_id, ds_info in settings.DATABASES.items():
+            if ds_id == 'default':
+                continue
+            if has_layer(ds_id, layer):
+                r.append((ds_id, ds_info.get('_description', ds_id),))
+        cache.set('convert:osm:layer_datasets:%s' % layer, r)
+    return r
 
 def has_layer(database_id, layer):
-    cursor = connections[database_id].cursor()
-    cursor.execute('SELECT count(*) FROM information_schema.tables WHERE table_name=%s;', [layer.name])
-    count = cursor.fetchone()[0]
-    return (count == 1)
+    r = cache.get('convert:osm:has_layer:%s:%s' % (database_id, layer.name))
+    if r is None:
+        cursor = connections[database_id].cursor()
+        cursor.execute('SELECT count(*) FROM information_schema.tables WHERE table_name=%s;', [layer.name])
+        count = cursor.fetchone()[0]
+        r = (count == 1)
+        cache.set('convert:osm:has_layer:%s:%s' % (database_id, layer.name), r)
+    return r
 
 def dataset_tables(database_id):
-    cursor = connections[database_id].cursor()
-    cursor.execute('SELECT table_name FROM information_schema.tables;')
-    return [r[0] for r in cursor]
+    r = cache.get('convert:osm:dataset_tables:%s' % database_id)
+    if r is None:
+        cursor = connections[database_id].cursor()
+        cursor.execute('SELECT table_name FROM information_schema.tables;')
+        r = [row[0] for row in cursor]
+        cache.set('convert:osm:dataset_tables:%s' % database_id, r)
+    return r
 
 def export(database_id, layer, bbox=None):
     e = _Export(database_id, layer, bbox)

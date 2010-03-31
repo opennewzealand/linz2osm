@@ -9,7 +9,7 @@ class TagInline(admin.StackedInline):
     verbose_name_plural = 'Tags'
 
 class LayerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'entity', 'get_geometry_type_display', 'tag_count', 'notes',)
+    list_display = ('name', 'entity', 'get_geometry_type_display', 'tag_count', 'datasets', 'notes',)
     list_filter = ('entity',)
     inlines = [
         TagInline,
@@ -27,6 +27,12 @@ class LayerAdmin(admin.ModelAdmin):
     def tag_count(self, obj):
         return obj.tags.count()
     tag_count.short_description = 'Defined Tags'
+    
+    def datasets(self, obj):
+        ds = [desc for id,desc in obj.get_datasets()]
+        ds.sort()   # make them in a consistent order
+        return ", ".join(ds)
+    tag_count.short_description = 'Available in' 
 
 class TagAdmin(admin.ModelAdmin):
     list_display = ('tag',)

@@ -24,6 +24,7 @@ Install
 
  * run `manage.py syncdb` to build the DB tables. Creating a user is a 
    good idea.
+ * run `manage.py createcachetable django_cache` to add a cache table.
  
  * run `manage.py loaddata v16_layers` to populate the layer models.
  * run `manage.py loaddata example_tags` to load some example tags for road_cl,

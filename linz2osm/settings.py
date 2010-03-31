@@ -94,9 +94,7 @@ INSTALLED_APPS = (
 
 TEST_RUNNER='django.contrib.gis.tests.run_tests'
 
-LINZ_DATASETS = {
-    #name : (connection-string, srid)
-}
+CACHE_BACKEND = 'db://django_cache'
 
 # Override anything here with a settings_site.py file
 try:
