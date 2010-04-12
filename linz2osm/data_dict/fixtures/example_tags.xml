@@ -17,7 +17,7 @@
   <object pk="10" model="data_dict.tag">
     <field to="data_dict.layer" name="layer" rel="ManyToOneRel"><None></None></field>
     <field type="CharField" name="tag">source_ref</field>
-    <field type="TextField" name="code">value = "http://www.linz.govt.nz/topography/topo-maps/index.aspx"</field>
+    <field type="TextField" name="code">value = "http://www.linz.govt.nz/topography/topo-maps/"</field>
   </object>
   <object pk="1" model="data_dict.tag">
     <field to="data_dict.layer" name="layer" rel="ManyToOneRel">road_cl</field>
@@ -40,7 +40,7 @@ if (fields.name === null) {
   <object pk="9" model="data_dict.tag">
     <field to="data_dict.layer" name="layer" rel="ManyToOneRel"><None></None></field>
     <field type="CharField" name="tag">attribution</field>
-    <field type="TextField" name="code">value = "http://wiki.openstreetmap.org/wiki/Attribution#LINZ"</field>
+    <field type="TextField" name="code">value = "http://wiki.osm.org/wiki/Attribution#LINZ"</field>
   </object>
   <object pk="3" model="data_dict.tag">
     <field to="data_dict.layer" name="layer" rel="ManyToOneRel">road_cl</field>
