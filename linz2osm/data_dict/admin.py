@@ -32,7 +32,7 @@ class LayerAdmin(admin.ModelAdmin):
         ds = [desc for id,desc in obj.get_datasets()]
         ds.sort()   # make them in a consistent order
         return ", ".join(ds)
-    tag_count.short_description = 'Available in' 
+    datasets.short_description = 'Available in' 
 
 class TagAdmin(admin.ModelAdmin):
     list_display = ('tag',)
