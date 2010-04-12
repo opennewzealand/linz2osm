@@ -146,7 +146,11 @@ class _Export(object):
         return w.get('id')
     
     def _build_geom(self, geom, tags):
-        if isinstance(geom, (geos.MultiPolygon, geos.Polygon)):
+        if isinstance(geom, geos.Polygon) and len(geom) == 1:
+            # single-ring polygons are built as ways
+            self._build_way(geom[0].tuple, tags)
+            
+        elif isinstance(geom, (geos.MultiPolygon, geos.Polygon)):
             self._build_polygon(geom, tags)
     
         elif isinstance(geom, geos.GeometryCollection):
