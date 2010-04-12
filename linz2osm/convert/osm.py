@@ -1,4 +1,5 @@
 from xml.etree import ElementTree
+from xml.dom import minidom
 from cStringIO import StringIO
 
 from django.db import connections
@@ -43,6 +44,9 @@ def dataset_tables(database_id):
 
 def export(database_id, layer, bbox=None):
     e = _Export(database_id, layer, bbox)
+
+    e.prettify_tree()
+    
     s = StringIO()
     e.tree.write(s, 'utf-8')
     return s.getvalue()
@@ -171,3 +175,20 @@ class _Export(object):
         if tags:
             for tn,tv in tags.items():
                 ElementTree.SubElement(parent_node, 'tag', k=tn, v=str(tv))
+    
+    def prettify_tree(self):
+        self._etree_indent(self.tree.getroot())
+
+    def _etree_indent(self, elem, level=0):
+        i = "\n" + level*"  "
+        if len(elem):
+            if not elem.text or not elem.text.strip():
+                elem.text = i + "  "
+            for e in elem:
+                self._etree_indent(e, level+1)
+            if not e.tail or not e.tail.strip():
+                e.tail = i
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
+
+        
