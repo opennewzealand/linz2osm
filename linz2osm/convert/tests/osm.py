@@ -190,8 +190,40 @@ class TestWriter(unittest.TestCase):
         
         l = [(x, -x) for x in range(4500)]
         self.assertRaises(osm.Error, w.build_way, l, {})
-
-
+    
+    def test_geom(self):
+        geoms = (
+        #   #nodes, #ways, #relations, geom
+            (1, 0, 0, geos.Point(0,0) ),
+            (2, 1, 0, geos.LineString([(0,0), (1,1)]) ),
+            # polygons with a single ring are written as circular ways
+            (3, 1, 0, geos.Polygon([(0,0), (1,1), (2,0), (0,0)]) ),
+            # otherwise they're written as relations
+            (6, 2, 1, geos.Polygon([(0,0), (10,10), (20,0), (0,0)], [(8,2), (10,4), (12,2), (8,2)]) ),
+            (2, 0, 0, geos.MultiPoint(geos.Point(0,0), geos.Point(10,10)) ),
+            (4, 2, 0, geos.MultiLineString(
+                geos.LineString([(0, 0), (1, 1)]), 
+                geos.LineString([(10,10), (11,11)]) )),
+            (9, 3, 1, geos.MultiPolygon(
+                geos.Polygon([(0,0), (1,1), (2,0), (0,0)]),
+                geos.Polygon([(0,0), (10,10), (20,0), (0,0)], [(8,2), (10,4), (12,2), (8,2)]) )),
+            (3, 1, 0, geos.GeometryCollection(
+                geos.Point(0,0),
+                geos.LineString([(0,0), (1,1)]) )),
+        )
+        
+        for i, (node_count, way_count, relation_count, geom) in enumerate(geoms):
+            w = osm.OSMWriter()
+            
+            print "#%d: %s" % (i, geom.wkt)
+            w.build_geom(geom, {})
+            print w.xml()
+            
+            self.assertEqual(len(w.tree.findall('/create/node')), node_count)
+            self.assertEqual(len(w.tree.findall('/create/way')), way_count)
+            self.assertEqual(len(w.tree.findall('/create/relation')), relation_count)
+            
+    
 
 
         

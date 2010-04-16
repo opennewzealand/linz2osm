@@ -130,7 +130,7 @@ class OSMWriter(object):
                 self.build_polygon(g, tags, r)
         else:
             for i,ring in enumerate(geom):
-                w_id = self.build_way(ring.tuple, None, True)
+                w_id = self.build_way(ring.tuple, None)
                 ElementTree.SubElement(r, 'member', type="way", ref=w_id, role=('outer' if (i == 0) else 'inner'))
 
         if not root:
