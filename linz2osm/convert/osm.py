@@ -93,6 +93,8 @@ def export(database_id, layer, bbox=None):
     return writer.xml()
 
 class OSMWriter(object):
+    WAY_SPLIT_SIZE = 495
+    
     def __init__(self, id_hash=None):
         self.n_root = ElementTree.Element('osmChange', version="0.6", generator="linz2osm")
         self.n_create = ElementTree.SubElement(self.n_root, 'create', version="0.6", generator="linz2osm")
@@ -142,23 +144,40 @@ class OSMWriter(object):
             self.n_create.append(r)
         return [r.get('id')]
             
-    def build_way(self, coords, tags):
-        if len(coords) > 2000:
-            raise Error("Too many nodes (%d/2000) in a way: splitting is unsupported!" % len(coords))
-        
-        w = ElementTree.Element('way', id=self.next_id)
+    def build_way(self, coords, tags, split_relation=True):
+        ids = []
+        rem_coords = coords[:]
         node_map = {}
-        for i,c in enumerate(coords):
-            n_id = node_map.get(c)
-            if n_id is None:
-                n_id = self.next_id
-                ElementTree.SubElement(self.n_create, 'node', id=n_id, lat=str(c[1]), lon=str(c[0]))
-                node_map[c] = n_id
+        while True:
+            w = ElementTree.Element('way', id=self.next_id)
             
-            ElementTree.SubElement(w, 'nd', ref=n_id)
-        self.build_tags(w, tags)
-        self.n_create.append(w)
-        return [w.get('id')]
+            cur_coords = rem_coords[:self.WAY_SPLIT_SIZE]
+            rem_coords = rem_coords[self.WAY_SPLIT_SIZE-1:]
+                        
+            for i,c in enumerate(cur_coords):
+                n_id = node_map.get(c)
+                if n_id is None:
+                    n_id = self.next_id
+                    ElementTree.SubElement(self.n_create, 'node', id=n_id, lat=str(c[1]), lon=str(c[0]))
+                    node_map[c] = n_id
+                
+                ElementTree.SubElement(w, 'nd', ref=n_id)
+            self.build_tags(w, tags)
+            self.n_create.append(w)
+            ids.append(w.get('id'))
+            
+            if len(rem_coords) < 2:
+                break
+        
+        if split_relation and len(ids) > 1:
+            r = ElementTree.SubElement(self.n_create, 'relation', id=self.next_id)
+            ElementTree.SubElement(r, 'tag', k='type', v='collection')
+            self.build_tags(r, tags)
+            
+            for way_id in ids:
+                ElementTree.SubElement(r, 'member', type='way', ref=way_id, role='member')
+        
+        return ids
 
     def build_node(self, geom, tags):
         n = ElementTree.SubElement(self.n_create, 'node', id=self.next_id, lat=str(geom.y), lon=str(geom.x))

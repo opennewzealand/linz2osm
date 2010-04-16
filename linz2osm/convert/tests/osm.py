@@ -216,12 +216,55 @@ class TestWriter(unittest.TestCase):
         self.assertEqual(wn.getchildren()[0].get('ref'), wn.getchildren()[3].get('ref'))
     
     def test_way_split(self):
-        #TODO
         w = osm.OSMWriter()
         
         l = [(x, -x) for x in range(4500)]
-        self.assertRaises(osm.Error, w.build_way, l, {})
+        
+        ids = w.build_way(l, {'mytag':'myvalue'})
+        #print w.xml()
+        
+        self.assert_(len(ids) > 0, "Expected >1 ID returned")
+        ways = w.tree.findall('/create/way')
+        self.assertEqual(len(ways), len(ids))
+        way_map = dict([(ww.get('id'), ww) for ww in ways])
+
+        # <node>'s shouldn't be repeated
+        nodes = w.tree.findall('/create/node')
+        self.assertEqual(len(nodes), 4500)
+        node_map = dict([(nn.get('id'), nn) for nn in nodes])
+
+        self.assertEqual(len(w.tree.findall('/create/relation')), 1)
+        rel = w.tree.find('/create/relation')
     
+        # tags should be on the <relation>
+        rel_tags = rel.findall('tag')
+        self.assertEqual(len(rel_tags), 2)
+        self.assertEqual(rel_tags[0].get('k'), 'type')
+        self.assertEqual(rel_tags[0].get('v'), 'collection')
+        self.assertEqual(rel_tags[1].get('k'), 'mytag')
+        
+        rel_members = rel.findall('member')
+        print "<relation> has %d members" % len(rel_members)
+        self.assert_(len(rel_members) > 1, "Expected >1 member")
+        self.assert_(len(rel_members) < 4500, "Expected <4500 members")
+        prev_way = None
+        total_nodes = 0
+        for i,rm in enumerate(rel_members):
+            self.assertEqual(rm.get('type'), 'way')
+            self.assertEqual(rm.get('role'), 'member')
+            way = way_map[rm.get('ref')]
+            way_nd = way.findall('nd')
+            if prev_way:
+                # 1st <nd> of the current way should be last <nd> from the previous way 
+                self.assertEqual(way_nd[0].get('ref'), prev_way.findall('nd')[-1].get('ref'))
+            total_nodes += len(way_nd) - (1 if prev_way else 0)
+            
+            self.assertEqual(len(way.findall('tag')), 1)
+            self.assertEqual(way.find('tag').get('k'), 'mytag')
+            prev_way = way
+        
+        self.assertEqual(total_nodes, 4500)
+        
     def test_geom(self):
         geoms = (
         #   #nodes, #ways, #relations, #tags, geom
