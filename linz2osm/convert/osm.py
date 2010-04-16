@@ -98,7 +98,7 @@ class OSMWriter(object):
         self.n_create = ElementTree.SubElement(self.n_root, 'create', version="0.6", generator="linz2osm")
         self.tree = ElementTree.ElementTree(self.n_root)
     
-    def add_feature(self, geom, tags):
+    def add_feature(self, geom, tags=None):
         self.build_geom(geom, tags)
     
     def xml(self):
