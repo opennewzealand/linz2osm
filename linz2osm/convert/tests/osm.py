@@ -75,6 +75,6 @@ class TestWriter(unittest.TestCase):
         
         # long tags
         parent = ElementTree.Element('parent')
-        self.assertRaises(osm.ValueError, w.build_tags, parent, {'*' * 256: 'v'})
-        self.assertRaises(osm.ValueError, w.build_tags, parent, {'t': '*' * 256})
+        self.assertRaises(osm.Error, w.build_tags, parent, {'*' * 256: 'v'})
+        self.assertRaises(osm.Error, w.build_tags, parent, {'t': '*' * 256})
 

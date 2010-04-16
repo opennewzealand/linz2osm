@@ -182,7 +182,12 @@ class OSMWriter(object):
     def build_tags(self, parent_node, tags):
         if tags:
             for tn,tv in tags.items():
-                ElementTree.SubElement(parent_node, 'tag', k=tn, v=unicode(tv))
+                if len(tn) > 255:
+                    raise Error(u'Tag key too long (max. 255 chars): %s' % tn)
+                tv = unicode(tv)
+                if len(tv) > 255:
+                    raise Error(u'Tag value too long (max. 255 chars): %s' % tv)
+                ElementTree.SubElement(parent_node, 'tag', k=tn, v=tv)
     
     def _etree_indent(self, elem, level=0):
         i = "\n" + level*"  "
