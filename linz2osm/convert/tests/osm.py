@@ -36,15 +36,10 @@ class TestWriter(unittest.TestCase):
         id = w.build_node(geos.Point(234, 567), [])
         self.assertEqual(len(w.tree.findall('//node')), 2)
     
-    def test_tags(self):
+    def test_tags_single(self):
         w = osm.OSMWriter()
-        
         parent = ElementTree.Element('parent')
-        # should be able to call with empty dicts
-        w.build_tags(parent, {})
-        w.build_tags(parent, None)
         
-        # single tag
         w.build_tags(parent, {'t1': 'v1'})
         self.assertEqual(len(parent.getchildren()), 1)
         tn = parent.getchildren()[0]
@@ -52,7 +47,16 @@ class TestWriter(unittest.TestCase):
         self.assertEqual(tn.get('k'), 't1')
         self.assertEqual(tn.get('v'), 'v1')
     
-        # multiple tags
+    def test_tags_empty(self):
+        # should be able to call with empty dicts
+        w = osm.OSMWriter()
+        parent = ElementTree.Element('parent')
+
+        w.build_tags(parent, {})
+        w.build_tags(parent, None)
+        
+    def test_tags_multiple(self):
+        w = osm.OSMWriter()
         parent = ElementTree.Element('parent')
         w.build_tags(parent, {'t0': 'v0', 't1': 'v1'})
         self.assertEqual(len(parent.getchildren()), 2)
@@ -61,20 +65,23 @@ class TestWriter(unittest.TestCase):
             self.assertEqual(tn.get('k'), 't%d' % i)
             self.assertEqual(tn.get('v'), 'v%d' % i)
         
-        # unicode tags
+    def test_tags_unicode(self):
+        w = osm.OSMWriter()
         parent = ElementTree.Element('parent')
         w.build_tags(parent, {u'unicode_tag: \xe4\xf6\xfc': u'unicode_value: \xe4\xf6\xfc'})
         tn = parent.getchildren()[0]
         self.assertEqual(tn.get('k'), u'unicode_tag: \xe4\xf6\xfc')
         self.assertEqual(tn.get('v'), u'unicode_value: \xe4\xf6\xfc')
     
-        # can pass in non-string values
+    def test_tags_nonstring(self):
+        w = osm.OSMWriter()
         parent = ElementTree.Element('parent')
         w.build_tags(parent, {'t1': 7})
         tn = parent.getchildren()[0]
         self.assertEqual(tn.get('v'), '7')
-        
-        # long tags
+
+    def test_tags_long(self):
+        w = osm.OSMWriter()
         parent = ElementTree.Element('parent')
         self.assertRaises(osm.Error, w.build_tags, parent, {'*' * 256: 'v'})
         self.assertRaises(osm.Error, w.build_tags, parent, {'t': '*' * 256})
