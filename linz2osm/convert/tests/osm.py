@@ -163,7 +163,27 @@ class TestWriter(unittest.TestCase):
         
         self.assertEqual(wn.getchildren()[0].get('ref'), wn.getchildren()[3].get('ref'))
 
+    def test_way_crossover(self):
+        w = osm.OSMWriter()
 
+        l = ((0,0), (1,1), (2,0), (0,0), (-1,-1),)
+
+        id = w.build_way(l, {})
+        print w.xml()
+        
+        wn = w.tree.find('/create/way')
+        nodes = w.tree.findall('/create/node') 
+        self.assertEqual(len(nodes), 4) # not 4!
+        node_map = dict([(nn.get('id'), nn) for nn in nodes])
+        
+        self.assertEqual(len(wn.getchildren()), 5)
+        for i,nc in enumerate(wn.getchildren()):
+            node_ref = nc.get('ref')
+            node_el = node_map.get(node_ref)
+            self.assert_(node_el is not None)
+        
+        self.assertEqual(wn.getchildren()[0].get('ref'), wn.getchildren()[3].get('ref'))
+        
 
 
 
