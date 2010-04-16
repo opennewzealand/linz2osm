@@ -72,3 +72,9 @@ class TestWriter(unittest.TestCase):
         w.build_tags(parent, {'t1': 7})
         tn = parent.getchildren()[0]
         self.assertEqual(tn.get('v'), '7')
+        
+        # long tags
+        parent = ElementTree.Element('parent')
+        self.assertRaises(osm.ValueError, w.build_tags, parent, {'*' * 256: 'v'})
+        self.assertRaises(osm.ValueError, w.build_tags, parent, {'t': '*' * 256})
+
