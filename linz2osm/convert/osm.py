@@ -182,7 +182,7 @@ class OSMWriter(object):
     def build_tags(self, parent_node, tags):
         if tags:
             for tn,tv in tags.items():
-                ElementTree.SubElement(parent_node, 'tag', k=tn, v=str(tv))
+                ElementTree.SubElement(parent_node, 'tag', k=tn, v=unicode(tv))
     
     def _etree_indent(self, elem, level=0):
         i = "\n" + level*"  "
