@@ -1,5 +1,5 @@
 from xml.etree import ElementTree
-from xml.dom import minidom
+import hashlib
 from cStringIO import StringIO
 
 from django.db import connections
@@ -93,10 +93,16 @@ def export(database_id, layer, bbox=None):
     return writer.xml()
 
 class OSMWriter(object):
-    def __init__(self):
+    def __init__(self, id_hash=None):
         self.n_root = ElementTree.Element('osmChange', version="0.6", generator="linz2osm")
         self.n_create = ElementTree.SubElement(self.n_root, 'create', version="0.6", generator="linz2osm")
         self.tree = ElementTree.ElementTree(self.n_root)
+
+        if id_hash is None:
+            self._id = 0
+        else:
+            h = hashlib.sha1(unicode(id_hash).encode('utf8')).hexdigest()
+            self._id = -1 * int(h[:6], 16)
     
     def add_feature(self, geom, tags=None):
         self.build_geom(geom, tags)
@@ -111,9 +117,7 @@ class OSMWriter(object):
     
     @property
     def next_id(self):
-        if not hasattr(self, '_id'):
-            self._id = 0
-        
+        """ Return a unique ID. """
         self._id -= 1
         return str(self._id)
     

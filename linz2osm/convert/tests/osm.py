@@ -15,6 +15,25 @@ class TestWriter(unittest.TestCase):
         id1 = w.next_id
         self.assert_(int(id1) < 0, "Expected ID <0, got %s" % id0)
         self.assertNotEqual(int(id1), int(id0))
+
+    def test_id_hash(self):
+        w = osm.OSMWriter()
+        self.assertEqual(int(w.next_id), -1)
+        
+        w = osm.OSMWriter('bob')
+        id = int(w.next_id)
+        self.assert_(id < 0, "Expected ID <0, got %s" % id)
+        self.assertNotEqual(id, -1)
+
+        w = osm.OSMWriter(777)
+        id = int(w.next_id)
+        self.assert_(id < 0, "Expected ID <0, got %s" % id)
+        self.assertNotEqual(id, -1)
+
+        w = osm.OSMWriter(u'unicode: \xe4\xf6\xfc')
+        id = int(w.next_id)
+        self.assert_(id < 0, "Expected ID <0, got %s" % id)
+        self.assertNotEqual(id, -1)
     
     def test_node(self):
         w = osm.OSMWriter()
