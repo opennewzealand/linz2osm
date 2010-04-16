@@ -24,6 +24,7 @@ class TestWriter(unittest.TestCase):
 
         n = w.tree.find('/create/node')
         self.assert_(n is not None, "Couldn't find <node>")
+        self.assertEqual(n.get('id'), id)
         
         self.assertEqual(len(w.tree.findall('//node')), 1)
         
@@ -78,3 +79,93 @@ class TestWriter(unittest.TestCase):
         self.assertRaises(osm.Error, w.build_tags, parent, {'*' * 256: 'v'})
         self.assertRaises(osm.Error, w.build_tags, parent, {'t': '*' * 256})
 
+    def test_way_simple(self):
+        w = osm.OSMWriter()
+
+        l = ((1,1), (2,2), (3,3),)
+
+        id = w.build_way(l, {})
+        print w.xml()
+        
+        n = w.tree.find('/create/way')
+        self.assert_(n is not None, "Couldn't find <way>")
+        
+        self.assertEqual(len(w.tree.findall('//way')), 1)
+
+        nodes = w.tree.findall('/create/node') 
+        self.assertEqual(len(nodes), 3)
+        node_map = dict([(nn.get('id'), nn) for nn in nodes])
+        
+        self.assert_(int(n.get('id')) < 0, "ID < 0")
+        self.assertEqual(n.get('id'), id)
+        self.assertEqual(len(n.getchildren()), 3)
+        for i in range(3):
+            nc = n.getchildren()[i]
+            self.assertEqual(nc.tag, 'nd')
+            node_ref = nc.get('ref')
+            self.assert_(node_ref)
+            node_el = node_map.get(node_ref)
+            self.assert_(node_el is not None)
+            self.assertEqual(float(node_el.get('lon')), l[i][0])
+            self.assertEqual(float(node_el.get('lat')), l[i][1])
+    
+    def test_way_multiple(self):
+        w = osm.OSMWriter()
+
+        l = (
+            ((1,1), (2,2), (3,3),),
+            ((2,2), (3,3), (4,4),),
+        )
+
+        ids = (
+            w.build_way(l[0], {}),
+            w.build_way(l[1], {}),
+        )
+        print w.xml()
+        
+        ways = w.tree.findall('/create/way')
+        self.assertEqual(len(w.tree.findall('//way')), 2)
+
+        nodes = w.tree.findall('/create/node') 
+        self.assertEqual(len(nodes), 6)
+        node_map = dict([(nn.get('id'), nn) for nn in nodes])
+        
+        for j,wn in enumerate(ways):
+            self.assertEqual(len(wn.getchildren()), 3)
+            for i in range(3):
+                nc = wn.getchildren()[i]
+                self.assertEqual(nc.tag, 'nd')
+                node_ref = nc.get('ref')
+                self.assert_(node_ref)
+                node_el = node_map.get(node_ref)
+                self.assert_(node_el is not None)
+                self.assertEqual(float(node_el.get('lon')), l[j][i][0])
+                self.assertEqual(float(node_el.get('lat')), l[j][i][1])
+    
+    def test_way_circular(self):
+        w = osm.OSMWriter()
+
+        l = ((0,0), (1,1), (2,0), (0,0),)
+
+        id = w.build_way(l, {})
+        print w.xml()
+        
+        wn = w.tree.find('/create/way')
+        nodes = w.tree.findall('/create/node') 
+        self.assertEqual(len(nodes), 3) # not 4!
+        node_map = dict([(nn.get('id'), nn) for nn in nodes])
+        
+        self.assertEqual(len(n.getchildren()), 4)
+        for i,nc in enumerate(n.getchildren()):
+            node_ref = nc.get('ref')
+            node_el = node_map.get(node_ref)
+            self.assert_(node_el is not None)
+        
+        self.assertEqual(n.getchildren()[0].get('ref'), n.getchildren()[3].get('ref'))
+
+
+
+
+
+
+        

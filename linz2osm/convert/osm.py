@@ -137,19 +137,19 @@ class OSMWriter(object):
             self.n_create.append(r)
         return r.get('id')
             
-    def build_way(self, coords, tags, poly=False):
+    def build_way(self, coords, tags, *args):
         assert len(coords) <= 2000, "Too many nodes in a way: splitting is unsupported!"
         
         w = ElementTree.Element('way', id=self.next_id)
-        n_id_0 = self.next_id
-        n_id = n_id_0
-        for i,(cx,cy) in enumerate(coords):
-            if i == (len(coords)-1):
-                n_id = n_id_0
-            else:
-                ElementTree.SubElement(self.n_create, 'node', id=n_id, lat=str(cy), lon=str(cx))
+        node_map = {}
+        for i,c in enumerate(coords):
+            n_id = node_map.get(c)
+            if n_id is None:
+                n_id = self.next_id
+                ElementTree.SubElement(self.n_create, 'node', id=n_id, lat=str(c[1]), lon=str(c[0]))
+                node_map[c] = n_id
+            
             ElementTree.SubElement(w, 'nd', ref=n_id)
-            n_id = self.next_id
         self.build_tags(w, tags)
         self.n_create.append(w)
         return w.get('id')
