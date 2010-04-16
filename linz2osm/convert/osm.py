@@ -137,8 +137,9 @@ class OSMWriter(object):
             self.n_create.append(r)
         return r.get('id')
             
-    def build_way(self, coords, tags, *args):
-        assert len(coords) <= 2000, "Too many nodes in a way: splitting is unsupported!"
+    def build_way(self, coords, tags):
+        if len(coords) > 2000:
+            raise Error("Too many nodes (%d/2000) in a way: splitting is unsupported!" % len(coords))
         
         w = ElementTree.Element('way', id=self.next_id)
         node_map = {}

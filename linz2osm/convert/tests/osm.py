@@ -183,7 +183,13 @@ class TestWriter(unittest.TestCase):
             self.assert_(node_el is not None)
         
         self.assertEqual(wn.getchildren()[0].get('ref'), wn.getchildren()[3].get('ref'))
+    
+    def test_way_split(self):
+        #TODO
+        w = osm.OSMWriter()
         
+        l = [(x, -x) for x in range(4500)]
+        self.assertRaises(osm.Error, w.build_way, l, {})
 
 
 
