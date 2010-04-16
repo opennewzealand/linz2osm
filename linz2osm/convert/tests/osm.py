@@ -48,7 +48,7 @@ class TestWriter(unittest.TestCase):
 
         n = w.tree.find('/create/node')
         self.assert_(n is not None, "Couldn't find <node>")
-        self.assertEqual(n.get('id'), id)
+        self.assertEqual(n.get('id'), id[0])
         
         self.assertEqual(len(w.tree.findall('//node')), 1)
         
@@ -128,7 +128,7 @@ class TestWriter(unittest.TestCase):
         node_map = dict([(nn.get('id'), nn) for nn in nodes])
         
         self.assert_(int(n.get('id')) < 0, "ID < 0")
-        self.assertEqual(n.get('id'), id)
+        self.assertEqual(n.get('id'), id[0])
         self.assertEqual(len(n.getchildren()), 3)
         for i in range(3):
             nc = n.getchildren()[i]

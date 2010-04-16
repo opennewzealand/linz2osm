@@ -134,12 +134,13 @@ class OSMWriter(object):
                 self.build_polygon(g, tags, r)
         else:
             for i,ring in enumerate(geom):
-                w_id = self.build_way(ring.tuple, None)
-                ElementTree.SubElement(r, 'member', type="way", ref=w_id, role=('outer' if (i == 0) else 'inner'))
+                w_ids = self.build_way(ring.tuple, None)
+                for w_id in w_ids:
+                    ElementTree.SubElement(r, 'member', type="way", ref=w_id, role=('outer' if (i == 0) else 'inner'))
 
         if not root:
             self.n_create.append(r)
-        return r.get('id')
+        return [r.get('id')]
             
     def build_way(self, coords, tags):
         if len(coords) > 2000:
@@ -157,12 +158,12 @@ class OSMWriter(object):
             ElementTree.SubElement(w, 'nd', ref=n_id)
         self.build_tags(w, tags)
         self.n_create.append(w)
-        return w.get('id')
+        return [w.get('id')]
 
     def build_node(self, geom, tags):
         n = ElementTree.SubElement(self.n_create, 'node', id=self.next_id, lat=str(geom.y), lon=str(geom.x))
         self.build_tags(n, tags)
-        return n.get('id')
+        return [n.get('id')]
     
     def build_geom(self, geom, tags):
         if isinstance(geom, geos.Polygon) and len(geom) == 1:
@@ -176,7 +177,7 @@ class OSMWriter(object):
             # FIXME: Link together as a relation?
             ids = []
             for g in geom:
-                ids.append(self.build_geom(g, tags))
+                ids += self.build_geom(g, tags)
             return ids
         
         elif isinstance(geom, geos.Point):
