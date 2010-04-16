@@ -163,22 +163,25 @@ class OSMWriter(object):
     def build_geom(self, geom, tags):
         if isinstance(geom, geos.Polygon) and len(geom) == 1:
             # single-ring polygons are built as ways
-            self.build_way(geom[0].tuple, tags)
+            return self.build_way(geom[0].tuple, tags)
             
         elif isinstance(geom, (geos.MultiPolygon, geos.Polygon)):
-            self.build_polygon(geom, tags)
+            return self.build_polygon(geom, tags)
     
         elif isinstance(geom, geos.GeometryCollection):
+            # FIXME: Link together as a relation?
+            ids = []
             for g in geom:
-                self.build_geom(g, tags)
+                ids.append(self.build_geom(g, tags))
+            return ids
         
         elif isinstance(geom, geos.Point):
             # node
-            self.build_node(geom, tags)
+            return self.build_node(geom, tags)
         
         elif isinstance(geom, geos.LineString):
             # way
-            self.build_way(geom.tuple, tags)
+            return self.build_way(geom.tuple, tags)
     
     def build_tags(self, parent_node, tags):
         if tags:
