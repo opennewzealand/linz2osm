@@ -155,13 +155,13 @@ class TestWriter(unittest.TestCase):
         self.assertEqual(len(nodes), 3) # not 4!
         node_map = dict([(nn.get('id'), nn) for nn in nodes])
         
-        self.assertEqual(len(n.getchildren()), 4)
-        for i,nc in enumerate(n.getchildren()):
+        self.assertEqual(len(wn.getchildren()), 4)
+        for i,nc in enumerate(wn.getchildren()):
             node_ref = nc.get('ref')
             node_el = node_map.get(node_ref)
             self.assert_(node_el is not None)
         
-        self.assertEqual(n.getchildren()[0].get('ref'), n.getchildren()[3].get('ref'))
+        self.assertEqual(wn.getchildren()[0].get('ref'), wn.getchildren()[3].get('ref'))
 
 
 
