@@ -1,5 +1,3 @@
-import sys
-import urllib
 import urllib2
 
 import BeautifulSoup
@@ -44,6 +42,3 @@ class Command(BaseCommand):
                 
         print "%d layers processed" % c
 
-if __name__ == "__main__":
-    # pass in a filename to write to, otherwise uses stdout
-    main(*sys.argv[1:])

@@ -5,7 +5,7 @@ from django.utils import simplejson
 from django.conf import settings
 from django import forms
 
-from linz2osm.data_dict.models import Layer, Tag
+from linz2osm.data_dict.models import Layer
 from linz2osm.convert import osm
 
 DATASETS = dict([(k,v['_description']) for k,v in settings.DATABASES.items() if k != 'default'])

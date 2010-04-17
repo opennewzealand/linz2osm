@@ -1,10 +1,8 @@
-import traceback
 import decimal
 
 import pydermonkey
 from django.db import models
 from django.utils import text
-from django.core.exceptions import ValidationError
 
 class Layer(models.Model):
     name = models.CharField(max_length=100, primary_key=True)
