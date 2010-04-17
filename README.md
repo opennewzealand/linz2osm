@@ -8,6 +8,7 @@ Requirements
  * Django 1.2-beta
  * PostgreSQL + PostGIS
  * Pydermonkey
+ * Pygments
  
 Install
 -------

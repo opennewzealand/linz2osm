@@ -94,9 +94,12 @@ def layer_data_export(request, dataset_id, layer_name):
             except osm.Error, e:
                 ctx['error'] = str(e)
             else:
-                response = HttpResponse(data, content_type='text/xml')
-                response['Content-Disposition'] = 'attachment; filename=%s.osm' % layer_name
-                return response
+                if 'preview' in request.REQUEST:
+                    ctx['preview_content'] = data
+                else:
+                    response = HttpResponse(data, content_type='text/xml')
+                    response['Content-Disposition'] = 'attachment; filename=%s.osm' % layer_name
+                    return response
     else:
         form = BoundsForm()
         

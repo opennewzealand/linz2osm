@@ -1,11 +1,10 @@
 {% extends "admin/base_site.html" %}
-{% load i18n %}
+{% load i18n stylize %}
 
 {% block extrastyle %}
 {{ block.super }}
 <link rel="stylesheet" type="text/css" href="{% load adminmedia %}{% admin_media_prefix %}css/dashboard.css" />
-<style type="text/css">
-</style>
+<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}stylize.css" />
 {% endblock %}
 
 {% block breadcrumbs %}
@@ -29,8 +28,15 @@
     <form method="POST" action="">
         {{ form.as_p }}
     
-        <p><input type="submit" class="default" value="Export" style="float:none"></p>
+        <p>
+            <input type="submit" class="default" name="preview" value="Preview" style="float:none">
+            <input type="submit" class="default" name="download" value="Download" style="float:none">
+        </p>
     </form>
+    
+    {% if preview_content %}
+        {{ preview_content|stylize:"xml" }}
+    {% endif %}
 </div>
 {% endblock %}
 
