@@ -136,7 +136,7 @@ class OSMWriter(object):
                 self.build_polygon(g, tags, r)
         else:
             for i,ring in enumerate(geom):
-                w_ids = self.build_way(ring.tuple, None)
+                w_ids = self.build_way(ring.tuple, None, split_relation=False)
                 for w_id in w_ids:
                     ElementTree.SubElement(r, 'member', type="way", ref=w_id, role=('outer' if (i == 0) else 'inner'))
 
@@ -185,8 +185,8 @@ class OSMWriter(object):
         return [n.get('id')]
     
     def build_geom(self, geom, tags):
-        if isinstance(geom, geos.Polygon) and len(geom) == 1:
-            # single-ring polygons are built as ways
+        if isinstance(geom, geos.Polygon) and (len(geom) == 1) and (len(geom[0]) <= self.WAY_SPLIT_SIZE):
+            # short single-ring polygons are built as ways
             return self.build_way(geom[0].tuple, tags)
             
         elif isinstance(geom, (geos.MultiPolygon, geos.Polygon)):

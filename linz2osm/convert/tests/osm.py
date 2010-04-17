@@ -1,5 +1,6 @@
 import unittest
 from xml.etree import ElementTree
+import math
 
 from django.contrib.gis import geos
 
@@ -217,11 +218,12 @@ class TestWriter(unittest.TestCase):
     
     def test_way_split(self):
         w = osm.OSMWriter()
+        w.WAY_SPLIT_SIZE = 10
         
-        l = [(x, -x) for x in range(4500)]
+        l = [(x, -x) for x in range(31)]
         
         ids = w.build_way(l, {'mytag':'myvalue'})
-        #print w.xml()
+        print w.xml()
         
         self.assert_(len(ids) > 0, "Expected >1 ID returned")
         ways = w.tree.findall('/create/way')
@@ -230,7 +232,7 @@ class TestWriter(unittest.TestCase):
 
         # <node>'s shouldn't be repeated
         nodes = w.tree.findall('/create/node')
-        self.assertEqual(len(nodes), 4500)
+        self.assertEqual(len(nodes), 31)
         node_map = dict([(nn.get('id'), nn) for nn in nodes])
 
         self.assertEqual(len(w.tree.findall('/create/relation')), 1)
@@ -245,8 +247,7 @@ class TestWriter(unittest.TestCase):
         
         rel_members = rel.findall('member')
         print "<relation> has %d members" % len(rel_members)
-        self.assert_(len(rel_members) > 1, "Expected >1 member")
-        self.assert_(len(rel_members) < 4500, "Expected <4500 members")
+        self.assertEqual(len(rel_members), math.ceil(31/10.0))
         prev_way = None
         total_nodes = 0
         for i,rm in enumerate(rel_members):
@@ -263,8 +264,44 @@ class TestWriter(unittest.TestCase):
             self.assertEqual(way.find('tag').get('k'), 'mytag')
             prev_way = way
         
-        self.assertEqual(total_nodes, 4500)
+        self.assertEqual(total_nodes, 31)
+
+        # test we don't get any empty ways with multiple of WAY_SPLIT_SIZE -1
+        w = osm.OSMWriter()
+        w.WAY_SPLIT_SIZE = 10
+        l = [(x, -x) for x in range(19)] # one node is repeated between 2x ways
+        ids = w.build_way(l, {})
+        print w.xml()
+        ways = w.tree.findall('/create/way')
+        self.assertEqual(len(ways), 2)
         
+    def test_way_split_norelation(self):
+        w = osm.OSMWriter()
+        w.WAY_SPLIT_SIZE = 10
+        
+        g = geos.Polygon([(x, -x) for x in range(15)] + [(0,0)])
+        
+        ids = w.build_geom(g, {})
+        print w.xml()
+
+        # should have done at least 1x split
+        ways = w.tree.findall('/create/way')
+        self.assertEqual(len(ways), math.ceil(15/10.0))
+        
+        # <node>'s shouldn't be repeated
+        nodes = w.tree.findall('/create/node')
+        self.assertEqual(len(nodes), 15)
+        node_map = dict([(nn.get('id'), nn) for nn in nodes])
+
+        # Should be 1x Relation:MultiPolygon and no Relation:Collections
+        self.assertEqual(len(w.tree.findall('/create/relation')), 1)
+        rel = w.tree.find('/create/relation')
+    
+        rel_tags = rel.findall('tag')
+        self.assertEqual(len(rel_tags), 1)
+        self.assertEqual(rel_tags[0].get('k'), 'type')
+        self.assertEqual(rel_tags[0].get('v'), 'multipolygon')
+    
     def test_geom(self):
         geoms = (
         #   #nodes, #ways, #relations, #tags, geom
