@@ -9,8 +9,9 @@
 {{ block.super }}
 <style type="text/css">
     .rpanel {
-        float: right;
-        width: 45%;
+        float: left;
+        min-width: 430px;
+        margin-left: 20px;
     }
     #linz_dd {
         border: 1px solid black;
@@ -18,12 +19,22 @@
         width: 100%;
     }
     #content-main {
-        width: 45%
+        float: left;
+        width: 520px;
+    }
+    #content-main .vLargeTextField {
+        width: 485px;
+        height: 6em;
+    }
+    #content-main .codeExec .vLargeTextField {
+        width: 210px;
+        height: 10em;
     }
 </style>
 {% endblock %}
 
 {% block content %}
+{{block.super}}
 {% if original %}
 <div class="rpanel">
     {% with original.get_datasets as lds %}
@@ -41,5 +52,4 @@
     <iframe id="linz_dd" src="{{ original.linz_dictionary_url}}#nav"></iframe>
 </div>
 {% endif %}
-{{block.super}}
 {% endblock %}

@@ -9,8 +9,8 @@
             
             var isInline = ($(nCode).parents('.inline-group').length != 0);
             
-            var nData = $('<textarea>').attr({rows:10, cols:45}).val($.cookie('linz2osm_execdata') || EXAMPLE_DATA);
-            var nResults = $('<textarea>').attr({rows:10, cols:45, readOnly:true}).val('');
+            var nData = $('<textarea>').addClass('vLargeTextField').val($.cookie('linz2osm_execdata') || EXAMPLE_DATA);
+            var nResults = $('<textarea>').addClass('vLargeTextField').attr({readOnly:true}).val('');
             var nContainer = $('<div>').css('display', 'none');
             var nLabel = $('<label>')
                 .text('Test Code')
@@ -20,7 +20,7 @@
                 });
 
             $(nRow).append(
-                $('<div>').append(
+                $('<div>').addClass('codeExec').append(
                     nLabel,
                     nContainer.append(
                         $('<span>').addClass('exec_data_label').text('Field Data'),
