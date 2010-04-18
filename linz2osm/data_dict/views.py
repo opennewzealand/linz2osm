@@ -1,8 +1,9 @@
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render_to_response
 from django.http import HttpResponse
 from django.utils import simplejson
+from django.template import RequestContext
 
-from linz2osm.data_dict.models import Tag
+from linz2osm.data_dict.models import Layer, Tag
 
 def tag_eval(request, object_id=None):
     if object_id:
@@ -27,3 +28,15 @@ def tag_eval(request, object_id=None):
             'value': value,
         }
     return HttpResponse(simplejson.dumps(r), content_type='text/plain')
+
+def layer_stats(request, object_id=None):
+    l = get_object_or_404(Layer, name=object_id)
+    
+    c = {
+        'layer': l,
+        'statistics': l.get_statistics(),
+        'title': '%s Statistics' % l,
+    }
+    
+    return render_to_response('data_dict/layer_stats.html', c, context_instance=RequestContext(request))
+    

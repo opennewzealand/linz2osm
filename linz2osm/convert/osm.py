@@ -42,6 +42,74 @@ def dataset_tables(database_id):
         cache.set('convert:osm:dataset_tables:%s' % database_id, r, 60*60*24)
     return r
 
+def get_layer_geometry_type(database_id, layer):
+    """ Returns a (geometry_type, srid) tuple """
+    cursor = connections[database_id].cursor()
+    cursor.execute('SELECT type,srid FROM geometry_columns WHERE f_table_name=%s;', [layer.name])
+    r = cursor.fetchone()
+    return tuple(r[:2])
+
+def get_layer_feature_count(database_id, layer, intersect_geom=None):
+    cursor = connections[database_id].cursor()
+    if intersect_geom and intersect_geom.srid is None:
+        srid = get_layer_geometry_type(database_id, layer)[1]
+        intersect_geom.srid = srid
+    
+    sql = 'SELECT count(*) FROM %s'
+    params = []
+    if intersect_geom:
+        sql += ' WHERE wkb_geometry && %%s'
+        params = [intersect_geom.hexewkb]
+    
+    cursor.execute(sql % layer.name, params) 
+    return cursor.fetchone()[0]
+    
+def get_layer_stats(database_id, layer):
+    geom_type, srid = get_layer_geometry_type(database_id, layer)
+    cursor = connections[database_id].cursor()
+
+    cursor.execute("SELECT ST_AsHexEWKB(ST_Transform(ST_SetSRID(ST_Envelope(ST_Extent(wkb_geometry)), %d), 4326)) FROM %s;" % (srid, layer.name))
+    extent = geos.GEOSGeometry(cursor.fetchone()[0])
+    
+    r = {
+        'feature_count': get_layer_feature_count(database_id, layer),
+        'extent': extent,
+        'fields': {}
+    }
+    
+    cursor.execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s AND column_name NOT IN ('ogc_fid', 'wkb_geometry');", [layer.name])
+    for col_name,col_type in cursor.fetchall():
+        sql = 'SELECT count(*) FROM %(t)s WHERE %(c)s IS NOT NULL'
+        if col_type in ('character varying',):
+            sql += " AND %(c)s <> ''"
+        elif col_type in ('double precision', 'integer',):
+            sql += " AND %(c)s <> 0"
+        cursor.execute(sql % {'t': layer.name, 'c': col_name}) 
+        r['fields'][col_name] = {
+            'non_empty_pc' : cursor.fetchone()[0] / float(r['feature_count']) * 100.0,
+        }
+    
+    if geom_type in ('LINESTRING', 'POLYGON'):
+        cursor.execute("SELECT avg(ST_NPoints(wkb_geometry)), max(ST_NPoints(wkb_geometry)) FROM %s;" % layer.name)
+        s = cursor.fetchone();
+        r.update({
+            'points_avg': s[0],
+            'points_max': s[1],
+        })        
+    
+    if geom_type == 'POLYGON':
+        cursor.execute("SELECT avg(ST_NRings(wkb_geometry)), max(ST_NRings(wkb_geometry)), avg(ST_NPoints(ST_ExteriorRing(wkb_geometry))), max(ST_NPoints(ST_ExteriorRing(wkb_geometry))) FROM %s;" % layer.name)
+        s = cursor.fetchone();
+        r.update({
+            'rings_avg': s[0],
+            'rings_max': s[1],
+            'points_ext_ring_avg': s[2],
+            'points_ext_ring_max': s[3],
+        })
+    
+    return r
+    
+
 def export(database_id, layer, bbox=None):
     cursor = connections[database_id].cursor()
     db_info = settings.DATABASES[database_id]

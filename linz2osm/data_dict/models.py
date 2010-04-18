@@ -48,6 +48,16 @@ class Layer(models.Model):
         from linz2osm.convert.osm import get_layer_datasets
         return get_layer_datasets(self)
 
+    def get_statistics(self, dataset_id=None):
+        from linz2osm.convert.osm import get_layer_stats
+        if dataset_id:
+            return get_layer_stats(dataset_id, self)
+        else:
+            r = {}
+            for ds in self.get_datasets():
+                r[ds] = get_layer_stats(ds[0], self)
+            return r
+
 class TagManager(models.Manager):
     def eval(self, code, fields):
         eval_fields = {}

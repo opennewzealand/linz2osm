@@ -1,0 +1,56 @@
+{% extends "admin/base_site.html" %}
+{% load i18n stylize %}
+
+{% block extrastyle %}
+{{ block.super }}
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+     <a href="../../../../">{% trans "Home" %}</a> &rsaquo;
+     <a href="../../../">Data_Dict</a> &rsaquo;
+     <a href="../../">Layers</a> &rsaquo;
+     <a href="../">{{layer}}</a> &rsaquo;
+     Statistics
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    {% for item in statistics.items %}
+        {% with item.0 as ds %}
+        {% with item.1 as stats %}
+        <h2>{{ ds.1 }}</h2>
+        
+        <table id="stats">
+            {% if stats.extent %}<tr><th>Extent:</th><td>{{stats.extent.extent}}</td></tr>{% endif %}
+            {% if stats.feature_count %}<tr><th>Features:</th><td>{{stats.feature_count}}</td></tr>{% endif %}
+            {% if stats.rings_avg %}<tr><th>Rings:</th><td>Average: {{stats.rings_avg|floatformat:"0"}} Max: {{stats.rings_max}}</td></tr>{% endif %}
+            {% if stats.points_avg %}<tr><th>Vertexes:</th><td>Average: {{stats.points_avg|floatformat:"0"}} Max: {{stats.points_max}}</td></tr>{% endif %}
+            {% if stats.points_ext_ring_avg %}<tr><th>Vertexes (Outer Ring):</th><td>Average: {{stats.points_ext_ring_avg|floatformat:"0"}} Max: {{stats.points_ext_ring_max}}</td></tr>{% endif %}
+            {% if stats.fields %}
+            <tr>
+                <th rowspan="{{stats.fields|length}}">Fields:</th>
+                <td>
+                    <table>
+                        <tbody>
+                            {% for f in stats.fields.items %}
+                            <tr>
+                                <th><code>{{f.0}}</code><th>
+                                <td><span title="Not NULL, and not empty (string fields) or not zero (numeric fields)">Non-empty</span>: {{f.1.non_empty_pc|floatformat:"0"}}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+        
+        {% endwith %}
+        {% endwith %}
+        {% if not forloop.last %}<hr />{% endif %}
+    {% endfor %}
+</div>
+{% endblock %}
+
