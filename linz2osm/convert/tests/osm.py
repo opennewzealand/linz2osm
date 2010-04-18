@@ -235,31 +235,18 @@ class TestWriter(unittest.TestCase):
         self.assertEqual(len(nodes), 31)
         node_map = dict([(nn.get('id'), nn) for nn in nodes])
 
-        self.assertEqual(len(w.tree.findall('/create/relation')), 1)
+        self.assertEqual(len(w.tree.findall('/create/relation')), 0)
         rel = w.tree.find('/create/relation')
     
-        # tags should be on the <relation>
-        rel_tags = rel.findall('tag')
-        self.assertEqual(len(rel_tags), 2)
-        self.assertEqual(rel_tags[0].get('k'), 'type')
-        self.assertEqual(rel_tags[0].get('v'), 'collection')
-        self.assertEqual(rel_tags[1].get('k'), 'mytag')
-        
-        rel_members = rel.findall('member')
-        print "<relation> has %d members" % len(rel_members)
-        self.assertEqual(len(rel_members), math.ceil(31/10.0))
         prev_way = None
         total_nodes = 0
-        for i,rm in enumerate(rel_members):
-            self.assertEqual(rm.get('type'), 'way')
-            self.assertEqual(rm.get('role'), 'member')
-            way = way_map[rm.get('ref')]
+        for i,way in enumerate(ways):
             way_nd = way.findall('nd')
             if prev_way:
-                # 1st <nd> of the current way should be last <nd> from the previous way 
                 self.assertEqual(way_nd[0].get('ref'), prev_way.findall('nd')[-1].get('ref'))
+
             total_nodes += len(way_nd) - (1 if prev_way else 0)
-            
+
             self.assertEqual(len(way.findall('tag')), 1)
             self.assertEqual(way.find('tag').get('k'), 'mytag')
             prev_way = way
@@ -275,7 +262,7 @@ class TestWriter(unittest.TestCase):
         ways = w.tree.findall('/create/way')
         self.assertEqual(len(ways), 2)
         
-    def test_way_split_norelation(self):
+    def test_way_split_polygon(self):
         w = osm.OSMWriter()
         w.WAY_SPLIT_SIZE = 10
         

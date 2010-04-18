@@ -136,7 +136,7 @@ class OSMWriter(object):
                 self.build_polygon(g, tags, r)
         else:
             for i,ring in enumerate(geom):
-                w_ids = self.build_way(ring.tuple, None, split_relation=False)
+                w_ids = self.build_way(ring.tuple, None)
                 for w_id in w_ids:
                     ElementTree.SubElement(r, 'member', type="way", ref=w_id, role=('outer' if (i == 0) else 'inner'))
 
@@ -144,7 +144,7 @@ class OSMWriter(object):
             self.n_create.append(r)
         return [r.get('id')]
             
-    def build_way(self, coords, tags, split_relation=True):
+    def build_way(self, coords, tags):
         ids = []
         rem_coords = coords[:]
         node_map = {}
@@ -168,14 +168,6 @@ class OSMWriter(object):
             
             if len(rem_coords) < 2:
                 break
-        
-        if split_relation and len(ids) > 1:
-            r = ElementTree.SubElement(self.n_create, 'relation', id=self.next_id)
-            ElementTree.SubElement(r, 'tag', k='type', v='collection')
-            self.build_tags(r, tags)
-            
-            for way_id in ids:
-                ElementTree.SubElement(r, 'member', type='way', ref=way_id, role='member')
         
         return ids
 
