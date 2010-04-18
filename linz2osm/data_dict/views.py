@@ -1,3 +1,5 @@
+import re
+
 from django.shortcuts import get_object_or_404, render_to_response
 from django.http import HttpResponse
 from django.utils import simplejson
@@ -30,6 +32,9 @@ def tag_eval(request, object_id=None):
     return HttpResponse(simplejson.dumps(r), content_type='text/plain')
 
 def layer_stats(request, object_id=None):
+    #FIXME: Why?
+    object_id = re.sub("_5F", "_", object_id)
+    
     l = get_object_or_404(Layer, name=object_id)
     
     c = {
