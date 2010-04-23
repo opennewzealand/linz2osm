@@ -204,7 +204,8 @@ class OSMWriter(object):
                 self.build_polygon(g, tags, r)
         else:
             for i,ring in enumerate(geom):
-                w_ids = self.build_way(ring.tuple, None)
+                w_tags = tags if (i == 0) else None
+                w_ids = self.build_way(ring.tuple, w_tags)
                 for w_id in w_ids:
                     ElementTree.SubElement(r, 'member', type="way", ref=w_id, role=('outer' if (i == 0) else 'inner'))
 

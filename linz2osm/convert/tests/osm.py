@@ -268,12 +268,19 @@ class TestWriter(unittest.TestCase):
         
         g = geos.Polygon([(x, -x) for x in range(15)] + [(0,0)])
         
-        ids = w.build_geom(g, {})
+        ids = w.build_geom(g, {'mytag':'myval'})
         print w.xml()
 
         # should have done at least 1x split
         ways = w.tree.findall('/create/way')
         self.assertEqual(len(ways), math.ceil(15/10.0))
+        
+        # way should have tags too
+        for way in ways:
+            way_tags = way.findall('tag')
+            self.assertEqual(len(way_tags), 1)
+            self.assertEqual(way_tags[0].get('k'), 'mytag')
+            self.assertEqual(way_tags[0].get('v'), 'myval')
         
         # <node>'s shouldn't be repeated
         nodes = w.tree.findall('/create/node')
@@ -285,9 +292,11 @@ class TestWriter(unittest.TestCase):
         rel = w.tree.find('/create/relation')
     
         rel_tags = rel.findall('tag')
-        self.assertEqual(len(rel_tags), 1)
+        self.assertEqual(len(rel_tags), 2)
         self.assertEqual(rel_tags[0].get('k'), 'type')
         self.assertEqual(rel_tags[0].get('v'), 'multipolygon')
+        self.assertEqual(rel_tags[1].get('k'), 'mytag')
+        self.assertEqual(rel_tags[1].get('v'), 'myval')
     
     def test_geom(self):
         geoms = (
@@ -298,12 +307,13 @@ class TestWriter(unittest.TestCase):
             (3, 1, 0, 1, geos.Polygon([(0,0), (1,1), (2,0), (0,0)]) ),
             # otherwise they're written as relations
             # multipolygon relations have an extra tag
-            (6, 2, 1, 1+1, geos.Polygon([(0,0), (10,10), (20,0), (0,0)], [(8,2), (10,4), (12,2), (8,2)]) ),
+            # outer ways are tagged as well as the relation
+            (6, 2, 1, 1*2+1, geos.Polygon([(0,0), (10,10), (20,0), (0,0)], [(8,2), (10,4), (12,2), (8,2)]) ),
             (2, 0, 0, 2, geos.MultiPoint(geos.Point(0,0), geos.Point(10,10)) ),
             (4, 2, 0, 2, geos.MultiLineString(
                 geos.LineString([(0, 0), (1, 1)]), 
                 geos.LineString([(10,10), (11,11)]) )),
-            (9, 3, 1, 1+1, geos.MultiPolygon(
+            (9, 3, 1, 1*3+1, geos.MultiPolygon(
                 geos.Polygon([(0,0), (1,1), (2,0), (0,0)]),
                 geos.Polygon([(0,0), (10,10), (20,0), (0,0)], [(8,2), (10,4), (12,2), (8,2)]) )),
             (3, 1, 0, 2, geos.GeometryCollection(
