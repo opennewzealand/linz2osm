@@ -11,7 +11,7 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE' : 'postgresql_psycopg2',
+        'ENGINE' : 'django.contrib.gis.db.backends.postgis',
         'NAME' : '',
         'USER' : '',
         'PASSWORD' : '',
@@ -90,6 +90,7 @@ INSTALLED_APPS = (
     
     'linz2osm.data_dict',
     'linz2osm.convert',
+    'linz2osm.boundaries',
 )
 
 TEST_RUNNER='django.contrib.gis.tests.run_tests'
