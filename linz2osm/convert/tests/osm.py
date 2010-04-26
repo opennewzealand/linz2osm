@@ -60,6 +60,46 @@ class TestWriter(unittest.TestCase):
 
         id = w.build_node(geos.Point(234, 567), [])
         self.assertEqual(len(w.tree.findall('//node')), 2)
+
+    def test_repeated_nodes(self):
+        """ Nodes should be repeated """
+        w = osm.OSMWriter()
+        ids = [
+            w.build_node(geos.Point(123, 456), [], map=False),
+            w.build_node(geos.Point(123, 456), [], map=False),
+        ]
+        self.assertEqual(len(w.tree.findall('//node')), 2)
+
+        w = osm.OSMWriter()
+        ids = [
+            w.build_geom(geos.Point(123, 456), []),
+            w.build_geom(geos.Point(123, 456), []),
+        ]
+        self.assertEqual(len(w.tree.findall('//node')), 2)
+
+        w = osm.OSMWriter()
+        ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(123,456)), {})
+        self.assertEqual(len(w.tree.findall('//node')), 1)
+
+        w = osm.OSMWriter()
+        ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(12,34)), {})
+        ids = w.build_geom(geos.Point(123, 456), {})
+        self.assertEqual(len(w.tree.findall('//node')), 3)
+
+        w = osm.OSMWriter()
+        ids = w.build_geom(geos.Point(123, 456), {})
+        ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(12,34)), {})
+        self.assertEqual(len(w.tree.findall('//node')), 3)
+
+        w = osm.OSMWriter()
+        ids = w.build_geom(geos.Point(123, 456), {'tag':'val'})
+        ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(12,34)), {'tag':'val'})
+        self.assertEqual(len(w.tree.findall('//node')), 3)
+
+        w = osm.OSMWriter()
+        ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(12,34)), {'tag':'val'})
+        ids = w.build_geom(geos.Point(123, 456), {'tag':'val'})
+        self.assertEqual(len(w.tree.findall('//node')), 3)
     
     def test_tags_single(self):
         w = osm.OSMWriter()
@@ -146,7 +186,7 @@ class TestWriter(unittest.TestCase):
 
         l = (
             ((1,1), (2,2), (3,3),),
-            ((2,2), (3,3), (4,4),),
+            ((4,4), (5,5), (6,6),),
         )
 
         ids = (
@@ -173,6 +213,27 @@ class TestWriter(unittest.TestCase):
                 self.assert_(node_el is not None)
                 self.assertEqual(float(node_el.get('lon')), l[j][i][0])
                 self.assertEqual(float(node_el.get('lat')), l[j][i][1])
+    
+    def test_ways_repeated_nodes(self):
+        w = osm.OSMWriter()
+
+        l = (
+            ((1,10), (2,20), (3,30),),
+            ((2,20), (3,30), (4,40),),
+        )
+
+        ids = (
+            w.build_way(l[0], {}),
+            w.build_way(l[1], {}),
+        )
+        print w.xml()
+        print w._nodes
+        
+        ways = w.tree.findall('/create/way')
+        self.assertEqual(len(w.tree.findall('//way')), 2)
+
+        nodes = w.tree.findall('/create/node') 
+        self.assertEqual(len(nodes), 4)
     
     def test_way_circular(self):
         w = osm.OSMWriter()
@@ -391,9 +452,11 @@ class TestWriter(unittest.TestCase):
             (4, 2, 0, 2, geos.MultiLineString(
                 geos.LineString([(0, 0), (1, 1)]), 
                 geos.LineString([(10,10), (11,11)]) )),
-            (9, 3, 1, 1*3+1, geos.MultiPolygon(
+            (8, 3, 1, 1*3+1, geos.MultiPolygon(
                 geos.Polygon([(0,0), (1,1), (2,0), (0,0)]),
                 geos.Polygon([(0,0), (10,10), (20,0), (0,0)], [(8,2), (10,4), (12,2), (8,2)]) )),
+            # hmmm, should these share the same node? Currently not, because the node has different
+            # tags from the node-within-a-way
             (3, 1, 0, 2, geos.GeometryCollection(
                 geos.Point(0,0),
                 geos.LineString([(0,0), (1,1)]) )),

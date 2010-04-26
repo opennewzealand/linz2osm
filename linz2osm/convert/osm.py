@@ -167,6 +167,7 @@ class OSMWriter(object):
         self.n_root = ElementTree.Element('osmChange', version="0.6", generator="linz2osm")
         self.n_create = ElementTree.SubElement(self.n_root, 'create', version="0.6", generator="linz2osm")
         self.tree = ElementTree.ElementTree(self.n_root)
+        self._nodes = {}
 
         if id_hash is None:
             self._id = 0
@@ -178,7 +179,7 @@ class OSMWriter(object):
         self.build_geom(geom, tags)
     
     def xml(self):
-        # prettify - ok to run this more than once
+        # prettify - ok to call more than once
         self._etree_indent(self.tree.getroot())
     
         s = StringIO()
@@ -224,12 +225,7 @@ class OSMWriter(object):
             rem_coords = rem_coords[self.WAY_SPLIT_SIZE-1:]
                         
             for i,c in enumerate(cur_coords):
-                n_id = node_map.get(c)
-                if n_id is None:
-                    n_id = self.next_id
-                    ElementTree.SubElement(self.n_create, 'node', id=n_id, lat=str(c[1]), lon=str(c[0]))
-                    node_map[c] = n_id
-                
+                n_id = self._node(c, {})
                 ElementTree.SubElement(w, 'nd', ref=n_id)
             self.build_tags(w, tags)
             self.n_create.append(w)
@@ -240,12 +236,20 @@ class OSMWriter(object):
         
         return ids
 
-    def build_node(self, geom, tags):
-        n = ElementTree.SubElement(self.n_create, 'node', id=self.next_id, lat=str(geom.y), lon=str(geom.x))
-        self.build_tags(n, tags)
-        return [n.get('id')]
+    def _node(self, coords, tags, map=True):
+        k = (str(coords[0]), str(coords[1]), id(tags))
+        n = self._nodes.get(k)
+        if (not map) or (n is None):
+            n = ElementTree.SubElement(self.n_create, 'node', id=self.next_id, lat=str(coords[1]), lon=str(coords[0]))
+            self.build_tags(n, tags)
+            if map:
+                self._nodes[k] = n
+        return n.get('id')
+
+    def build_node(self, geom, tags, map=True):
+        return [self._node((geom.x, geom.y), tags, map)]
     
-    def build_geom(self, geom, tags):
+    def build_geom(self, geom, tags, inner=False):
         if isinstance(geom, geos.Polygon) and (len(geom) == 1) and (len(geom[0]) <= self.WAY_SPLIT_SIZE):
             # short single-ring polygons are built as ways
             return self.build_way(geom[0].tuple, tags)
@@ -257,12 +261,14 @@ class OSMWriter(object):
             # FIXME: Link together as a relation?
             ids = []
             for g in geom:
-                ids += self.build_geom(g, tags)
+                ids += self.build_geom(g, tags, inner=True)
             return ids
         
         elif isinstance(geom, geos.Point):
             # node
-            return self.build_node(geom, tags)
+            # indepenent nodes are mapped (ie. POINTs)
+            # repeated nodes within a MULTIPOINT/GEOMETRYCOLLECTION are mapped
+            return self.build_node(geom, tags, map=inner)
         
         elif isinstance(geom, geos.LineString):
             # way
