@@ -195,6 +195,36 @@ class TestWriter(unittest.TestCase):
         
         self.assertEqual(wn.getchildren()[0].get('ref'), wn.getchildren()[3].get('ref'))
 
+    def test_polygon(self):
+        w = osm.OSMWriter()
+
+        g = geos.Polygon([(0,0), (10,10), (20,0), (0,0)], [(8,2), (10,4), (12,2), (8,2)])
+
+        id = w.build_geom(g, {'mytag':'myvalue'})
+        print w.xml()
+        
+        rels = w.tree.findall('/create/relation')
+        self.assertEqual(len(rels), 1)
+        ways = w.tree.findall('/create/way')
+        self.assertEqual(len(ways), 2)
+        way_map = dict([(ww.get('id'), ww) for ww in ways])
+        nodes = w.tree.findall('/create/node') 
+        self.assertEqual(len(nodes), 6)
+        node_map = dict([(nn.get('id'), nn) for nn in nodes])
+        
+        rel = w.tree.find('/create/relation')
+        rel_members = rel.findall('member')
+        self.assertEqual(len(rel_members), 2)
+        for i,mn in enumerate(rel_members):
+            mw = way_map.get(mn.get('ref'))
+            self.assert_(mw)
+            self.assertEqual(mn.get('role'), 'outer' if i==0 else 'inner')
+            self.assertEqual(mn.get('type'), 'way')
+            self.assertEqual(len(mw.findall('tag')), 1 if mn.get('role') == 'outer' else 0)
+        
+        self.assertEqual(len(rel.findall('tag')), 1+1)
+                
+
     def test_way_crossover(self):
         w = osm.OSMWriter()
 
@@ -297,6 +327,54 @@ class TestWriter(unittest.TestCase):
         self.assertEqual(rel_tags[0].get('v'), 'multipolygon')
         self.assertEqual(rel_tags[1].get('k'), 'mytag')
         self.assertEqual(rel_tags[1].get('v'), 'myval')
+    
+    def test_split_polygon(self):
+        w = osm.OSMWriter()
+        w.WAY_SPLIT_SIZE = 10
+        
+        g = geos.Polygon([(x, -x**2) for x in range(15)] + [(0,0)], ((1,-2), (4,-2), (4,-3), (1,-2))) 
+        
+        ids = w.build_geom(g, {'mytag':'myval'})
+        print w.xml()
+
+        # should have done at least 1x split
+        ways = w.tree.findall('/create/way')
+        self.assertEqual(len(ways), math.ceil(15/10.0)+1)
+        way_map = dict([(ww.get('id'), ww) for ww in ways])
+        
+        # <node>'s shouldn't be repeated
+        nodes = w.tree.findall('/create/node')
+        self.assertEqual(len(nodes), 15+3)
+        node_map = dict([(nn.get('id'), nn) for nn in nodes])
+
+        # Should be 1x Relation:MultiPolygon and no Relation:Collections
+        self.assertEqual(len(w.tree.findall('/create/relation')), 1)
+        rel = w.tree.find('/create/relation')
+    
+        rel_tags = rel.findall('tag')
+        self.assertEqual(len(rel_tags), 2)
+        self.assertEqual(rel_tags[0].get('k'), 'type')
+        self.assertEqual(rel_tags[0].get('v'), 'multipolygon')
+        self.assertEqual(rel_tags[1].get('k'), 'mytag')
+        self.assertEqual(rel_tags[1].get('v'), 'myval')
+        
+        rel_members = rel.findall('member')
+        self.assertEqual(len(rel_members), math.ceil(15/10.0)+1)
+        counts = [0,0]
+        for rm in rel_members:
+            way = way_map.get(rm.get('ref'))
+            self.assert_(way, "Couldn't find way for relation member %s" % rm.get('ref'))
+            way_tags = way.findall('tag')
+            if rm.get('role') == 'outer':
+                counts[0] += 1
+                self.assertEqual(len(way_tags), 1)
+                self.assertEqual(way_tags[0].get('k'), 'mytag')
+                self.assertEqual(way_tags[0].get('v'), 'myval')
+            elif rm.get('role') == 'inner':
+                counts[1] += 1
+                self.assertEqual(len(way_tags), 0)
+            else:
+                self.assert_('unknown multipolygon role: %s' % rm.get('role'))
     
     def test_geom(self):
         geoms = (
