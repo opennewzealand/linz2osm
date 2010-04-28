@@ -225,7 +225,7 @@ class OSMWriter(object):
             rem_coords = rem_coords[self.WAY_SPLIT_SIZE-1:]
                         
             for i,c in enumerate(cur_coords):
-                n_id = self._node(c, {})
+                n_id = self._node(c, None)
                 ElementTree.SubElement(w, 'nd', ref=n_id)
             self.build_tags(w, tags)
             self.n_create.append(w)
@@ -237,7 +237,7 @@ class OSMWriter(object):
         return ids
 
     def _node(self, coords, tags, map=True):
-        k = (str(coords[0]), str(coords[1]), id(tags))
+        k = (str(coords[0]), str(coords[1]), id(tags) if tags else None)
         n = self._nodes.get(k)
         if (not map) or (n is None):
             n = ElementTree.SubElement(self.n_create, 'node', id=self.next_id, lat=str(coords[1]), lon=str(coords[0]))

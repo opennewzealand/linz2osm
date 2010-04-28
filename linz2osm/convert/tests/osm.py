@@ -1,6 +1,8 @@
 import unittest
 from xml.etree import ElementTree
 import math
+import random
+random.seed(0)
 
 from django.contrib.gis import geos
 
@@ -217,23 +219,28 @@ class TestWriter(unittest.TestCase):
     def test_ways_repeated_nodes(self):
         w = osm.OSMWriter()
 
-        l = (
-            ((1,10), (2,20), (3,30),),
-            ((2,20), (3,30), (4,40),),
+        rc = []
+        for i in range(6):
+            r = random.random()
+            rc.append((r*100.0, r*10.0))
+
+        data = (
+            ( (rc[0], rc[1], rc[2],), None),
+            ( (rc[1], rc[2], rc[3],), {}),
+            ( (rc[1], rc[3],), {}),
+            ( (rc[4], rc[1], rc[5],), {'t':'v'}),
         )
 
-        ids = (
-            w.build_way(l[0], {}),
-            w.build_way(l[1], {}),
-        )
+        for coords,tags in data:
+            w.build_way(coords, tags)
         print w.xml()
         print w._nodes
         
         ways = w.tree.findall('/create/way')
-        self.assertEqual(len(w.tree.findall('//way')), 2)
+        self.assertEqual(len(w.tree.findall('//way')), 4)
 
         nodes = w.tree.findall('/create/node') 
-        self.assertEqual(len(nodes), 4)
+        self.assertEqual(len(nodes), 6)
     
     def test_way_circular(self):
         w = osm.OSMWriter()
