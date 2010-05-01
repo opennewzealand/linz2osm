@@ -205,8 +205,10 @@ class OSMWriter(object):
                 self.build_polygon(g, tags, r)
         else:
             for i,ring in enumerate(geom):
-                w_tags = tags if (i == 0) else None
-                w_ids = self.build_way(ring.tuple, w_tags)
+                is_outer = (i == 0)
+                w_tags = tags if is_outer else None
+                coords = self.wind_ring(ring.tuple, clockwise=is_outer)
+                w_ids = self.build_way(coords, w_tags)
                 for w_id in w_ids:
                     ElementTree.SubElement(r, 'member', type="way", ref=w_id, role=('outer' if (i == 0) else 'inner'))
 
@@ -252,7 +254,8 @@ class OSMWriter(object):
     def build_geom(self, geom, tags, inner=False):
         if isinstance(geom, geos.Polygon) and (len(geom) == 1) and (len(geom[0]) <= self.WAY_SPLIT_SIZE):
             # short single-ring polygons are built as ways
-            return self.build_way(geom[0].tuple, tags)
+            coords = self.wind_ring(geom[0].tuple, clockwise=True)
+            return self.build_way(coords, tags)
             
         elif isinstance(geom, (geos.MultiPolygon, geos.Polygon)):
             return self.build_polygon(geom, tags)
@@ -296,4 +299,23 @@ class OSMWriter(object):
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
 
+    def ring_is_clockwise(self, ring):
+        """
+        Returns a True if the points in the given ring are in clockwise order,
+        or False if they are in anticlockwise order. Calculates a cross product. 
+        """
+        clen = len(ring)
+        cp = 0
+        for i in xrange(clen):
+            x1, y1 = ring[i]
+            x2, y2 = ring[(i + 1) % clen]
+            x3, y3 = ring[(i + 2) % clen]
+            cp += (x2 - x1)*(y3 - y1) - (y2 - y1)*(x3 - x1)
+        return (cp < 0)
+
+    def wind_ring(self, ring, clockwise):
+        if self.ring_is_clockwise(ring) != clockwise:
+            ring = list(ring)
+            ring.reverse()
+        return ring
         
