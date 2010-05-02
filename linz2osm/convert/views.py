@@ -41,7 +41,7 @@ class ExportDataForm(BoundsForm):
     
     def clean(self):
         fcd = self.cleaned_data
-        if fcd['layer'] and fcd['dataset']:
+        if ('layer' in fcd) and ('dataset' in fcd):
             if fcd['layer'].name not in self.dataset_layers[fcd['dataset']]:
                 raise forms.ValidationError("Layer %s is not available in Dataset %s" % (fcd['layer'], DATASETS[fcd['dataset']]))
         return fcd
