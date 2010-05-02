@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404, render_to_response
 from django.template import RequestContext
 from django.http import HttpResponse, HttpResponseRedirect, Http404
-from django.utils import simplejson
+from django.utils import simplejson, text
 from django.conf import settings
 from django import forms
 
@@ -94,8 +94,16 @@ def layer_data_export(request, dataset_id, layer_name):
                 if 'preview' in request.REQUEST:
                     ctx['preview_content'] = data
                 else:
-                    response = HttpResponse(data, content_type='text/xml')
-                    response['Content-Disposition'] = 'attachment; filename=%s.osm' % layer_name
+                    # download
+                    filename = "%s.osm" % layer_name
+                    if 'download_gz' in request.REQUEST:
+                        data = text.compress_string(data)
+                        filename += ".gz"
+                        content_type = 'application/x-gzip'
+                    else:
+                        content_type = 'text/xml'
+                    response = HttpResponse(data, content_type=content_type)
+                    response['Content-Disposition'] = 'attachment; filename=%s' % filename
                     return response
     else:
         form = BoundsForm()
