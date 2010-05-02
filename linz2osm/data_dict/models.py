@@ -8,6 +8,7 @@ class Layer(models.Model):
     name = models.CharField(max_length=100, primary_key=True)
     entity = models.CharField(max_length=200, blank=True, db_index=True)
     notes = models.TextField(blank=True)
+    wind_polygons_ccw = models.BooleanField('Wind polygons anti-clockwise', default=True, help_text="Whether to re-wind outer polygon rings anti-clockwise(True) or clockwise (False). Inner rings are wound the opposite direction. Only applies to polygon layers.")
     
     def __unicode__(self):
         return unicode(self.name)
