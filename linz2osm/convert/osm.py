@@ -163,7 +163,7 @@ def export(database_id, layer, bbox=None):
 class OSMWriter(object):
     WAY_SPLIT_SIZE = 495
     
-    def __init__(self, id_hash=None):
+    def __init__(self, id_hash=None, wind_polygons_ccw=True):
         self.n_root = ElementTree.Element('osmChange', version="0.6", generator="linz2osm")
         self.n_create = ElementTree.SubElement(self.n_root, 'create', version="0.6", generator="linz2osm")
         self.tree = ElementTree.ElementTree(self.n_root)
@@ -174,6 +174,8 @@ class OSMWriter(object):
         else:
             h = hashlib.sha1(unicode(id_hash).encode('utf8')).hexdigest()
             self._id = -1 * int(h[:6], 16)
+    
+        self.poly_wind_ccw = wind_polygons_ccw
     
     def add_feature(self, geom, tags=None):
         self.build_geom(geom, tags)
@@ -208,7 +210,7 @@ class OSMWriter(object):
             for i,ring in enumerate(geom):
                 is_outer = (i == 0)
                 w_tags = tags if is_outer else None
-                coords = self.wind_ring(ring.tuple, clockwise=is_outer)
+                coords = self.wind_ring(ring.tuple, is_outer=is_outer)
                 w_ids = self.build_way(coords, w_tags)
                 for w_id in w_ids:
                     ElementTree.SubElement(r, 'member', type="way", ref=w_id, role=('outer' if (i == 0) else 'inner'))
@@ -255,7 +257,7 @@ class OSMWriter(object):
     def build_geom(self, geom, tags, inner=False):
         if isinstance(geom, geos.Polygon) and (len(geom) == 1) and (len(geom[0]) <= self.WAY_SPLIT_SIZE):
             # short single-ring polygons are built as ways
-            coords = self.wind_ring(geom[0].tuple, clockwise=True)
+            coords = self.wind_ring(geom[0].tuple, is_outer=True)
             return self.build_way(coords, tags)
             
         elif isinstance(geom, (geos.MultiPolygon, geos.Polygon)):
@@ -314,8 +316,13 @@ class OSMWriter(object):
             cp += (x2 - x1)*(y3 - y1) - (y2 - y1)*(x3 - x1)
         return (cp < 0)
 
-    def wind_ring(self, ring, clockwise):
-        if self.ring_is_clockwise(ring) != clockwise:
+    def wind_ring(self, ring, is_outer):
+        if self.poly_wind_ccw:
+            wind_cw = not is_outer
+        else:
+            wind_cw = is_outer
+        
+        if self.ring_is_clockwise(ring) != wind_cw:
             ring = list(ring)
             ring.reverse()
         return ring

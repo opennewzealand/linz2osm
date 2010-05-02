@@ -293,19 +293,25 @@ class TestWriter(unittest.TestCase):
         self.assertEqual(len(rel.findall('tag')), 1+1)
     
     def test_ring_clockwise(self):
-        w = osm.OSMWriter()
-        
         cw = [(0,0), (10,10), (20,0), (0,0)]
         ccw = cw[:]
         ccw.reverse()
         
+        w = osm.OSMWriter()
         self.assertEqual(True, w.ring_is_clockwise(cw))
         self.assertEqual(False, w.ring_is_clockwise(ccw))
         
-        self.assertEqual(True, w.ring_is_clockwise(w.wind_ring(cw, clockwise=True)))
-        self.assertEqual(True, w.ring_is_clockwise(w.wind_ring(ccw, clockwise=True)))
-        self.assertEqual(False, w.ring_is_clockwise(w.wind_ring(cw, clockwise=False)))
-        self.assertEqual(False, w.ring_is_clockwise(w.wind_ring(ccw, clockwise=False)))
+        w = osm.OSMWriter(wind_polygons_ccw=False)
+        self.assertEqual(True, w.ring_is_clockwise(w.wind_ring(cw, is_outer=True)))
+        self.assertEqual(True, w.ring_is_clockwise(w.wind_ring(ccw, is_outer=True)))
+        self.assertEqual(False, w.ring_is_clockwise(w.wind_ring(cw, is_outer=False)))
+        self.assertEqual(False, w.ring_is_clockwise(w.wind_ring(ccw, is_outer=False)))
+
+        w = osm.OSMWriter(wind_polygons_ccw=True)
+        self.assertEqual(False, w.ring_is_clockwise(w.wind_ring(cw, is_outer=True)))
+        self.assertEqual(False, w.ring_is_clockwise(w.wind_ring(ccw, is_outer=True)))
+        self.assertEqual(True, w.ring_is_clockwise(w.wind_ring(cw, is_outer=False)))
+        self.assertEqual(True, w.ring_is_clockwise(w.wind_ring(ccw, is_outer=False)))
 
     def test_polygon_orientation_simple(self):
         geoms = {
@@ -313,25 +319,29 @@ class TestWriter(unittest.TestCase):
             "ccw" : [(0,0), (20,10), (10,10), (0,0)],
         }
 
-        for name, ring in geoms.items():
-            print name
-            w = osm.OSMWriter()
-            w.build_geom(geos.Polygon(ring), {})
-            print w.xml()
-        
-            way = w.tree.find('/create/way')
-            nodes = w.tree.findall('/create/node') 
-            node_map = dict([(nn.get('id'), nn) for nn in nodes])
+        for dir in ('cw', 'ccw'):
+            for name, ring in geoms.items():
+                print "layer=%s, data=%s" % (dir, name)
+                w = osm.OSMWriter(wind_polygons_ccw=(dir == 'ccw'))
+                w.build_geom(geos.Polygon(ring), {})
+                print w.xml()
             
-            coords = []
-            for j,nd in enumerate(way.findall('nd')):
-                n = node_map.get(nd.get('ref'))
-                self.assert_(n is not None, "Node %s" % nd.get('ref'))
+                way = w.tree.find('/create/way')
+                nodes = w.tree.findall('/create/node') 
+                node_map = dict([(nn.get('id'), nn) for nn in nodes])
                 
-                c = (float(n.get('lon')), float(n.get('lat')))
-                coords.append(c)
+                coords = []
+                for j,nd in enumerate(way.findall('nd')):
+                    n = node_map.get(nd.get('ref'))
+                    self.assert_(n is not None, "Node %s" % nd.get('ref'))
+                    
+                    c = (float(n.get('lon')), float(n.get('lat')))
+                    coords.append(c)
                 
-            self.assert_(w.ring_is_clockwise(coords), "Outer-ring coords are anticlockwise!")
+                if dir == 'cw':
+                    self.assert_(w.ring_is_clockwise(coords), "Outer-ring coords are anticlockwise (expecting cw)!")
+                else:
+                    self.assert_(not w.ring_is_clockwise(coords), "Outer-ring coords are clockwise (expecting ccw)!")
     
     def test_polygon_orientation_multipolygon(self):
         geoms = {
@@ -341,35 +351,42 @@ class TestWriter(unittest.TestCase):
             "ccw+ccw": ([(0,0), (20,0), (10,10), (0,0)], [(8,2), (12,2), (10,4), (8,2)]),
         }
 
-        for name, rings in geoms.items():
-            print name
-            w = osm.OSMWriter()
-            w.build_geom(geos.Polygon(*rings), {})
-            print w.xml()
-        
-            rel = w.tree.find('/create/relation')
-            ways = w.tree.findall('/create/way')
-            way_map = dict([(ww.get('id'), ww) for ww in ways])
-            nodes = w.tree.findall('/create/node') 
-            node_map = dict([(nn.get('id'), nn) for nn in nodes])
+        for dir in ('cw', 'ccw'):
+            for name, rings in geoms.items():
+                print "layer=%s, data=%s" % (dir, name)
+                w = osm.OSMWriter(wind_polygons_ccw=(dir == 'ccw'))
+                w.build_geom(geos.Polygon(*rings), {})
+                print w.xml()
             
-            rel_members = rel.findall('member')
-            for i,mn in enumerate(rel_members):
-                mw = way_map.get(mn.get('ref'))
-                self.assert_(mw is not None, "Way %s" % mn.get('ref'))
+                rel = w.tree.find('/create/relation')
+                ways = w.tree.findall('/create/way')
+                way_map = dict([(ww.get('id'), ww) for ww in ways])
+                nodes = w.tree.findall('/create/node') 
+                node_map = dict([(nn.get('id'), nn) for nn in nodes])
                 
-                coords = []
-                for j,nd in enumerate(mw.findall('nd')):
-                    n = node_map.get(nd.get('ref'))
-                    self.assert_(n is not None, "Node %s" % nd.get('ref'))
+                rel_members = rel.findall('member')
+                for i,mn in enumerate(rel_members):
+                    mw = way_map.get(mn.get('ref'))
+                    self.assert_(mw is not None, "Way %s" % mn.get('ref'))
                     
-                    c = (float(n.get('lon')), float(n.get('lat')))
-                    coords.append(c)
-                    
-                if mn.get('role') == 'outer':
-                    self.assert_(w.ring_is_clockwise(coords), "Outer-ring coords are anticlockwise!")
-                else:
-                    self.assert_(not w.ring_is_clockwise(coords), "Inner-ring coords are clockwise!")
+                    coords = []
+                    for j,nd in enumerate(mw.findall('nd')):
+                        n = node_map.get(nd.get('ref'))
+                        self.assert_(n is not None, "Node %s" % nd.get('ref'))
+                        
+                        c = (float(n.get('lon')), float(n.get('lat')))
+                        coords.append(c)
+                        
+                    if mn.get('role') == 'outer':
+                        if dir == 'cw':
+                            self.assert_(w.ring_is_clockwise(coords), "Outer-ring coords are anticlockwise!")
+                        else:
+                            self.assert_(not w.ring_is_clockwise(coords), "Outer-ring coords are clockwise!")
+                    else:
+                        if dir == 'cw':
+                            self.assert_(not w.ring_is_clockwise(coords), "Inner-ring coords are clockwise!")
+                        else:
+                            self.assert_(w.ring_is_clockwise(coords), "Inner-ring coords are anticlockwise!")
 
     def test_way_crossover(self):
         w = osm.OSMWriter()
