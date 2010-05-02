@@ -184,6 +184,7 @@ class OSMWriter(object):
     
         s = StringIO()
         self.tree.write(s, 'utf-8')
+        s.write('\n')
         return s.getvalue()
     
     @property
