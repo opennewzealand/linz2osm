@@ -9,6 +9,7 @@ Requirements
  * PostgreSQL + PostGIS
  * Pydermonkey
  * Pygments
+ * Django South
  
 Install
 -------
@@ -25,6 +26,7 @@ Install
 
  * run `manage.py syncdb` to build the DB tables. Creating a user is a 
    good idea.
+ * run `manage.py migrate` to apply DB migrations.
  * run `manage.py createcachetable django_cache` to add a cache table.
  
  * run `manage.py loaddata v16_layers` to populate the layer models.

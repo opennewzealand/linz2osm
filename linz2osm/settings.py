@@ -91,6 +91,8 @@ INSTALLED_APPS = (
     'linz2osm.data_dict',
     'linz2osm.convert',
     'linz2osm.boundaries',
+    
+    'south',
 )
 
 TEST_RUNNER='django.contrib.gis.tests.run_tests'
