@@ -58,10 +58,7 @@ def layer_data(request):
     if request.method == "POST":
         form = ExportDataForm(dataset_layers, request.POST)
         if form.is_valid():
-            url = '/convert/%s/%s/' % (form.cleaned_data['dataset'], form.cleaned_data['layer'])
-            if form.cleaned_data['bounds']:
-                url += '?bounds=' + ','.join([str(c) for c in form.cleaned_data['bounds']])
-            return HttpResponseRedirect(url)
+            return layer_data_export(request, form.cleaned_data['dataset'], form.cleaned_data['layer'].name)
     else:
         form = ExportDataForm(dataset_layers)
         
