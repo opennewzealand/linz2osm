@@ -125,7 +125,7 @@ def export(database_id, layer, bbox=None):
     
     layer_tags = layer.get_all_tags()
     
-    writer = OSMWriter(id_hash=(database_id, layer.name))
+    writer = OSMWriter(id_hash=(database_id, layer.name), wind_polygons_ccw=layer.wind_polygons_ccw)
     
     columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, db_info['_srid'])] + ['"%s"' % c for c in data_columns]
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
