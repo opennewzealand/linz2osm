@@ -104,6 +104,10 @@ def layer_data_export(request, dataset_id, layer_name):
                         content_type = 'text/xml'
                     response = HttpResponse(data, content_type=content_type)
                     response['Content-Disposition'] = 'attachment; filename=%s' % filename
+                    
+                    if content_type == 'application/x-gzip':
+                        response['Content-Encoding'] = ''
+                    
                     return response
     else:
         form = BoundsForm()
