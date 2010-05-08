@@ -616,4 +616,31 @@ class TestWriter(unittest.TestCase):
         print "Output orientation: ", ('cw' if w.ring_is_clockwise(coords) else 'ccw')
         self.assert_(w.ring_is_clockwise(coords))
 
+    def test_reverse_line_coords(self):
+        geom = geos.LineString([(0,0), (10,10), (20,20)])
+
+        for do_reverse in (False,True):
+            print "do_reverse=%s" % do_reverse
+            w = osm.OSMWriter(reverse_line_coords=do_reverse)
+            w.build_geom(geom, {})
+            print w.xml()
         
+            way = w.tree.find('/create/way')
+            nodes = w.tree.findall('/create/node') 
+            node_map = dict([(nn.get('id'), nn) for nn in nodes])
+            
+            coords = []
+            for j,nd in enumerate(way.findall('nd')):
+                n = node_map.get(nd.get('ref'))
+                self.assert_(n is not None, "Node %s" % nd.get('ref'))
+                
+                c = (float(n.get('lon')), float(n.get('lat')))
+                coords.append(c)
+            
+            if do_reverse:
+                self.assertEqual(coords[0], (20,20))
+                self.assertEqual(coords[-1], (0,0))
+            else:
+                self.assertEqual(coords[0], (0,0))
+                self.assertEqual(coords[-1], (20,20))
+            

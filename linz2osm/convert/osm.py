@@ -125,7 +125,9 @@ def export(database_id, layer, bbox=None):
     
     layer_tags = layer.get_all_tags()
     
-    writer = OSMWriter(id_hash=(database_id, layer.name), wind_polygons_ccw=layer.wind_polygons_ccw)
+    writer = OSMWriter(id_hash=(database_id, layer.name), 
+                       wind_polygons_ccw=layer.wind_polygons_ccw,
+                       reverse_line_coords=layer.reverse_line_coords)
     
     columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, db_info['_srid'])] + ['"%s"' % c for c in data_columns]
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
@@ -163,7 +165,7 @@ def export(database_id, layer, bbox=None):
 class OSMWriter(object):
     WAY_SPLIT_SIZE = 495
     
-    def __init__(self, id_hash=None, wind_polygons_ccw=True):
+    def __init__(self, id_hash=None, wind_polygons_ccw=True, reverse_line_coords=False):
         self.n_root = ElementTree.Element('osmChange', version="0.6", generator="linz2osm")
         self.n_create = ElementTree.SubElement(self.n_root, 'create', version="0.6", generator="linz2osm")
         self.tree = ElementTree.ElementTree(self.n_root)
@@ -176,6 +178,7 @@ class OSMWriter(object):
             self._id = -1 * int(h[:6], 16)
     
         self.poly_wind_ccw = wind_polygons_ccw
+        self.line_reverse = reverse_line_coords
     
     def add_feature(self, geom, tags=None):
         self.build_geom(geom, tags)
@@ -278,6 +281,10 @@ class OSMWriter(object):
         
         elif isinstance(geom, geos.LineString):
             # way
+            if self.line_reverse:
+                coords = list(geom.tuple)
+                coords.reverse()
+                geom = geos.LineString(coords)
             return self.build_way(geom.tuple, tags)
     
     def build_tags(self, parent_node, tags):
