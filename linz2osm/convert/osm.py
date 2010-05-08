@@ -304,17 +304,24 @@ class OSMWriter(object):
 
     def ring_is_clockwise(self, ring):
         """
-        Returns a True if the points in the given ring are in clockwise order,
+        Returns True if the points in the given ring are in clockwise order,
         or False if they are in anticlockwise order. Calculates a cross product. 
         """
-        clen = len(ring)
-        cp = 0
-        for i in xrange(clen):
-            x1, y1 = ring[i]
-            x2, y2 = ring[(i + 1) % clen]
-            x3, y3 = ring[(i + 2) % clen]
-            cp += (x2 - x1)*(y3 - y1) - (y2 - y1)*(x3 - x1)
-        return (cp < 0)
+        n = len(ring) -1
+        assert n >= 3
+        count = 0
+        z = 0
+        for i in xrange(n):
+            j = (i + 1) % n
+            k = (i + 2) % n
+            z = (ring[j][0] - ring[i][0]) * (ring[k][1] - ring[j][1])
+            z -= (ring[j][1] - ring[i][1]) * (ring[k][0] - ring[j][0])
+            if (z < 0):
+                count -= 1
+            elif (z > 0):
+                count += 1
+        
+        return (count < 0)
 
     def wind_ring(self, ring, is_outer):
         if self.poly_wind_ccw:
