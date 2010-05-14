@@ -88,6 +88,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.admin',
     'django.contrib.admindocs',
+    'django.contrib.gis',
     
     'linz2osm.data_dict',
     'linz2osm.convert',
