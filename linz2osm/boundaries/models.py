@@ -1,4 +1,7 @@
 from django.contrib.gis.db import models
+from django.contrib.gis.measure import D
+from django.contrib.gis import geos
+from django.db import transaction
 
 class Boundary(models.Model):
     LEVELS = [
@@ -10,8 +13,11 @@ class Boundary(models.Model):
     
     level = models.IntegerField(db_index=True, choices=LEVELS);
     name = models.CharField(max_length=255)
-    poly = models.GeometryField(srid=4326, null=True)
-    poly_display = models.GeometryField(srid=900913, null=True)
+    poly = models.GeometryField('Boundary', srid=4326, null=True)
+    
+    poly_display = models.MultiPolygonField('Boundary', srid=900913, null=True)
+    parent = models.ForeignKey('self', related_name='children', null=True)
+    neighbours = models.ManyToManyField('self', related_name='neighbours', null=True)
     
     objects = models.GeoManager()
     
@@ -22,25 +28,32 @@ class Boundary(models.Model):
     def __unicode__(self):
         return '%s (%s)' % (self.name, self.get_level_display())
     
-    def save(self, *args, **kwargs):
+    def update_poly_display(self):
+        self.poly_display = None
         if self.poly:
-            self.poly_display = self.poly.transform(900913)
-        else:
-            self.poly_display = None
-        super(Boundary, self).save(*args, **kwargs)
+            pd = self.poly.simplify(0.0032).transform(900913, True)
+            
+            if isinstance(pd, geos.Polygon):
+                pd = geos.MultiPolygon(pd)
+            
+            if isinstance(pd, geos.MultiPolygon):
+                self.poly_display = pd
+        
+        self.save()
     
-    def get_parent(self):
-        """ get the parent boundary, or None """
-        parent_level = self.level - 1
-        if parent_level < 0:
-            return None
-        
-        objs = Boundary.objects.filter(level=parent_level, poly__contains=self.poly.centroid)[:1]
-        if len(objs):
-            return objs[0]
-        else:
-            return None
-        
+    @transaction.commit_on_success
+    def update_children(self):
+        for o in Boundary.objects.only('id').filter(level=self.level+1, poly__within=self.poly):
+            o.parent = self
+            o.save()
+    
+    @transaction.commit_on_success
+    def update_neighbours(self):
+        qs = Boundary.objects.only('id').filter(level=self.level)
+        qs = qs.filter(poly__bboverlaps=self.poly.envelope.buffer(0.0032), poly__dwithin=(self.poly, 0.00064))
+        self.neighbours = qs
+        self.save()
+    
     @property
     def extent(self):
         return self.poly.extent

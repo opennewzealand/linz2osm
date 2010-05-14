@@ -1,18 +1,25 @@
 import os.path
+import sys
 
-from django.core.management.base import LabelCommand
+from django.core.management.base import BaseCommand, CommandError, make_option
 from django.core.management.color import no_style
 from django.contrib.gis.utils import LayerMapping
 from django.conf import settings
-from django.db import connection
+from django.db import connection, transaction
 
 from linz2osm.boundaries.models import Boundary
 
-class Command(LabelCommand):
+class Command(BaseCommand):
     help = "Loads Stats NZ boundaries"
     args = "<shapefile_dir>"
     label = "shapefile_dir"
 
+    option_list = list(BaseCommand.option_list) + [
+        make_option('--update-only', action='store_true', 
+            default=False, dest='update_only',
+            help='Update relations on existing boundaries'),
+    ]
+    
     _mappings = (
         (3, 'AU06_LV2.shp', {
             'name': 'AU_NAME',
@@ -31,32 +38,49 @@ class Command(LabelCommand):
             'poly': 'POLYGON',
         }),
     )
+    
+    @transaction.commit_on_success
+    def update_relations(self, level):
+        b_count = Boundary.objects.filter(level=level).count()
+        print >>sys.stderr, "Updating relations between %d boundaries... (level %d)" % (b_count, level)
+        for i,b in enumerate(Boundary.objects.filter(level=level)):
+            print >>sys.stderr, b, 'poly...',
+            b.update_poly_display()
+            print >>sys.stderr, 'children...',
+            b.update_children()
+            print >>sys.stderr, 'neighbours...',
+            b.update_neighbours()
+            b.save() 
+            print ''
 
-    def handle(self, shapefile_dir, **options):
+    def handle(self, *args, **options):
         self.style = no_style()
+
+        if len(args) != 1:
+            raise CommandError('Enter the path to the shapefiles.')
+        shapefile_dir = args[0]
         
         # otherwise we log a shitload
         settings.DEBUG = False
         
-        print "Deleting old boundaries..."
-        Boundary.objects.all().delete()
+        if not options['update_only']:
+            print "Deleting old boundaries..."
+            Boundary.objects.defer('poly', 'poly_display').all().delete()
+            
+            for level, file, mapping in self._mappings:
+                print "%s ..." % file
+                shp_path = os.path.join(shapefile_dir, file)
+                if not os.path.exists(shp_path):
+                    self.style.ERROR("Can't find %s" % shp_path)
+                    return
+                
+                # override default
+                Boundary._meta.get_field('level').default = level
+                
+                lm = LayerMapping(Boundary, shp_path, mapping)
+                lm.save(verbose=True)
         
-        for level, file, mapping in self._mappings:
-            print "%s ..." % file
-            shp_path = os.path.join(shapefile_dir, file)
-            if not os.path.exists(shp_path):
-                self.style.ERROR("Can't find %s" % shp_path)
-                return
-            
-            # override default
-            Boundary._meta.get_field('level').default = level
-            
-            lm = LayerMapping(Boundary, shp_path, mapping)
-            lm.save(verbose=True)
-            
-            print "Simplifying geometries"
-            curs = connection.cursor()
-            # 0.0032 degress == ~250m
-            curs.execute("UPDATE boundaries_boundary SET poly=ST_Simplify(poly, 0.0032) WHERE level=%s AND NOT ST_IsEmpty(ST_Simplify(poly, 0.0032));", [level])
-            
+        for level, file, mapping in reversed(self._mappings):
+            self.update_relations(level)
+        
         print "All Done :)"
