@@ -309,26 +309,45 @@ class OSMWriter(object):
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
 
-    def ring_is_clockwise(self, ring):
+    def ring_is_clockwise(self, p):
         """
         Returns True if the points in the given ring are in clockwise order,
         or False if they are in anticlockwise order. Calculates a cross product. 
         """
-        n = len(ring) -1
-        assert n >= 3
-        count = 0
-        z = 0
-        for i in xrange(n):
-            j = (i + 1) % n
-            k = (i + 2) % n
-            z = (ring[j][0] - ring[i][0]) * (ring[k][1] - ring[j][1])
-            z -= (ring[j][1] - ring[i][1]) * (ring[k][0] - ring[j][0])
-            if (z < 0):
-                count -= 1
-            elif (z > 0):
-                count += 1
-        
-        return (count < 0)
+        clen = len(p) - 1
+        assert clen >= 3
+        total = 0
+        for i in xrange(clen):
+            x1, y1 = p[i]
+            x2, y2 = p[(i + 1) % clen]
+            x3, y3 = p[(i + 2) % clen]
+            
+            # A good cross product tutorial: http://www.netcomuk.co.uk/~jenolive/vect8.html
+            
+            # We have two vectors U and V such that U = (x2-x1, y2-y1), V = (x3-x2, y3-y2)
+            # The cross product `U X V` of 2d vectors is given by UxVy - UyVx
+            
+            dx1 = x2 - x1
+            dy1 = y2 - y1
+            dx2 = x3 - x2
+            dy2 = y3 - y2
+            
+            cp = dx1*dy2 - dy1*dx2
+            
+            # That cross product tells us the angular directionality of the corner 
+            # defined by our two vectors U,V (negative means clockwise)
+            
+            # now we have a vector in the Z dimension with magnitude |U| * |V| * sin(theta)
+            # where theta is the angle between U and V
+            
+            # get vector magnitudes
+            u = float(dx1**2 + dy1**2)**0.5
+            v = float(dx2**2 + dy2**2)**0.5
+            
+            # so now if we divide by the length of the vectors, we get sin(theta)
+            # adding the sin'd thetas gives us a -ve number for clockwise or +ve for anticlockwise
+            total += cp / (u*v)
+        return (total <= 0)
 
     def wind_ring(self, ring, is_outer):
         if self.poly_wind_ccw:
