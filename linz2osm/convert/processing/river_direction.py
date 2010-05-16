@@ -4,7 +4,10 @@ from django.db import connections
 from linz2osm.convert.processing.base import BaseProcessor, Error
     
 class RiverDirection(BaseProcessor):
-    """ Query a DEM to order river coordinates to match flow direction. """
+    """ 
+    Query a DEM to order river coordinates to match flow direction.
+    Args: db, table, [srid, tolerance, elevation_field, geom_field]
+    """
     
     geom_types = (geos.LineString, geos.MultiLineString)
     multi_geometries = False

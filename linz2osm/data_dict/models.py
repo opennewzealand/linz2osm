@@ -4,12 +4,16 @@ import pydermonkey
 from django.db import models
 from django.utils import text
 
+from linz2osm.utils.db_fields import JSONField
+from linz2osm.convert import processing
+
+processor_list_html = '<ul class="help">' + ''.join(['<li><strong>%s</strong>: %s</li>' % p for p in sorted(processing.get_available().items())]) + '</ul>'
+
 class Layer(models.Model):
     name = models.CharField(max_length=100, primary_key=True)
     entity = models.CharField(max_length=200, blank=True, db_index=True)
     notes = models.TextField(blank=True)
-    wind_polygons_ccw = models.BooleanField('Wind polygons anti-clockwise', default=True, help_text="Whether to re-wind outer polygon rings anti-clockwise(True) or clockwise (False). Inner rings are wound the opposite direction. Only applies to polygon layers.")
-    reverse_line_coords = models.BooleanField('Reverse linestring coordinate order', default=False, help_text="Whether to reverse all the coordinate sequences (True) or leave them alone (False). Only applies to line layers. Use with care, you need to manually check coordinate order first!")
+    processors = JSONField(blank=True, null=True, help_text=('What geometry processors to apply. In the format [ ["name",{"arg":"value", ...}], ...]. Available processors:<br/>' + processor_list_html))
     
     def __unicode__(self):
         return unicode(self.name)
@@ -59,6 +63,16 @@ class Layer(models.Model):
             for ds in self.get_datasets():
                 r[ds] = get_layer_stats(ds[0], self)
             return r
+    
+    def get_processors(self):
+        from django.convert.processing import get_class
+        p_list = []
+        if self.processors:
+            for p_id,p_opts in self.processors:
+                p_cls = get_class(p_id)
+                p = p_cls(**p_opts)
+                p_list.append(p)
+        return p_list
 
 class TagManager(models.Manager):
     def eval(self, code, fields):

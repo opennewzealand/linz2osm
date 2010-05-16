@@ -3,7 +3,11 @@ from django.contrib.gis import geos
 from linz2osm.convert.processing.base import BaseProcessor, Error
     
 class PolyWindingCW(BaseProcessor):
-    """ Wind Polygons clockwise (outer ring) and anti-clockwise (inner rings) """
+    """ 
+    Re-wind outer polygon rings clockwise. Inner rings are wound the opposite direction. 
+    Only applies to polygon layers. 
+    Args: None
+    """
     
     geom_types = (geos.Polygon, geos.MultiPolygon)
     multi_geometries = False
@@ -68,5 +72,10 @@ class PolyWindingCW(BaseProcessor):
         return ring
 
 class PolyWindingCCW(PolyWindingCW):
-    """ Wind Polygons anti-clockwise (outer ring) and clockwise (inner rings) """
+    """ 
+    Re-wind outer polygon rings anti-clockwise (default for OSM). 
+    Inner rings are wound the opposite direction. 
+    Only applies to polygon layers. 
+    Args: None
+    """
     cw = False

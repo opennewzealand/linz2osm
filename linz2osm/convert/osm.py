@@ -124,10 +124,9 @@ def export(database_id, layer, bbox=None):
             data_columns.append(column_name)
     
     layer_tags = layer.get_all_tags()
+    processors = layer.get_processors()
     
-    writer = OSMWriter(id_hash=(database_id, layer.name), 
-                       wind_polygons_ccw=layer.wind_polygons_ccw,
-                       reverse_line_coords=layer.reverse_line_coords)
+    writer = OSMWriter(id_hash=(database_id, layer.name))
     
     columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, db_info['_srid'])] + ['"%s"' % c for c in data_columns]
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
@@ -137,7 +136,7 @@ def export(database_id, layer, bbox=None):
         sql = sql_base + ' WHERE setsrid(%s,%d) && st_transform(st_setsrid(ST_MakeBox2D(ST_MakePoint(%%s, %%s), ST_MakePoint(%%s, %%s)), 4326), %d)' % (geom_column, db_info['_srid'], db_info['_srid'])
         cursor.execute(sql, bbox)
     
-    for row in cursor:
+    for i,row in enumerate(cursor):
         if row[0] is None:
             continue
         row_geom = geos.GEOSGeometry(row[0])
@@ -158,6 +157,10 @@ def export(database_id, layer, bbox=None):
             if (v is not None) and (v != ""):
                 row_tags[tag.tag] = v
 
+        # apply geometry processing
+        for p in processors:
+            row_geom = p.process(row_geom, fields=row_data, tags=row_tags, id=i)
+
         writer.add_feature(row_geom, row_tags)
 
     return writer.xml()
@@ -165,7 +168,7 @@ def export(database_id, layer, bbox=None):
 class OSMWriter(object):
     WAY_SPLIT_SIZE = 495
     
-    def __init__(self, id_hash=None, wind_polygons_ccw=True, reverse_line_coords=False):
+    def __init__(self, id_hash=None, processors=None):
         self.n_root = ElementTree.Element('osmChange', version="0.6", generator="linz2osm")
         self.n_create = ElementTree.SubElement(self.n_root, 'create', version="0.6", generator="linz2osm")
         self.tree = ElementTree.ElementTree(self.n_root)
@@ -177,8 +180,7 @@ class OSMWriter(object):
             h = hashlib.sha1(unicode(id_hash).encode('utf8')).hexdigest()
             self._id = -1 * int(h[:6], 16)
     
-        self.poly_wind_ccw = wind_polygons_ccw
-        self.line_reverse = reverse_line_coords
+        self.processors = processors or []
     
     def add_feature(self, geom, tags=None):
         self.build_geom(geom, tags)
@@ -213,8 +215,7 @@ class OSMWriter(object):
             for i,ring in enumerate(geom):
                 is_outer = (i == 0)
                 w_tags = tags if is_outer else None
-                coords = self.wind_ring(ring.tuple, is_outer=is_outer)
-                w_ids = self.build_way(coords, w_tags)
+                w_ids = self.build_way(ring.tuple, w_tags)
                 for w_id in w_ids:
                     ElementTree.SubElement(r, 'member', type="way", ref=w_id, role=('outer' if (i == 0) else 'inner'))
 
@@ -260,8 +261,7 @@ class OSMWriter(object):
     def build_geom(self, geom, tags, inner=False):
         if isinstance(geom, geos.Polygon) and (len(geom) == 1) and (len(geom[0]) <= self.WAY_SPLIT_SIZE):
             # short single-ring polygons are built as ways
-            coords = self.wind_ring(geom[0].tuple, is_outer=True)
-            return self.build_way(coords, tags)
+            return self.build_way(geom[0].tuple, tags)
             
         elif isinstance(geom, (geos.MultiPolygon, geos.Polygon)):
             return self.build_polygon(geom, tags)
@@ -281,10 +281,6 @@ class OSMWriter(object):
         
         elif isinstance(geom, geos.LineString):
             # way
-            if self.line_reverse:
-                coords = list(geom.tuple)
-                coords.reverse()
-                geom = geos.LineString(coords)
             return self.build_way(geom.tuple, tags)
     
     def build_tags(self, parent_node, tags):
@@ -308,55 +304,3 @@ class OSMWriter(object):
                 e.tail = i
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
-
-    def ring_is_clockwise(self, p):
-        """
-        Returns True if the points in the given ring are in clockwise order,
-        or False if they are in anticlockwise order. Calculates a cross product. 
-        """
-        clen = len(p) - 1
-        assert clen >= 3
-        total = 0
-        for i in xrange(clen):
-            x1, y1 = p[i]
-            x2, y2 = p[(i + 1) % clen]
-            x3, y3 = p[(i + 2) % clen]
-            
-            # A good cross product tutorial: http://www.netcomuk.co.uk/~jenolive/vect8.html
-            
-            # We have two vectors U and V such that U = (x2-x1, y2-y1), V = (x3-x2, y3-y2)
-            # The cross product `U X V` of 2d vectors is given by UxVy - UyVx
-            
-            dx1 = x2 - x1
-            dy1 = y2 - y1
-            dx2 = x3 - x2
-            dy2 = y3 - y2
-            
-            cp = dx1*dy2 - dy1*dx2
-            
-            # That cross product tells us the angular directionality of the corner 
-            # defined by our two vectors U,V (negative means clockwise)
-            
-            # now we have a vector in the Z dimension with magnitude |U| * |V| * sin(theta)
-            # where theta is the angle between U and V
-            
-            # get vector magnitudes
-            u = float(dx1**2 + dy1**2)**0.5
-            v = float(dx2**2 + dy2**2)**0.5
-            
-            # so now if we divide by the length of the vectors, we get sin(theta)
-            # adding the sin'd thetas gives us a -ve number for clockwise or +ve for anticlockwise
-            total += cp / (u*v)
-        return (total <= 0)
-
-    def wind_ring(self, ring, is_outer):
-        if self.poly_wind_ccw:
-            wind_cw = not is_outer
-        else:
-            wind_cw = is_outer
-        
-        if self.ring_is_clockwise(ring) != wind_cw:
-            ring = list(ring)
-            ring.reverse()
-        return ring
-        

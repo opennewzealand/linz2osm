@@ -3,7 +3,12 @@ from django.contrib.gis import geos
 from linz2osm.convert.processing.base import BaseProcessor, Error
     
 class ReverseLine(BaseProcessor):
-    """ Reverse every line """
+    """ 
+    Reverse all the coordinate sequences. 
+    Only applies to line layers. 
+    Use with care, you need to manually check coordinate order first! 
+    Args: None
+    """
     
     geom_types = (geos.LineString, geos.MultiLineString)
     multi_geometries = False
