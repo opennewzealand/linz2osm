@@ -65,7 +65,7 @@ class Layer(models.Model):
             return r
     
     def get_processors(self):
-        from django.convert.processing import get_class
+        from linz2osm.convert.processing import get_class
         p_list = []
         if self.processors:
             for p_id,p_opts in self.processors:
