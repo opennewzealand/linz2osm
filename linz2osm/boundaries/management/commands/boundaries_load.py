@@ -44,14 +44,18 @@ class Command(BaseCommand):
         b_count = Boundary.objects.filter(level=level).count()
         print >>sys.stderr, "Updating relations between %d boundaries... (level %d)" % (b_count, level)
         for i,b in enumerate(Boundary.objects.filter(level=level)):
-            print >>sys.stderr, b, 'poly...',
-            b.update_poly_display()
-            print >>sys.stderr, 'children...',
-            b.update_children()
-            print >>sys.stderr, 'neighbours...',
-            b.update_neighbours()
-            b.save() 
-            print ''
+            print >>sys.stderr, b, 
+            try:
+                print >>sys.stderr, 'poly...',
+                b.update_poly_display()
+                print >>sys.stderr, 'children...',
+                b.update_children()
+                print >>sys.stderr, 'neighbours...',
+                b.update_neighbours()
+                b.save() 
+                print ''
+            except Exception, e:
+                print >>sys.stderr, '\n\tERROR: ', e
 
     def handle(self, *args, **options):
         self.style = no_style()
