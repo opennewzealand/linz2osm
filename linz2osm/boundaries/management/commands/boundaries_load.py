@@ -44,18 +44,26 @@ class Command(BaseCommand):
         b_count = Boundary.objects.filter(level=level).count()
         print >>sys.stderr, "Updating relations between %d boundaries... (level %d)" % (b_count, level)
         for i,b in enumerate(Boundary.objects.filter(level=level)):
-            print >>sys.stderr, b, 
+            print >>sys.stderr, "%s ..." % b
             try:
-                print >>sys.stderr, 'poly...',
                 b.update_poly_display()
-                print >>sys.stderr, 'children...',
-                b.update_children()
-                print >>sys.stderr, 'neighbours...',
-                b.update_neighbours()
-                b.save() 
-                print ''
             except Exception, e:
-                print >>sys.stderr, '\n\tERROR: ', e
+                print >>sys.stderr, '\tERROR - poly: ', e
+                self.errors.append((b.id, str(b), e))
+
+            try:
+                b.update_children()
+            except Exception, e:
+                print >>sys.stderr, '\tERROR - children: ', e
+                self.errors.append((b.id, str(b), e))
+
+            try:
+                b.update_neighbours()
+            except Exception, e:
+                print >>sys.stderr, '\tERROR - neighbours: ', e
+                self.errors.append((b.id, str(b), e))
+
+            b.save() 
 
     def handle(self, *args, **options):
         self.style = no_style()
@@ -84,7 +92,13 @@ class Command(BaseCommand):
                 lm = LayerMapping(Boundary, shp_path, mapping)
                 lm.save(verbose=True)
         
+        self.errors = []
         for level, file, mapping in reversed(self._mappings):
             self.update_relations(level)
         
         print "All Done :)"
+        
+        if len(self.errors):
+            print "\nERRORS: (%d)" % len(self.errors)
+            for b_id, b_str, e in self.errors:
+                print "%s - %s: %s" % (b_id, b_str, e)
