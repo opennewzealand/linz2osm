@@ -49,19 +49,19 @@ class Command(BaseCommand):
                 b.update_poly_display()
             except Exception, e:
                 print >>sys.stderr, '\tERROR - poly: ', e
-                self.errors.append((b.id, str(b), e))
+                self.errors.append((b.id, str(b), 'poly', e))
 
             try:
                 b.update_children()
             except Exception, e:
                 print >>sys.stderr, '\tERROR - children: ', e
-                self.errors.append((b.id, str(b), e))
+                self.errors.append((b.id, str(b), 'children', e))
 
             try:
                 b.update_neighbours()
             except Exception, e:
                 print >>sys.stderr, '\tERROR - neighbours: ', e
-                self.errors.append((b.id, str(b), e))
+                self.errors.append((b.id, str(b), 'neighbours', e))
 
             b.save() 
 
@@ -100,5 +100,5 @@ class Command(BaseCommand):
         
         if len(self.errors):
             print "\nERRORS: (%d)" % len(self.errors)
-            for b_id, b_str, e in self.errors:
-                print "%s - %s: %s" % (b_id, b_str, e)
+            for b_id, b_str, what, e in self.errors:
+                print "%s - %s: %s - %s" % (b_id, b_str, what, e)
