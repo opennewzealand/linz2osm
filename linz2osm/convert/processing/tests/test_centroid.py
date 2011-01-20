@@ -2,7 +2,7 @@ import unittest
 
 from django.contrib.gis import geos
 
-from linz2osm.convert.processing.centroid import PointOnSurface
+from linz2osm.convert.processing.centroid import PointOnSurface, Centroid
 
 class TestCentroid(unittest.TestCase):
     def test_simple(self):

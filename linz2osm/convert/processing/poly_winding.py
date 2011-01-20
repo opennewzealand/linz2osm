@@ -57,7 +57,11 @@ class PolyWindingCW(BaseProcessor):
             
             # so now if we divide by the length of the vectors, we get sin(theta)
             # adding the sin'd thetas gives us a -ve number for clockwise or +ve for anticlockwise
-            total += cp / (u*v)
+            try:
+                total += cp / (u*v)
+            except ZeroDivisionError:
+                # if the data is horrible and has concurrent points, we can just skip this calculation
+                continue
         return (total <= 0)
 
     def wind_ring(self, ring, is_outer):

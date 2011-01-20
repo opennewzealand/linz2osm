@@ -73,3 +73,21 @@ class TestPolyWinding(unittest.TestCase):
                         else:
                             self.assert_(p.ring_is_clockwise(coords), "Inner-ring coords are anticlockwise!")
 
+    def test_polygon_orientation_concurrent(self):
+        geoms = {
+            "cw" : [(0,0), (10,10), (10,10), (20,0), (0,0)],
+            "ccw" : [(0,0), (20,0), (10,10), (10,10), (0,0)],
+        }
+
+        for dir in ('cw', 'ccw'):
+            for name, ring in geoms.items():
+                print "layer=%s, data=%s" % (dir, name)
+                p = PolyWindingCCW() if (dir == 'ccw') else PolyWindingCW()
+                
+                g_out = p.handle(geos.Polygon(ring))
+                coords = g_out[0].tuple
+                
+                if dir == 'cw':
+                    self.assert_(p.ring_is_clockwise(coords), "Outer-ring with concurrent points coords are anticlockwise (expecting cw)!")
+                else:
+                    self.assert_(not p.ring_is_clockwise(coords), "Outer-ring with concurrent points coords are clockwise (expecting ccw)!")
