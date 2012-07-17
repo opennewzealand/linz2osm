@@ -1,6 +1,9 @@
 {% extends "admin/base.html" %}
 
 {% block title %}{{ title }} | LINZ-2-OSM{% endblock %}
+{% block extrahead %}{{ block.super }}
+<script src="/media/jquery-1.7.2.min.js"></script>
+{% endblock %}
 
 {% block branding %}
 <h1 id="site-name">LINZ-2-OSM</h1>
