@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 
 from linz2osm.data_dict.models import Layer
 
-INDEX_URL = "http://www.linz.govt.nz/topography/technical-specs/data-dictionary/index.aspx?page=index-obj-All"
+INDEX_URL = "http://apps.linz.govt.nz/topo-data-dictionary/index.aspx?page=index-obj-All"
 
 class Command(BaseCommand):
     help = "Builds the Layer options"
