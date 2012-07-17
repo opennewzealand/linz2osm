@@ -1,10 +1,10 @@
 {% extends "admin/base_site.html" %}
-{% load i18n stylize %}
+{% load i18n stylize staticfiles %}
 
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" type="text/css" href="{% load adminmedia %}{% admin_media_prefix %}css/dashboard.css" />
-<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}stylize.css" />
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/dashboard.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'stylize.css' %}" />
 {% endblock %}
 
 {% block breadcrumbs %}
@@ -30,7 +30,7 @@
     
         <p>
             <input type="submit" class="default" name="preview" value="Preview XML" style="float:none">
-            <input type="submit" class="default" name="download_gz" value="Download (.osm.gz)" style="float:none">
+            <input type="submit" class="default" name="download_gz" value="Download (.osc.gz)" style="float:none">
         </p>
     </form>
     

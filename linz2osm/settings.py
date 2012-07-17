@@ -19,7 +19,7 @@ DATABASES = {
 #    'linz_dataset': {
 #        '_description': "Chathams V16",
 #        '_srid': 3793,
-#        'ENGINE' : 'postgresql_psycopg2',
+#        'ENGINE' : 'django.contrib.gis.db.backends.postgis',
 #        'NAME' : '',
 #        'USER' : '',
 #        'PASSWORD' : '',
@@ -43,34 +43,37 @@ SITE_ID = 1
 # to load the internationalization machinery.
 USE_I18N = True
 
-# Absolute path to the directory that holds media.
+# Absolute path to the directories for media, generated statics
+# and shared static assets
 # Example: "/home/media/media.lawrence.com/"
 MEDIA_ROOT = ''
+STATIC_ROOT = ''
+STATICFILES_DIRS = (
+    '/path/to/linz2osm/assets/',
+)
 
-# URL that handles the media served from MEDIA_ROOT. Make sure to use a
+# URLs that handles the media served from MEDIA_ROOT and STATIC_ROOT
+# Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
 # Examples: "http://media.lawrence.com", "http://example.com/media/"
 MEDIA_URL = '/media/'
-
-# URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
-# trailing slash.
-# Examples: "http://foo.com/media/", "/media/".
-ADMIN_MEDIA_PREFIX = '/media/admin/'
+STATIC_URL = '/static/'
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '--fill-this-up-with-some-random-stuff--'
 
 # List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.load_template_source',
-    'django.template.loaders.app_directories.load_template_source',
-#     'django.template.loaders.eggs.load_template_source',
-)
+# TEMPLATE_LOADERS = (
+#     # 'django.template.loaders.filesystem.load_template_source',
+#     'django.template.loaders.app_directories.load_template_source',
+# #     'django.template.loaders.eggs.load_template_source',
+# )
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.gzip.GZipMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
 )
 
@@ -86,8 +89,10 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
+    'django.contrib.messages',
     'django.contrib.admin',
     'django.contrib.admindocs',
+    'django.contrib.staticfiles',
     'django.contrib.gis',
     
     'linz2osm.data_dict',
@@ -96,8 +101,6 @@ INSTALLED_APPS = (
     
     'south',
 )
-
-TEST_RUNNER='django.contrib.gis.tests.run_tests'
 
 CACHE_BACKEND = 'db://django_cache'
 
