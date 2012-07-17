@@ -5,11 +5,13 @@ LINZ-2-OSM
 Requirements
 ------------
 
- * Django 1.2-beta
+ * Django 1.4
  * PostgreSQL + PostGIS
  * Pydermonkey
  * Pygments
  * Django South
+ * RabbitMQ
+ * Celery 3
  
 Install
 -------
