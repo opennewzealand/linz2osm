@@ -95,7 +95,7 @@ def layer_data_export(request, dataset_id, layer_name):
                     ctx['preview_content'] = data
                 else:
                     # download
-                    filename = "%s.osm" % layer_name
+                    filename = "%s.osc" % layer_name
                     if 'download_gz' in request.REQUEST:
                         data = text.compress_string(data)
                         filename += ".gz"

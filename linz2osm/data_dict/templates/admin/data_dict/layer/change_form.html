@@ -53,7 +53,7 @@
 <div class="rpanel">
     {% with original.get_datasets as lds %}
     {% if lds %}
-    <h4>Export Data to .osm files:</h4>
+    <h4>Export Data to .osc files:</h4>
     <ul>
     {% for ds in lds %}
     <li><a href="/convert/{{ds.0}}/{{original.name}}/">{{ds.1}}</a></li>
