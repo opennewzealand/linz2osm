@@ -38,14 +38,6 @@ Install
  * run `manage.py runserver` and head to http://localhost:8000
  * have fun! :)
 
-Support, Bugs, Ideas
---------------------
-
- * File an issue in Github at: 
-   http://github.com/opennewzealand/linz2osm/issues
- * Ask on the NZOpenGIS mailing list:
-   http://groups.google.co.nz/group/nzopengis
-
 New Datasets
 ------------
 
@@ -54,3 +46,27 @@ to populate a PostGIS DB. Then, add it as a database in the settings file,
 (make sure it has _description and _srid defined) and it should just work.
 
  * http://code.google.com/p/nz-geodata-scripts/wiki/LinzTopo   
+
+Support, Bugs, Ideas
+--------------------
+
+ * File an issue in Github at: 
+   http://github.com/opennewzealand/linz2osm/issues
+ * Ask on the NZOpenGIS mailing list:
+   http://groups.google.co.nz/group/nzopengis
+
+Special Thanks
+--------------
+
+linz2osm is made possible with the generous support of
+
+ * Land Information New Zealand
+   http://www.linz.govt.nz/
+ * New Zealand Geospatial Office
+   http://www.linz.govt.nz/geospatial-office
+ * Digital NZ
+   http://www.digitalnz.org/
+ * The Ministry of Culture and Heritage
+   http://www.mch.govt.nz/
+ * Koordinates
+   http://www.koordinates.com/
