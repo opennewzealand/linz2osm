@@ -42,7 +42,7 @@ Support, Bugs, Ideas
 --------------------
 
  * File an issue in Github at: 
-   http://github.com/rcoup/linz2osm/issues
+   http://github.com/opennewzealand/linz2osm/issues
  * Ask on the NZOpenGIS mailing list:
    http://groups.google.co.nz/group/nzopengis
 

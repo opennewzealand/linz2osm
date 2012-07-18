@@ -1,10 +1,10 @@
-import unittest
+from django.test import TestCase
 
 from django.contrib.gis import geos
 
 from linz2osm.convert.processing.base import BaseProcessor
 
-class TestBaseProcessor(unittest.TestCase):
+class TestBaseProcessor(TestCase):
     def test_multi(self):
         l = geos.LineString((0,0), (1,1))
         ml = geos.MultiLineString(l, l)

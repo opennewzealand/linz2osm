@@ -201,7 +201,7 @@ class OSMWriter(object):
         return str(self._id)
     
     def build_polygon(self, geom, tags, root=None):
-        if not root: 
+        if root is None: 
             r = ElementTree.Element('relation', id=self.next_id)
             ElementTree.SubElement(r, 'tag', k='type', v='multipolygon')
             self.build_tags(r, tags)
@@ -219,7 +219,7 @@ class OSMWriter(object):
                 for w_id in w_ids:
                     ElementTree.SubElement(r, 'member', type="way", ref=w_id, role=('outer' if (i == 0) else 'inner'))
 
-        if not root:
+        if root is None:
             self.n_create.append(r)
         return [r.get('id')]
             

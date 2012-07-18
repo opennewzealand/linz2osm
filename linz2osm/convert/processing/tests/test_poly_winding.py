@@ -1,10 +1,10 @@
-import unittest
+from django.test import TestCase
 
 from django.contrib.gis import geos
 
 from linz2osm.convert.processing.poly_winding import PolyWindingCW, PolyWindingCCW
     
-class TestPolyWinding(unittest.TestCase):
+class TestPolyWinding(TestCase):
     def test_ring_clockwise(self):
         cw = [(0,0), (10,10), (20,0), (0,0)]
         ccw = cw[:]

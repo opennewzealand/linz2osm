@@ -1,10 +1,10 @@
-import unittest
+from django.test import TestCase
 
 from django.contrib.gis import geos
 
 from linz2osm.convert.processing.centroid import PointOnSurface, Centroid
 
-class TestCentroid(unittest.TestCase):
+class TestCentroid(TestCase):
     def test_simple(self):
         g = geos.Polygon(((0,0), (10,0), (10,10), (0,10), (0,0)))
 
@@ -14,7 +14,7 @@ class TestCentroid(unittest.TestCase):
         self.assertEqual(g2.geom_type, 'Point')
         self.assertEqual(g2.tuple, (5,5))
 
-class TestPointOnSurface(unittest.TestCase):
+class TestPointOnSurface(TestCase):
     def test_poly_square(self):
         g = geos.Polygon(((0,0), (10,0), (10,10), (0,10), (0,0)))
 

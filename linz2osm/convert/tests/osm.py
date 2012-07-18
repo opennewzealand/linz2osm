@@ -1,4 +1,4 @@
-import unittest
+from django.test import TestCase
 from xml.etree import ElementTree
 import math
 import sys
@@ -9,7 +9,7 @@ from django.contrib.gis import geos
 
 from linz2osm.convert import osm
 
-class TestWriter(unittest.TestCase):
+class TestWriter(TestCase):
     def test_id(self):
         w = osm.OSMWriter()
         
@@ -48,13 +48,13 @@ class TestWriter(unittest.TestCase):
         w = osm.OSMWriter()
         
         id = w.build_node(geos.Point(123, 456), [])
-        print w.xml()
+        # print w.xml()
 
-        n = w.tree.find('/create/node')
+        n = w.tree.find('./create/node')
         self.assert_(n is not None, "Couldn't find <node>")
         self.assertEqual(n.get('id'), id[0])
         
-        self.assertEqual(len(w.tree.findall('//node')), 1)
+        self.assertEqual(len(w.tree.findall('.//node')), 1)
         
         self.assert_(int(n.get('id')) < 0, "ID < 0")
         self.assertEqual(float(n.get('lon')), 123)
@@ -62,7 +62,7 @@ class TestWriter(unittest.TestCase):
         self.assertEqual(len(n.getchildren()), 0)
 
         id = w.build_node(geos.Point(234, 567), [])
-        self.assertEqual(len(w.tree.findall('//node')), 2)
+        self.assertEqual(len(w.tree.findall('.//node')), 2)
 
     def test_repeated_nodes(self):
         """ Nodes should be repeated """
@@ -71,38 +71,38 @@ class TestWriter(unittest.TestCase):
             w.build_node(geos.Point(123, 456), [], map=False),
             w.build_node(geos.Point(123, 456), [], map=False),
         ]
-        self.assertEqual(len(w.tree.findall('//node')), 2)
+        self.assertEqual(len(w.tree.findall('.//node')), 2)
 
         w = osm.OSMWriter()
         ids = [
             w.build_geom(geos.Point(123, 456), []),
             w.build_geom(geos.Point(123, 456), []),
         ]
-        self.assertEqual(len(w.tree.findall('//node')), 2)
+        self.assertEqual(len(w.tree.findall('.//node')), 2)
 
         w = osm.OSMWriter()
         ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(123,456)), {})
-        self.assertEqual(len(w.tree.findall('//node')), 1)
+        self.assertEqual(len(w.tree.findall('.//node')), 1)
 
         w = osm.OSMWriter()
         ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(12,34)), {})
         ids = w.build_geom(geos.Point(123, 456), {})
-        self.assertEqual(len(w.tree.findall('//node')), 3)
+        self.assertEqual(len(w.tree.findall('.//node')), 3)
 
         w = osm.OSMWriter()
         ids = w.build_geom(geos.Point(123, 456), {})
         ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(12,34)), {})
-        self.assertEqual(len(w.tree.findall('//node')), 3)
+        self.assertEqual(len(w.tree.findall('.//node')), 3)
 
         w = osm.OSMWriter()
         ids = w.build_geom(geos.Point(123, 456), {'tag':'val'})
         ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(12,34)), {'tag':'val'})
-        self.assertEqual(len(w.tree.findall('//node')), 3)
+        self.assertEqual(len(w.tree.findall('.//node')), 3)
 
         w = osm.OSMWriter()
         ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(12,34)), {'tag':'val'})
         ids = w.build_geom(geos.Point(123, 456), {'tag':'val'})
-        self.assertEqual(len(w.tree.findall('//node')), 3)
+        self.assertEqual(len(w.tree.findall('.//node')), 3)
     
     def test_tags_single(self):
         w = osm.OSMWriter()
@@ -160,14 +160,14 @@ class TestWriter(unittest.TestCase):
         l = ((1,1), (2,2), (3,3),)
 
         id = w.build_way(l, {})
-        print w.xml()
+        # print w.xml()
         
-        n = w.tree.find('/create/way')
+        n = w.tree.find('./create/way')
         self.assert_(n is not None, "Couldn't find <way>")
         
-        self.assertEqual(len(w.tree.findall('//way')), 1)
+        self.assertEqual(len(w.tree.findall('.//way')), 1)
 
-        nodes = w.tree.findall('/create/node') 
+        nodes = w.tree.findall('./create/node') 
         self.assertEqual(len(nodes), 3)
         node_map = dict([(nn.get('id'), nn) for nn in nodes])
         
@@ -196,12 +196,12 @@ class TestWriter(unittest.TestCase):
             w.build_way(l[0], {}),
             w.build_way(l[1], {}),
         )
-        print w.xml()
+        # print w.xml()
         
-        ways = w.tree.findall('/create/way')
-        self.assertEqual(len(w.tree.findall('//way')), 2)
+        ways = w.tree.findall('./create/way')
+        self.assertEqual(len(w.tree.findall('.//way')), 2)
 
-        nodes = w.tree.findall('/create/node') 
+        nodes = w.tree.findall('./create/node') 
         self.assertEqual(len(nodes), 6)
         node_map = dict([(nn.get('id'), nn) for nn in nodes])
         
@@ -234,13 +234,13 @@ class TestWriter(unittest.TestCase):
 
         for coords,tags in data:
             w.build_way(coords, tags)
-        print w.xml()
-        print w._nodes
+        # print w.xml()
+        # print w._nodes
         
-        ways = w.tree.findall('/create/way')
-        self.assertEqual(len(w.tree.findall('//way')), 4)
+        ways = w.tree.findall('./create/way')
+        self.assertEqual(len(w.tree.findall('.//way')), 4)
 
-        nodes = w.tree.findall('/create/node') 
+        nodes = w.tree.findall('./create/node') 
         self.assertEqual(len(nodes), 6)
     
     def test_way_circular(self):
@@ -249,10 +249,10 @@ class TestWriter(unittest.TestCase):
         l = ((0,0), (1,1), (2,0), (0,0),)
 
         id = w.build_way(l, {})
-        print w.xml()
+        # print w.xml()
         
-        wn = w.tree.find('/create/way')
-        nodes = w.tree.findall('/create/node') 
+        wn = w.tree.find('./create/way')
+        nodes = w.tree.findall('./create/node') 
         self.assertEqual(len(nodes), 3) # not 4!
         node_map = dict([(nn.get('id'), nn) for nn in nodes])
         
@@ -270,23 +270,23 @@ class TestWriter(unittest.TestCase):
         g = geos.Polygon([(0,0), (10,10), (20,0), (0,0)], [(8,2), (10,4), (12,2), (8,2)])
 
         id = w.build_geom(g, {'mytag':'myvalue'})
-        print w.xml()
+        # print w.xml()
         
-        rels = w.tree.findall('/create/relation')
+        rels = w.tree.findall('./create/relation')
         self.assertEqual(len(rels), 1)
-        ways = w.tree.findall('/create/way')
+        ways = w.tree.findall('./create/way')
         self.assertEqual(len(ways), 2)
         way_map = dict([(ww.get('id'), ww) for ww in ways])
-        nodes = w.tree.findall('/create/node') 
+        nodes = w.tree.findall('./create/node') 
         self.assertEqual(len(nodes), 6)
         node_map = dict([(nn.get('id'), nn) for nn in nodes])
         
-        rel = w.tree.find('/create/relation')
+        rel = w.tree.find('./create/relation')
         rel_members = rel.findall('member')
         self.assertEqual(len(rel_members), 2)
         for i,mn in enumerate(rel_members):
             mw = way_map.get(mn.get('ref'))
-            self.assert_(mw)
+            self.assert_(mw is not None)
             self.assertEqual(mn.get('role'), 'outer' if i==0 else 'inner')
             self.assertEqual(mn.get('type'), 'way')
             self.assertEqual(len(mw.findall('tag')), 1 if mn.get('role') == 'outer' else 0)
@@ -299,10 +299,10 @@ class TestWriter(unittest.TestCase):
         l = ((0,0), (1,1), (2,0), (0,0), (-1,-1),)
 
         id = w.build_way(l, {})
-        print w.xml()
+        # print w.xml()
         
-        wn = w.tree.find('/create/way')
-        nodes = w.tree.findall('/create/node') 
+        wn = w.tree.find('./create/way')
+        nodes = w.tree.findall('./create/node') 
         self.assertEqual(len(nodes), 4) # not 4!
         node_map = dict([(nn.get('id'), nn) for nn in nodes])
         
@@ -321,29 +321,29 @@ class TestWriter(unittest.TestCase):
         l = [(x, -x) for x in range(31)]
         
         ids = w.build_way(l, {'mytag':'myvalue'})
-        print w.xml()
+        # print w.xml()
         
         self.assert_(len(ids) > 0, "Expected >1 ID returned")
-        ways = w.tree.findall('/create/way')
+        ways = w.tree.findall('./create/way')
         self.assertEqual(len(ways), len(ids))
         way_map = dict([(ww.get('id'), ww) for ww in ways])
 
         # <node>'s shouldn't be repeated
-        nodes = w.tree.findall('/create/node')
+        nodes = w.tree.findall('./create/node')
         self.assertEqual(len(nodes), 31)
         node_map = dict([(nn.get('id'), nn) for nn in nodes])
 
-        self.assertEqual(len(w.tree.findall('/create/relation')), 0)
-        rel = w.tree.find('/create/relation')
+        self.assertEqual(len(w.tree.findall('./create/relation')), 0)
+        rel = w.tree.find('./create/relation')
     
         prev_way = None
         total_nodes = 0
         for i,way in enumerate(ways):
             way_nd = way.findall('nd')
-            if prev_way:
+            if prev_way is not None:
                 self.assertEqual(way_nd[0].get('ref'), prev_way.findall('nd')[-1].get('ref'))
 
-            total_nodes += len(way_nd) - (1 if prev_way else 0)
+            total_nodes += len(way_nd) - (1 if prev_way is not None else 0)
 
             self.assertEqual(len(way.findall('tag')), 1)
             self.assertEqual(way.find('tag').get('k'), 'mytag')
@@ -356,8 +356,8 @@ class TestWriter(unittest.TestCase):
         w.WAY_SPLIT_SIZE = 10
         l = [(x, -x) for x in range(19)] # one node is repeated between 2x ways
         ids = w.build_way(l, {})
-        print w.xml()
-        ways = w.tree.findall('/create/way')
+        # print w.xml()
+        ways = w.tree.findall('./create/way')
         self.assertEqual(len(ways), 2)
         
     def test_way_split_polygon(self):
@@ -367,10 +367,10 @@ class TestWriter(unittest.TestCase):
         g = geos.Polygon([(x, -x) for x in range(15)] + [(0,0)])
         
         ids = w.build_geom(g, {'mytag':'myval'})
-        print w.xml()
+        # print w.xml()
 
         # should have done at least 1x split
-        ways = w.tree.findall('/create/way')
+        ways = w.tree.findall('./create/way')
         self.assertEqual(len(ways), math.ceil(15/10.0))
         
         # way should have tags too
@@ -381,13 +381,13 @@ class TestWriter(unittest.TestCase):
             self.assertEqual(way_tags[0].get('v'), 'myval')
         
         # <node>'s shouldn't be repeated
-        nodes = w.tree.findall('/create/node')
+        nodes = w.tree.findall('./create/node')
         self.assertEqual(len(nodes), 15)
         node_map = dict([(nn.get('id'), nn) for nn in nodes])
 
         # Should be 1x Relation:MultiPolygon and no Relation:Collections
-        self.assertEqual(len(w.tree.findall('/create/relation')), 1)
-        rel = w.tree.find('/create/relation')
+        self.assertEqual(len(w.tree.findall('./create/relation')), 1)
+        rel = w.tree.find('./create/relation')
     
         rel_tags = rel.findall('tag')
         self.assertEqual(len(rel_tags), 2)
@@ -403,21 +403,21 @@ class TestWriter(unittest.TestCase):
         g = geos.Polygon([(x, -x**2) for x in range(15)] + [(0,0)], ((1,-2), (4,-2), (4,-3), (1,-2))) 
         
         ids = w.build_geom(g, {'mytag':'myval'})
-        print w.xml()
+        # print w.xml()
 
         # should have done at least 1x split
-        ways = w.tree.findall('/create/way')
+        ways = w.tree.findall('./create/way')
         self.assertEqual(len(ways), math.ceil(15/10.0)+1)
         way_map = dict([(ww.get('id'), ww) for ww in ways])
         
         # <node>'s shouldn't be repeated
-        nodes = w.tree.findall('/create/node')
+        nodes = w.tree.findall('./create/node')
         self.assertEqual(len(nodes), 15+3)
         node_map = dict([(nn.get('id'), nn) for nn in nodes])
 
         # Should be 1x Relation:MultiPolygon and no Relation:Collections
-        self.assertEqual(len(w.tree.findall('/create/relation')), 1)
-        rel = w.tree.find('/create/relation')
+        self.assertEqual(len(w.tree.findall('./create/relation')), 1)
+        rel = w.tree.find('./create/relation')
     
         rel_tags = rel.findall('tag')
         self.assertEqual(len(rel_tags), 2)
@@ -431,7 +431,7 @@ class TestWriter(unittest.TestCase):
         counts = [0,0]
         for rm in rel_members:
             way = way_map.get(rm.get('ref'))
-            self.assert_(way, "Couldn't find way for relation member %s" % rm.get('ref'))
+            self.assert_(way is not None, "Couldn't find way for relation member %s" % rm.get('ref'))
             way_tags = way.findall('tag')
             if rm.get('role') == 'outer':
                 counts[0] += 1
@@ -472,12 +472,12 @@ class TestWriter(unittest.TestCase):
         for i, (node_count, way_count, relation_count, tag_count, geom) in enumerate(geoms):
             w = osm.OSMWriter()
             
-            print "#%d: %s" % (i, geom.wkt)
+            # print "#%d: %s" % (i, geom.wkt)
             w.build_geom(geom, {'mytag':'myvalue'})
-            print w.xml()
+            # print w.xml()
             
-            self.assertEqual(len(w.tree.findall('/create/node')), node_count)
-            self.assertEqual(len(w.tree.findall('/create/way')), way_count)
-            self.assertEqual(len(w.tree.findall('/create/relation')), relation_count)
-            self.assertEqual(len(w.tree.findall('//tag')), tag_count)
+            self.assertEqual(len(w.tree.findall('./create/node')), node_count)
+            self.assertEqual(len(w.tree.findall('./create/way')), way_count)
+            self.assertEqual(len(w.tree.findall('./create/relation')), relation_count)
+            self.assertEqual(len(w.tree.findall('.//tag')), tag_count)
     
