@@ -17,5 +17,5 @@ urlpatterns += patterns('',
     (r'convert/', include('linz2osm.convert.urls')),
     (r'workslices/', include('linz2osm.workslices.urls')),
     (r'^doc/', include('django.contrib.admindocs.urls')),
-    (r'', include(admin.site.urls)),
+    (r'admin/', include(admin.site.urls)),
 )
