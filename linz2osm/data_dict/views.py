@@ -44,4 +44,5 @@ def layer_stats(request, object_id=None):
     }
     
     return render_to_response('data_dict/layer_stats.html', c, context_instance=RequestContext(request))
-    
+
+

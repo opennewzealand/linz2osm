@@ -1,28 +1,35 @@
-{% extends "admin/base_site.html" %}
+{% extends "global.html" %}
 {% load i18n stylize %}
-
-{% block extrastyle %}
-{{ block.super }}
-{% endblock %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
-     <a href="../../../../">{% trans "Home" %}</a> &rsaquo;
-     <a href="../../../">Data_Dict</a> &rsaquo;
-     <a href="../../">Layers</a> &rsaquo;
-     <a href="../">{{layer}}</a> &rsaquo;
+  <li>
+    <a href="../../../../">{% trans "Home" %}</a> &rsaquo;
+  </li>
+  <li>
+    <a href="../../../">Data_Dict</a> &rsaquo;
+  </li>
+  <li>
+    <a href="../../">Layers</a> &rsaquo;
+  </li>
+  <li>
+    <a href="../">{{layer}}</a> &rsaquo;
+  </li>
+  <li class="active">
      Statistics
+  </li>
 </div>
 {% endblock %}
 
 {% block content %}
-<div id="content-main">
-    {% for item in statistics.items %}
+{% for item in statistics.items %}
+    <div class="row">
+      <div class="span12">
         {% with item.0 as ds %}
         {% with item.1 as stats %}
         <h2>{{ ds.1 }}</h2>
         
-        <table id="stats">
+        <table>
             {% if stats.extent %}<tr><th>Extent:</th><td>{{stats.extent.extent}}</td></tr>{% endif %}
             {% if stats.feature_count %}<tr><th>Features:</th><td>{{stats.feature_count}}</td></tr>{% endif %}
             {% if stats.rings_avg %}<tr><th>Rings:</th><td>Average: {{stats.rings_avg|floatformat:"0"}} Max: {{stats.rings_max}}</td></tr>{% endif %}
@@ -50,7 +57,8 @@
         {% endwith %}
         {% endwith %}
         {% if not forloop.last %}<hr />{% endif %}
-    {% endfor %}
-</div>
+      </div>
+    </div>
+{% endfor %}
 {% endblock %}
 
