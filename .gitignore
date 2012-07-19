@@ -1,4 +1,5 @@
 linz2osm/settings_site.py
 conf/linz2osm.wsgi
+media/*
 *.pyc
 *.pyo

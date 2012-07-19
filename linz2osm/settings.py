@@ -1,5 +1,8 @@
 # Django settings for linz2osm project.
 
+import djcelery
+djcelery.setup_loader()
+
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
@@ -97,11 +100,14 @@ INSTALLED_APPS = (
     
     'linz2osm.data_dict',
     'linz2osm.convert',
+    'linz2osm.workslices',
     
+    'djcelery',
     'south',
 )
 
 CACHE_BACKEND = 'db://django_cache'
+BROKER_URL = 'amqp://guest@localhost//'
 
 # Override anything here with a settings_site.py file
 try:

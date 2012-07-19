@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+{% load i18n staticfiles %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+     <a href="../">{% trans "Home" %}</a> &rsaquo;
+     Workslices
+</div>
+{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+{% block bodyclass %}dashboard{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <dl>
+      <dt>User</dt>
+      <dd>{{ user_name }}</dd>
+      <dt>Layer</dt>
+      <dd>{{ layer_name }}</dd>
+      <dt>Dataset</dt>
+      <dd>{{ dataset_name }}</dd>
+      <dt>Status</dt>
+      <dd>{{ status_name }}</dd>
+      {% if status_name != 'Processing' %}
+      <dt>Download</dt>
+      <dd><a href="{{ file_path }}">{{file_name}}</a></dd>
+      {% endif %}
+    </dl>
+    
+    {% if error %}
+    <ul class="errorlist"><li>{{ error|linebreaksbr }}</li></ul>
+    {% endif %}
+</div>
+{% endblock %}
+

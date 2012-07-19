@@ -11,7 +11,7 @@ Requirements
  * Pygments
  * Django South
  * RabbitMQ
- * Celery 3
+ * Celery 3 and django-celery
  
 Install
 -------
