@@ -7,6 +7,7 @@ from django import forms
 
 from linz2osm.data_dict.models import Layer
 from linz2osm.convert import osm
+from linz2osm.workslices.models import Workslice
 
 DATASETS = dict([(k,v['_description']) for k,v in settings.DATABASES.items() if k != 'default'])
 
@@ -86,29 +87,44 @@ def layer_data_export(request, dataset_id, layer_name):
     if request.method == "POST":
         form = BoundsForm(request.REQUEST)
         if form.is_valid():
-            try:
-                data = osm.export(dataset_id, layer, form.cleaned_data['bounds'])
-            except osm.Error, e:
-                ctx['error'] = str(e)
-            else:
-                if 'preview' in request.REQUEST:
-                    ctx['preview_content'] = data
+            if 'checkout' in request.REQUEST:
+                try:
+                    workslice = Workslice.objects.create_workslice(layer, dataset_id, form.cleaned_data['bounds'], request.user)
+                except osm.Error, e:
+                    ctx['error'] = str(e)
                 else:
-                    # download
-                    filename = "%s.osc" % layer_name
-                    if 'download_gz' in request.REQUEST:
-                        data = text.compress_string(data)
-                        filename += ".gz"
-                        content_type = 'application/x-gzip'
-                    else:
-                        content_type = 'text/xml'
-                    response = HttpResponse(data, content_type=content_type)
-                    response['Content-Disposition'] = 'attachment; filename=%s' % filename
-                    
-                    if content_type == 'application/x-gzip':
-                        response['Content-Encoding'] = ''
-                    
+                    response = HttpResponse()
+                    response.status_code = 303
+                    response['Location'] = workslice.get_absolute_url()
+                # response['Location'] = "%s%s.osc" % (settings.MEDIA_URL, workslice.name)
                     return response
+            else:
+                try:
+                    feature_limit = None
+                    if 'preview' in request.REQUEST:
+                        feature_limit = 50
+                    data = osm.export(dataset_id, layer, form.cleaned_data['bounds'], feature_limit)
+                except osm.Error, e:
+                    ctx['error'] = str(e)
+                else:
+                    if 'preview' in request.REQUEST:
+                        ctx['preview_content'] = data
+                    else:
+                        # download
+                        filename = "%s.osc" % layer_name
+                        if 'download_gz' in request.REQUEST:
+                            data = text.compress_string(data)
+                            filename += ".gz"
+                            content_type = 'application/x-gzip'
+                        else:
+                            content_type = 'text/xml'
+                        response = HttpResponse(data, content_type=content_type)
+                        response['Content-Disposition'] = 'attachment; filename=%s' % filename
+                    
+                        if content_type == 'application/x-gzip':
+                             response['Content-Encoding'] = ''
+                    
+                        return response
     else:
         form = BoundsForm()
         

@@ -110,7 +110,7 @@ def get_layer_stats(database_id, layer):
     return r
     
 
-def export(database_id, layer, bbox=None):
+def export(database_id, layer, bbox=None, feature_limit=None):
     cursor = connections[database_id].cursor()
     db_info = settings.DATABASES[database_id]
     
@@ -131,9 +131,13 @@ def export(database_id, layer, bbox=None):
     columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, db_info['_srid'])] + ['"%s"' % c for c in data_columns]
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
     if bbox is None:
+        if feature_limit is not None:
+            sql_base += ' LIMIT %d' % feature_limit
         cursor.execute(sql_base)
     else:
         sql = sql_base + ' WHERE setsrid(%s,%d) && st_transform(st_setsrid(ST_MakeBox2D(ST_MakePoint(%%s, %%s), ST_MakePoint(%%s, %%s)), 4326), %d)' % (geom_column, db_info['_srid'], db_info['_srid'])
+        if feature_limit is not None:
+            sql += ' LIMIT %d' % feature_limit
         cursor.execute(sql, bbox)
     
     for i,row in enumerate(cursor):
