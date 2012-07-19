@@ -1,0 +1,43 @@
+{% extends "global.html" %}
+{% load i18n staticfiles stylize %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static 'stylize.css' %}" />
+{% endblock %}
+
+{% block content %}
+
+{% if error %}
+<div class="row">
+  <div class="span12">
+    <ul class="errorlist"><li>{{ error|linebreaksbr }}</li></ul>
+  </div>
+</div>
+{% endif %}
+
+<div id="content-main" class="row">
+  <div class="span5">
+    
+    <form method="POST" action="">
+        {{ form.as_p }}
+        
+        <p>
+            <input type="submit" class="default" name="preview" value="Preview XML" style="float:none">
+            {% if user.is_staff %}
+            <input type="submit" class="default" name="download" value="Download (.osc)" style="float:none">
+            <input type="submit" class="default" name="download_gz" value="Download (.osc.gz)" style="float:none">
+            {% endif %}
+            {% if user.is_authenticated %}
+            <input type="submit" class="default" name="checkout" value="Check out" style="float:none">
+            {% endif %}
+        </p>
+    </form>
+  </div>
+  {% if preview_content %}
+    <div class="span7">
+      {{ preview_content|stylize:"xml" }}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

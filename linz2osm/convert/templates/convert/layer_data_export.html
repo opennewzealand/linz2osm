@@ -1,11 +1,5 @@
-{% extends "admin/base_site.html" %}
-{% load i18n stylize staticfiles %}
-
-{% block extrastyle %}
-{{ block.super }}
-<link rel="stylesheet" type="text/css" href="{% static 'admin/css/dashboard.css' %}" />
-<link rel="stylesheet" type="text/css" href="{% static 'stylize.css' %}" />
-{% endblock %}
+{% extends "convert/base_convert.html" %}
+{% load i18n staticfiles stylize %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
@@ -16,28 +10,6 @@
 </div>
 {% endblock %}
 
-{% block coltype %}colMS{% endblock %}
-{% block bodyclass %}dashboard{% endblock %}
 
-{% block content %}
-<div id="content-main">
-    {% if error %}
-    <ul class="errorlist"><li>{{ error|linebreaksbr }}</li></ul>
-    {% endif %}
-    
-    <form method="POST" action="">
-        {{ form.as_p }}
-    
-        <p>
-            <input type="submit" class="default" name="preview" value="Preview XML" style="float:none">
-            <input type="submit" class="default" name="download" value="Download (.osc)" style="float:none">
-            <input type="submit" class="default" name="download_gz" value="Download (.osc.gz)" style="float:none">
-        </p>
-    </form>
-    
-    {% if preview_content %}
-        {{ preview_content|stylize:"xml" }}
-    {% endif %}
-</div>
-{% endblock %}
+
 
