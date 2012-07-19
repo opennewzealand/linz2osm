@@ -38,7 +38,7 @@ class Workslice(models.Model):
         ('complete', 'Completed'),     # User has marked the workslice as merged into OSM
     ]
     STATES_LOOKUP = dict(STATES)
-    name = models.CharField(max_length=255, unique=True, help_text='Unique identifier for this workslice, also used to form the filename')
+    name = models.CharField(max_length=255, unique=True, help_text='Unique identifier and filename for the workslice.')
     state = models.CharField(max_length=30, choices=STATES)
     checked_out_at = models.DateTimeField(null=True, blank=True)
     status_changed_at = models.DateTimeField(null=True, blank=True)
@@ -48,13 +48,18 @@ class Workslice(models.Model):
     dataset = models.CharField(max_length=255)
     bounds = models.CharField(max_length=255, null=True)
     # extent = gis.db.models.PolygonField(geography=True)
-
+    feature_count = models.IntegerField(null=True)
+    file_size = models.IntegerField(null=True)
+    
     @models.permalink
     def get_absolute_url(self):
         return ('linz2osm.workslices.views.show_workslice', (), {'workslice_id': self.id})
     
     def friendly_status(self):
         return self.__class__.STATES_LOOKUP[self.state]
+
+    def post_checkout_status(self):
+        self.state in ['abandoned', 'blocked', 'complete']
     
     objects = WorksliceManager()
 

@@ -20,12 +20,21 @@
 
     {% block extrahead %}
     {% endblock %}
+    {% block extrastyle %}
+    {% endblock %}
   </head>
   <body>
     <div class="navbar navbar-fixed-top">
       <div class="navbar-inner">
         <div class="container-fluid">
           <a class="brand" href="/">LINZ-2-OSM</a>
+          <ul class="nav">
+            <li><a href="/">Home</a></li>
+            {% if user.is_staff %}
+              <li><a href="/admin/">Admin</a></li>
+            {% endif %}
+            <li><a href="/convert/">Convert</a></li>
+          </ul>
         </div>
       </div>
     </div>

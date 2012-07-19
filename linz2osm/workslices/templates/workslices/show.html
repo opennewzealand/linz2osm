@@ -25,19 +25,25 @@
     <h1>Info</h1>
     <dl>
       <dt>User</dt>
-      <dd>{{ user_name }}</dd>
+      <dd>{{ workslice.user.username }}</dd>
       <dt>Layer</dt>
-      <dd>{{ layer_name }}</dd>
+      <dd>{{ workslice.layer.name }}</dd>
       <dt>Dataset</dt>
       <dd>{{ dataset_name }}</dd>
       <dt>Status</dt>
       {% if post_checkout_status %}
-      <dd>Checked Out on {{ checked_out_at }}</dd>
+      <dd>Checked Out on {{ workslice.checked_out_at|date:"DATETIME_FORMAT" }} ({{ workslice.checked_out_at|timesince }} ago)</dd>
       {% endif %}
-      <dd>{{ status_name }} since {{ status_changed_at }}</dd>
+      <dd>{{ status_name }} since {{ workslice.status_changed_at|date:"DATETIME_FORMAT" }} ({{ workslice.status_changed_at|timesince }} ago)</dd>
       {% if status_name != 'Processing' %}
-      <dt>Download</dt>
-      <dd><a href="{{ file_path }}">{{file_name}}</a></dd>
+
+        {% ifequal user.id workslice.user.id %}
+        <dt>Download</dt>
+        <dd>
+          <a href="{{ file_path }}">{{file_name}}</a>
+          ({{ workslice.file_size|filesizeformat }})
+        </dd>
+        {% endifequal %}
       {% endif %}
     </dl>
   </div>

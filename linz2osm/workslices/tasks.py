@@ -5,20 +5,24 @@ from linz2osm.convert import osm
 from linz2osm.workslices.celery import Celery
 from datetime import datetime
 import time
+import os.path
 
 celery = Celery('tasks', broker = settings.BROKER_URL)
 
 @celery.task
 def osm_export(workslice):
     start_t = time.time()
-    time.sleep(5)
     data = osm.export(workslice.dataset, workslice.layer, workslice.bounds)
-    f = open("%s/%s.osc" % (settings.MEDIA_ROOT, workslice.name), 'w')
+
+    filepath = "%s/%s.osc" % (settings.MEDIA_ROOT, workslice.name)
+    f = open(filepath, 'w')
     f.write(data)
     f.close()
+    
     workslice.state = 'out'
     workslice.status_changed_at = datetime.now()
+    workslice.file_size = os.path.getsize(filepath)
     workslice.save()
     finish_t = time.time()
-    print "MISSION COMPLETE - generated %s.osc in %f sec" % (workslice.name, finish_t - start_t)
+    print "MISSION COMPLETE - generated %s.osc (%d bytes) in %f sec" % (workslice.name, workslice.file_size, finish_t - start_t)
     return workslice
