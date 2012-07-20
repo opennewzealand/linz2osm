@@ -5,11 +5,9 @@ from django.utils import simplejson, text
 from django.conf import settings
 from django import forms
 
-from linz2osm.data_dict.models import Layer
+from linz2osm.data_dict.models import Layer, Dataset
 from linz2osm.convert import osm
 from linz2osm.workslices.models import Workslice
-
-DATASETS = dict([(k,v['_description']) for k,v in settings.DATABASES.items() if k != 'default'])
 
 class BoundsForm(forms.Form):
     bounds = forms.RegexField(regex=r'((-?(\d+)(\.\d+)?),){3}(-?(\d+)(\.\d+)?)', required=False, help_text='minx,miny,maxx,maxy')
@@ -33,7 +31,7 @@ class BoundsForm(forms.Form):
         return minx,miny,maxx,maxy
 
 class ExportDataForm(BoundsForm):
-    dataset = forms.ChoiceField(choices=[('', '---------')] + DATASETS.items())
+    dataset = forms.ModelChoiceField(Dataset.objects.order_by('name'))
     layer = forms.ModelChoiceField(Layer.objects.order_by('name'))
     
     def __init__(self, dataset_layers, *args, **kwargs):
@@ -42,24 +40,25 @@ class ExportDataForm(BoundsForm):
     
     def clean(self):
         fcd = self.cleaned_data
+        
         if ('layer' in fcd) and ('dataset' in fcd):
-            if fcd['layer'].name not in self.dataset_layers[fcd['dataset']]:
-                raise forms.ValidationError("Layer %s is not available in Dataset %s" % (fcd['layer'], DATASETS[fcd['dataset']]))
+            if fcd['layer'].name not in self.dataset_layers[fcd['dataset'].name]:
+                raise forms.ValidationError("Layer %s is not available in Dataset %s" % (fcd['layer'], Dataset.objects.get(name=fcd['dataset'].name)))
         return fcd
 
 def layer_data(request):
     dataset_layers = {}
     all_layers = set(Layer.objects.values_list('name', flat=True))
-    for ds in DATASETS.keys():
-        ds_tables = set(osm.dataset_tables(ds))
+    for ds in Dataset.objects.all():
+        ds_tables = set(osm.dataset_tables(ds.name))
         ds_layers = list(all_layers.intersection(ds_tables))
         ds_layers.sort()
-        dataset_layers[ds] = ds_layers 
+        dataset_layers[ds.name] = ds_layers 
     
     if request.method == "POST":
         form = ExportDataForm(dataset_layers, request.POST)
         if form.is_valid():
-            return layer_data_export(request, form.cleaned_data['dataset'], form.cleaned_data['layer'].name)
+            return layer_data_export(request, form.cleaned_data['dataset'].name, form.cleaned_data['layer'].name)
     else:
         form = ExportDataForm(dataset_layers)
         
@@ -71,18 +70,16 @@ def layer_data(request):
     return render_to_response('convert/layer_data.html', ctx, context_instance=RequestContext(request))
 
 def layer_data_export(request, dataset_id, layer_name):
-    if not dataset_id in DATASETS:
-        raise Http404('Dataset %s not found' % dataset_id)
-
+    dataset = get_object_or_404(Dataset, name=dataset_id)
     layer = get_object_or_404(Layer, pk=layer_name)
-    if not osm.has_layer(dataset_id, layer):
-        raise Http404('Layer %s not available in dataset %s' % (layer_name, DATASETS[dataset_id]))
+    if not osm.has_layer(dataset.name, layer):
+        raise Http404('Layer %s not available in dataset %s' % (layer_name, dataset))
     
     ctx = {
-        'dataset_id': dataset_id,
-        'dataset_name': DATASETS[dataset_id],
+        'dataset_id': dataset.name,
+        'dataset_description': dataset.description,
         'layer': layer,
-        'title': 'Export %s from %s' % (str(layer), DATASETS[dataset_id]),
+        'title': 'Export %s from %s' % (str(layer), dataset),
     }
     if request.method == "POST":
         form = BoundsForm(request.REQUEST)

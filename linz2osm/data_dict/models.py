@@ -3,11 +3,33 @@ import decimal
 import pydermonkey
 from django.db import models
 from django.utils import text
+from django.conf import settings
 
 from linz2osm.utils.db_fields import JSONField
 from linz2osm.convert import processing
 
 processor_list_html = '<ul class="help">' + ''.join(['<li><strong>%s</strong>: %s</li>' % p for p in sorted(processing.get_available().items())]) + '</ul>'
+
+class DatasetManager(models.Manager):
+    def generate_datasets(self):
+        for name, details in settings.DATABASES.items():
+            if name != 'default':
+                dataset = self.create(name = name,
+                                      database_name = details['NAME'],
+                                      description = details['_description'],
+                                      srid = int(details['_srid']))
+
+class Dataset(models.Model):
+    name = models.CharField(max_length=255, unique=True, primary_key=True)
+    database_name = models.CharField(max_length=255)
+    description = models.TextField()
+    srid = models.IntegerField()
+
+    def __unicode__(self):
+        return unicode(self.description)
+
+    objects = DatasetManager()
+    
 
 class Layer(models.Model):
     name = models.CharField(max_length=100, primary_key=True)

@@ -8,7 +8,7 @@ from django.utils import text
 from django.contrib import auth
 from django.contrib import gis
 
-from linz2osm.data_dict.models import Layer
+from linz2osm.data_dict.models import Layer, Dataset
 from linz2osm.workslices import tasks
 
 class WorksliceManager(models.Manager):
@@ -45,7 +45,7 @@ class Workslice(models.Model):
     followup_deadline = models.DateTimeField(null=True, blank=True)
     layer = models.ForeignKey(Layer)
     user = models.ForeignKey(auth.models.User)
-    dataset = models.CharField(max_length=255)
+    dataset = models.ForeignKey(Dataset)
     bounds = models.CharField(max_length=255, null=True)
     # extent = gis.db.models.PolygonField(geography=True)
     feature_count = models.IntegerField(null=True)

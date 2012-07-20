@@ -1,0 +1,33 @@
+{% extends "global.html" %}
+{% load i18n staticfiles %}
+
+{% block breadcrumbs %}
+<li class="active">
+  Home
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="span12">
+    <table class="table">
+      <tr>
+        <th>Dataset</th>
+        <th>Layers</th>
+        <th>(complete)</th>
+        <th>Features</th>
+        <th>(complete)</th>
+      </tr>
+      {% for ds in datasets %}
+      <tr>
+        <td>{{ ds.description }}</td>
+        <td>100</td>
+        <td>0</td>
+        <td>100</td>
+        <td>0</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

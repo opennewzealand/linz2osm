@@ -29,7 +29,7 @@
       <dt>Layer</dt>
       <dd>{{ workslice.layer.name }}</dd>
       <dt>Dataset</dt>
-      <dd>{{ dataset_name }}</dd>
+      <dd>{{ workslice.dataset.name }}</dd>
       <dt>Status</dt>
       {% if post_checkout_status %}
       <dd>Checked Out on {{ workslice.checked_out_at|date:"DATETIME_FORMAT" }} ({{ workslice.checked_out_at|timesince }} ago)</dd>
