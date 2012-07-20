@@ -1,7 +1,7 @@
 import decimal
 
 import pydermonkey
-from django.db import models
+from django.db import models, connections
 from django.utils import text
 from django.conf import settings
 
@@ -14,10 +14,18 @@ class DatasetManager(models.Manager):
     def generate_datasets(self):
         for name, details in settings.DATABASES.items():
             if name != 'default':
-                dataset = self.create(name = name,
-                                      database_name = details['NAME'],
-                                      description = details['_description'],
-                                      srid = int(details['_srid']))
+                if Dataset.objects.filter(name=name).exists():
+                    dataset = Dataset.objects.get(name=name)
+                else:
+                    dataset = self.create(name = name,
+                                          database_name = details['NAME'],
+                                          description = details['_description'],
+                                          srid = int(details['_srid']))
+                    
+                for layer in Layer.objects.all():
+                    if dataset.has_layer_in_schema(layer.name):
+                        LayerInDataset.objects.create_layer_in_dataset(layer, dataset)
+
 
 class Dataset(models.Model):
     name = models.CharField(max_length=255, unique=True, primary_key=True)
@@ -25,17 +33,22 @@ class Dataset(models.Model):
     description = models.TextField()
     srid = models.IntegerField()
 
+    def has_layer_in_schema(self, layer_name):
+        cursor = connections[self.name].cursor()
+        cursor.execute("SELECT true FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename=%s;", [layer_name])
+        return (cursor.fetchone() is not None)
+    
     def __unicode__(self):
         return unicode(self.description)
 
     objects = DatasetManager()
-    
-
+    
 class Layer(models.Model):
     name = models.CharField(max_length=100, primary_key=True)
     entity = models.CharField(max_length=200, blank=True, db_index=True)
     notes = models.TextField(blank=True)
     processors = JSONField(blank=True, null=True, help_text=('What geometry processors to apply. In the format [ ["name",{"arg":"value", ...}], ...]. Available processors:<br/>' + processor_list_html))
+    datasets = models.ManyToManyField(Dataset, through='LayerInDataset')
     
     def __unicode__(self):
         return unicode(self.name)
@@ -72,18 +85,14 @@ class Layer(models.Model):
             tags[t.tag] = t
         return tags.values()
     
-    def get_datasets(self):
-        from linz2osm.convert.osm import get_layer_datasets
-        return get_layer_datasets(self)
-
     def get_statistics(self, dataset_id=None):
         from linz2osm.convert.osm import get_layer_stats
         if dataset_id:
             return get_layer_stats(dataset_id, self)
         else:
             r = {}
-            for ds in self.get_datasets():
-                r[ds] = get_layer_stats(ds[0], self)
+            for ds in self.datasets.all():
+                r[(ds.name, ds.description)] = get_layer_stats(ds.name, self)
             return r
     
     def get_processors(self):
@@ -96,6 +105,24 @@ class Layer(models.Model):
                 p_list.append(p)
         return p_list
 
+
+class LayerInDatasetManager(models.Manager):
+    def create_layer_in_dataset(self, layer, dataset):
+        if not LayerInDataset.objects.filter(layer=layer, dataset=dataset).exists():
+            # TODO: merge with osm.get_layer_feature_count
+            cursor = connections[dataset.name].cursor()
+            cursor.execute('SELECT count(1) FROM %s;' % layer.name)
+            feature_ct = cursor.fetchone()[0]
+            return self.create(layer=layer, dataset=dataset, features_total=feature_ct)
+        
+class LayerInDataset(models.Model):
+    dataset = models.ForeignKey(Dataset)
+    layer = models.ForeignKey(Layer)
+    features_total = models.IntegerField()
+
+    objects = LayerInDatasetManager()
+
+    
 class TagManager(models.Manager):
     def eval(self, code, fields):
         eval_fields = {}

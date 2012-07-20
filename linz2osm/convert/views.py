@@ -50,10 +50,7 @@ def layer_data(request):
     dataset_layers = {}
     all_layers = set(Layer.objects.values_list('name', flat=True))
     for ds in Dataset.objects.all():
-        ds_tables = set(osm.dataset_tables(ds.name))
-        ds_layers = list(all_layers.intersection(ds_tables))
-        ds_layers.sort()
-        dataset_layers[ds.name] = ds_layers 
+        dataset_layers[ds.name] = [l.name for l in ds.layer_set.all()]
     
     if request.method == "POST":
         form = ExportDataForm(dataset_layers, request.POST)

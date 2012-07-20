@@ -36,7 +36,7 @@
 {% block object-tools %}
 {% if change %}{% if not is_popup %}
   <ul class="object-tools">
-    <li><a href="stats/" class="statslink">Statistics</a></li>
+    <li><a href="/data_dict/layer/{{ original.name }}/stats/" class="statslink">Statistics</a></li>
     <li><a href="history/" class="historylink">{% trans "History" %}</a></li>
     {% if has_absolute_url %}
         <li><a href="../../../r/{{ content_type_id }}/{{ object_id }}/" class="viewsitelink">
@@ -51,19 +51,18 @@
 {{block.super}}
 {% if original %}
 <div class="rpanel">
-    {% with original.get_datasets as lds %}
+    {% with original.datasets.all as lds %}
     {% if lds %}
     <h4>Export Data to .osc files:</h4>
     <ul>
     {% for ds in lds %}
-    <li><a href="/convert/{{ds.0}}/{{original.name}}/">{{ds.1}}</a></li>
+    <li><a href="/convert/{{ds.name}}/{{original.name}}/">{{ds.description}}</a></li>
     {% endfor %}
     </ul>
     {% endif %}
     {% endwith %}
 
     <h4><a href="{{ original.linz_dictionary_url}}">LINZ Data Definition</a></h4>
-    <iframe id="linz_dd" src="{{ original.linz_dictionary_url}}#nav"></iframe>
 </div>
 {% endif %}
 {% endblock %}

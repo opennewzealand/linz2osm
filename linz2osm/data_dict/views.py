@@ -32,8 +32,8 @@ def tag_eval(request, object_id=None):
     return HttpResponse(simplejson.dumps(r), content_type='text/plain')
 
 def layer_stats(request, object_id=None):
-    #FIXME: Why?
-    object_id = re.sub("_5F", "_", object_id)
+    # FIXME: Why? 
+    # object_id = re.sub("_5F", "_", object_id)
     
     l = get_object_or_404(Layer, name=object_id)
     

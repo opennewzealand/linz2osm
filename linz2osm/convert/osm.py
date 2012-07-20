@@ -11,37 +11,6 @@ from django.core.cache import cache
 class Error(Exception):
     pass
 
-def get_layer_datasets(layer):
-    r = cache.get('convert:osm:layer_datasets:%s' % layer.name)
-    if r is None:
-        r = []
-        for ds_id, ds_info in settings.DATABASES.items():
-            if ds_id == 'default':
-                continue
-            if has_layer(ds_id, layer):
-                r.append((ds_id, ds_info.get('_description', ds_id),))
-        cache.set('convert:osm:layer_datasets:%s' % layer, r, 60*60*24)
-    return r
-
-def has_layer(database_id, layer):
-    r = cache.get('convert:osm:has_layer:%s:%s' % (database_id, layer.name))
-    if r is None:
-        cursor = connections[database_id].cursor()
-        cursor.execute('SELECT count(*) FROM information_schema.tables WHERE table_name=%s;', [layer.name])
-        count = cursor.fetchone()[0]
-        r = (count == 1)
-        cache.set('convert:osm:has_layer:%s:%s' % (database_id, layer.name), r, 60*60*24)
-    return r
-
-def dataset_tables(database_id):
-    r = cache.get('convert:osm:dataset_tables:%s' % database_id)
-    if r is None:
-        cursor = connections[database_id].cursor()
-        cursor.execute('SELECT table_name FROM information_schema.tables;')
-        r = [row[0] for row in cursor]
-        cache.set('convert:osm:dataset_tables:%s' % database_id, r, 60*60*24)
-    return r
-
 def get_layer_geometry_type(database_id, layer):
     """ Returns a (geometry_type, srid) tuple """
     cursor = connections[database_id].cursor()

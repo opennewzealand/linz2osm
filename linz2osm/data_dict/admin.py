@@ -9,7 +9,7 @@ class TagInline(admin.StackedInline):
     verbose_name_plural = 'Tags'
 
 class LayerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'entity', 'get_geometry_type_display', 'stats_link', 'tag_count', 'datasets', 'notes',)
+    list_display = ('name', 'entity', 'get_geometry_type_display', 'stats_link', 'tag_count', 'dataset_descriptions', 'notes',)
     list_filter = ('entity',)
     inlines = [
         TagInline,
@@ -28,11 +28,9 @@ class LayerAdmin(admin.ModelAdmin):
         return obj.tags.count()
     tag_count.short_description = 'Defined Tags'
     
-    def datasets(self, obj):
-        ds = [desc for id,desc in obj.get_datasets()]
-        ds.sort()   # make them in a consistent order
-        return ", ".join(ds)
-    datasets.short_description = 'Available in' 
+    def dataset_descriptions(self, obj):
+        return ", ".join([d.description for d in obj.datasets.all()])
+    dataset_descriptions.short_description = 'Available in' 
 
     def stats_link(self, obj):
         return "<a href='%s/stats/'>Layer Stats</a>" % obj.name

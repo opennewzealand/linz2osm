@@ -34,7 +34,7 @@ Install
  * run `manage.py loaddata v16_layers` to populate the layer models.
  * run `manage.py loaddata example_tags` to load some example tags for road_cl,
    and some defaults for all layers.
-   
+ * run `manage.py generate_datasets` to configure the app for the datasets and layers you've added
  * run `manage.py runserver` and head to http://localhost:8000
  * have fun! :)
 
@@ -58,7 +58,7 @@ Support, Bugs, Ideas
 Special Thanks
 --------------
 
-linz2osm is made possible with the generous support of
+LINZ-2-OSM is made possible with the generous support of these organisations:
 
  * Land Information New Zealand
    http://www.linz.govt.nz/
