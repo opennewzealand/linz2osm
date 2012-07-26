@@ -17,7 +17,7 @@
       </tr>
       {% for ds in datasets %}
       <tr>
-        <td>{{ ds.description }}</td>
+        <td><a href="{% url linz2osm.data_dict.views.show_dataset dataset_id=ds.name %}">{{ ds.description }}</a></td>
         <td>{{ ds.layer_set.count }}</td>
       </tr>
       {% endfor %}

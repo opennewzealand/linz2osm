@@ -2,15 +2,21 @@ import decimal
 
 import pydermonkey
 from django.db import models, connections
+from django.db.models import Q
 from django.utils import text
 from django.conf import settings
+from django.contrib.gis.db import models as geomodels
 
 from linz2osm.utils.db_fields import JSONField
-from linz2osm.convert import processing
+from linz2osm.convert import processing, osm
 
 processor_list_html = '<ul class="help">' + ''.join(['<li><strong>%s</strong>: %s</li>' % p for p in sorted(processing.get_available().items())]) + '</ul>'
 
 class DatasetManager(models.Manager):
+    def clear_datasets(self):
+        # cascades and also drops LayerInDatasets
+        Dataset.objects.all().delete()
+    
     def generate_datasets(self):
         for name, details in settings.DATABASES.items():
             if name != 'default':
@@ -106,23 +112,63 @@ class Layer(models.Model):
         return p_list
 
 
-class LayerInDatasetManager(models.Manager):
+class LayerInDatasetManager(geomodels.GeoManager):
     def create_layer_in_dataset(self, layer, dataset):
         if not LayerInDataset.objects.filter(layer=layer, dataset=dataset).exists():
             # TODO: merge with osm.get_layer_feature_count
+
+            stats = osm.get_layer_stats(dataset.name, layer)
+            
             cursor = connections[dataset.name].cursor()
             cursor.execute('SELECT count(1) FROM %s;' % layer.name)
             feature_ct = cursor.fetchone()[0]
-            return self.create(layer=layer, dataset=dataset, features_total=feature_ct)
+            
+            return self.create(layer=layer,
+                               dataset=dataset,
+                               features_total=stats['feature_count'],
+                               extent=stats['extent']
+                               )
         
-class LayerInDataset(models.Model):
-    dataset = models.ForeignKey(Dataset)
-    layer = models.ForeignKey(Layer)
-    features_total = models.IntegerField()
-
+class LayerInDataset(geomodels.Model):
     objects = LayerInDatasetManager()
 
-    
+    dataset = geomodels.ForeignKey(Dataset)
+    layer = geomodels.ForeignKey(Layer)
+    features_total = geomodels.IntegerField()
+    extent = geomodels.GeometryField(null=True)
+
+    def js_display_bounds_array(self):
+        min_x, min_y, max_x, max_y = [f for f in self.extent.extent]
+        x_margin = (max_x - min_x) * 0.1 
+        y_margin = (max_y - min_y) * 0.1 
+        return unicode([min_x - x_margin, min_y - y_margin, max_x + x_margin, max_y + y_margin])
+
+    def js_extent_geojson(self):
+        return """ {
+            "geometry": %s,
+            "type": "Feature",
+            "properties": {
+                "model": "LayerInDataset"
+            }
+        } """ % self.extent.geojson
+
+
+    def js_workslice_geojson(self):
+        shown_workslices = self.workslice_set.filter(Q(state='processing')|Q(state='out')|Q(state='complete')|Q(state='blocked'))
+        
+        return """
+            { "type": "FeatureCollection",
+              "features": [%s],
+              "crs": {
+                  "type" : "name",
+                  "properties" : {
+                      "name" : "EPSG:4326"
+                  }
+              }
+            }
+        """ % ",".join([self.js_extent_geojson(), ",".join(ws.js_feature_geojson() for ws in shown_workslices)])
+
+                           
 class TagManager(models.Manager):
     def eval(self, code, fields):
         eval_fields = {}

@@ -6,12 +6,14 @@ Requirements
 ------------
 
  * Django 1.4
- * PostgreSQL + PostGIS
+ * PostgreSQL 8.3 or later + PostGIS 1.5 or later
  * Pydermonkey
  * Pygments
  * Django South
  * RabbitMQ
- * Celery 3 and django-celery
+ * Celery 3 or later and django-celery
+ * GDAL 1.5 or later
+ * Mapnik 2.0 or later
  
 Install
 -------

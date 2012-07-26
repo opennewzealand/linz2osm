@@ -1,0 +1,41 @@
+{% extends "global.html" %}
+{% load i18n stylize %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <li>
+    <a href="/">{% trans "Home" %}</a> &rsaquo;
+  </li>
+  <li class="active">
+     {{ dataset.description }}
+  </li>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="span12">
+    <table class="table">
+      <tr>
+        <th>Layer</th>
+        <th>Feature Count</th>
+        <th>Complete</th>
+        <th>In Progress</th>
+        <th>To Do</th>
+        <th colspan="2"></th>
+      </tr>
+      {% for layer_in_dataset in layers_in_dataset %}
+      <tr>
+        <td>{{ layer_in_dataset.layer.name }}</td>
+        <td>{{ layer_in_dataset.features_total }}</td>
+        <td>0</td>
+        <td>0</td>
+        <td>{{ layer_in_dataset.features_total }}</td>
+        <td><a href="{% url linz2osm.data_dict.views.layer_stats layer_in_dataset.layer.name %}">Stats</td>
+        <td><a href="{% url linz2osm.workslices.views.create_workslice layer_in_dataset.id %}">Show Check Outs</a>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

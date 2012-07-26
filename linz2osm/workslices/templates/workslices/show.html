@@ -27,9 +27,9 @@
       <dt>User</dt>
       <dd>{{ workslice.user.username }}</dd>
       <dt>Layer</dt>
-      <dd>{{ workslice.layer.name }}</dd>
+      <dd>{{ workslice.layer_in_dataset.layer.name }}</dd>
       <dt>Dataset</dt>
-      <dd>{{ workslice.dataset.name }}</dd>
+      <dd>{{ workslice.layer_in_dataset.dataset.description }}</dd>
       <dt>Status</dt>
       {% if post_checkout_status %}
       <dd>Checked Out on {{ workslice.checked_out_at|date:"DATETIME_FORMAT" }} ({{ workslice.checked_out_at|timesince }} ago)</dd>
@@ -51,6 +51,5 @@
     <h1>Map, maybe?</h1>
   </div>
 </div>
-<div style="height: 2000px;"></div>
 {% endblock %}
 

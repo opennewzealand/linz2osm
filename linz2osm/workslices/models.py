@@ -8,14 +8,14 @@ from django.utils import text
 from django.contrib import auth
 from django.contrib import gis
 
-from linz2osm.data_dict.models import Layer, Dataset
+from linz2osm.data_dict.models import Layer, Dataset, LayerInDataset
 from linz2osm.workslices import tasks
 
 class WorksliceManager(models.Manager):
-    def create_workslice(self, layer, dataset, bounds, user):
-        workslice = self.create(layer = layer,
-                                dataset = dataset,
-                                bounds = bounds,
+    def create_workslice(self, layer, dataset, user):
+        layer_in_dataset = LayerInDataset.objects.get(layer=layer,dataset=dataset)
+        workslice = self.create(layer_in_dataset = layer_in_dataset,
+                                checkout_extent = layer_in_dataset.extent,
                                 user = user,
                                 state = 'processing',
                                 checked_out_at = datetime.now(),
@@ -43,11 +43,9 @@ class Workslice(models.Model):
     checked_out_at = models.DateTimeField(null=True, blank=True)
     status_changed_at = models.DateTimeField(null=True, blank=True)
     followup_deadline = models.DateTimeField(null=True, blank=True)
-    layer = models.ForeignKey(Layer)
     user = models.ForeignKey(auth.models.User)
-    dataset = models.ForeignKey(Dataset)
-    bounds = models.CharField(max_length=255, null=True)
-    # extent = gis.db.models.PolygonField(geography=True)
+    layer_in_dataset = models.ForeignKey(LayerInDataset)
+    checkout_extent = gis.db.models.PolygonField()
     feature_count = models.IntegerField(null=True)
     file_size = models.IntegerField(null=True)
     
@@ -59,7 +57,18 @@ class Workslice(models.Model):
         return self.__class__.STATES_LOOKUP[self.state]
 
     def post_checkout_status(self):
-        self.state in ['abandoned', 'blocked', 'complete']
-    
+        return self.state in ['abandoned', 'blocked', 'complete']
+
+    def js_feature_geojson(self):
+        return """ {
+            "geometry": %s,
+            "type": "Feature",
+            "properties": {
+                "model": "Workslice",
+                "state": "%s",
+                "id": "%d"
+            }
+        } """ %  (self.checkout_extent.geojson, self.state, self.id)
+        
     objects = WorksliceManager()
 

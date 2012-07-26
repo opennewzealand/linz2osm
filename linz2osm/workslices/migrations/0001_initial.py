@@ -7,10 +7,6 @@ from django.db import models
 
 class Migration(SchemaMigration):
 
-    depends_on = (
-        ("data_dict", "0007_add_model_Dataset"),
-    )
-    
     def forwards(self, orm):
         # Adding model 'Workslice'
         db.create_table('workslices_workslice', (
@@ -20,10 +16,9 @@ class Migration(SchemaMigration):
             ('checked_out_at', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
             ('status_changed_at', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
             ('followup_deadline', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('layer', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data_dict.Layer'])),
             ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
-            ('dataset', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data_dict.Dataset'])),
-            ('bounds', self.gf('django.db.models.fields.CharField')(max_length=255, null=True)),
+            ('layer_in_dataset', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data_dict.LayerInDataset'])),
+            ('checkout_extent', self.gf('django.contrib.gis.db.models.fields.PolygonField')()),
             ('feature_count', self.gf('django.db.models.fields.IntegerField')(null=True)),
             ('file_size', self.gf('django.db.models.fields.IntegerField')(null=True)),
         ))
@@ -81,21 +76,29 @@ class Migration(SchemaMigration):
         },
         'data_dict.layer': {
             'Meta': {'object_name': 'Layer'},
+            'datasets': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['data_dict.Dataset']", 'through': "orm['data_dict.LayerInDataset']", 'symmetrical': 'False'}),
             'entity': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '200', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100', 'primary_key': 'True'}),
             'notes': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
             'processors': ('linz2osm.utils.db_fields.JSONField', [], {'null': 'True', 'blank': 'True'})
         },
+        'data_dict.layerindataset': {
+            'Meta': {'object_name': 'LayerInDataset'},
+            'dataset': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['data_dict.Dataset']"}),
+            'extent': ('django.contrib.gis.db.models.fields.GeometryField', [], {'null': 'True'}),
+            'features_total': ('django.db.models.fields.IntegerField', [], {}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'layer': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['data_dict.Layer']"})
+        },
         'workslices.workslice': {
             'Meta': {'object_name': 'Workslice'},
-            'bounds': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True'}),
             'checked_out_at': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'dataset': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['data_dict.Dataset']"}),
+            'checkout_extent': ('django.contrib.gis.db.models.fields.PolygonField', [], {}),
             'feature_count': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
             'file_size': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
             'followup_deadline': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'layer': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['data_dict.Layer']"}),
+            'layer_in_dataset': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['data_dict.LayerInDataset']"}),
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255'}),
             'state': ('django.db.models.fields.CharField', [], {'max_length': '30'}),
             'status_changed_at': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),

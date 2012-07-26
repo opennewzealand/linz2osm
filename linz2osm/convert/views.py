@@ -5,7 +5,7 @@ from django.utils import simplejson, text
 from django.conf import settings
 from django import forms
 
-from linz2osm.data_dict.models import Layer, Dataset
+from linz2osm.data_dict.models import Layer, Dataset, LayerInDataset
 from linz2osm.convert import osm
 from linz2osm.workslices.models import Workslice
 
@@ -69,8 +69,11 @@ def layer_data(request):
 def layer_data_export(request, dataset_id, layer_name):
     dataset = get_object_or_404(Dataset, name=dataset_id)
     layer = get_object_or_404(Layer, pk=layer_name)
-    if not osm.has_layer(dataset.name, layer):
+    lids = LayerInDataset.objects.filter(dataset=dataset, layer=layer)
+    if len(lids) == 0:
         raise Http404('Layer %s not available in dataset %s' % (layer_name, dataset))
+    else:
+        layer_in_dataset = lids[0]
     
     ctx = {
         'dataset_id': dataset.name,
@@ -83,7 +86,7 @@ def layer_data_export(request, dataset_id, layer_name):
         if form.is_valid():
             if 'checkout' in request.REQUEST:
                 try:
-                    workslice = Workslice.objects.create_workslice(layer, dataset_id, form.cleaned_data['bounds'], request.user)
+                    workslice = Workslice.objects.create_workslice(layer, dataset, request.user)
                 except osm.Error, e:
                     ctx['error'] = str(e)
                 else:

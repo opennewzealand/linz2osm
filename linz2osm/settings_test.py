@@ -20,6 +20,7 @@ INSTALLED_APPS = (
     'linz2osm.data_dict',
     'linz2osm.convert',
     # 'linz2osm.workslices',
+    # 'linz2osm.lobby',
     
     # 'djcelery',
     'south',

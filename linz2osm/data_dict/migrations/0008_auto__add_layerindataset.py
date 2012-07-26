@@ -14,6 +14,7 @@ class Migration(SchemaMigration):
             ('dataset', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data_dict.Dataset'])),
             ('layer', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data_dict.Layer'])),
             ('features_total', self.gf('django.db.models.fields.IntegerField')()),
+            ('extent', self.gf('django.contrib.gis.db.models.fields.GeometryField')(null=True)),
         ))
         db.send_create_signal('data_dict', ['LayerInDataset'])
 
@@ -42,6 +43,7 @@ class Migration(SchemaMigration):
         'data_dict.layerindataset': {
             'Meta': {'object_name': 'LayerInDataset'},
             'dataset': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['data_dict.Dataset']"}),
+            'extent': ('django.contrib.gis.db.models.fields.GeometryField', [], {'null': 'True'}),
             'features_total': ('django.db.models.fields.IntegerField', [], {}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'layer': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['data_dict.Layer']"})

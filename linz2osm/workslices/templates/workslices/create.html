@@ -1,0 +1,67 @@
+{% extends "global.html" %}
+{% load i18n stylize staticfiles %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <li>
+    <a href="/">{% trans "Home" %}</a> &rsaquo;
+  </li>
+  <li>
+    <a href="/">{{ layer_in_dataset.dataset.description }}</a> &rsaquo;
+  </li>
+  <li class="active">
+     {{ layer_in_dataset.layer.name }}
+  </li>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="span3">
+    <h2>Stats go here</h2>
+    X workslices checked out,
+    X features done
+
+    <div id="grab-some-data">
+      <h2>Check out data</h2>
+      <div id="grab-some-data-view-mode" {% if form.is_bound %}style="display: none;"{% endif %}>
+        <a href="#grab-some-data" id="grab-some-data-start">Check out data</a>
+      </div>
+      <div id="grab-some-data-select-mode" {% if not form.is_bound %}style="display: none;"{% endif %}>
+        <a href="#cancel-grab-data" id="grab-some-data-cancel">Cancel</a> |
+        <a href="#reset-grab-data" id="grab-some-data-reset">Reset</a>
+        <form id="grab-some-data-form" action="{% url linz2osm.workslices.views.create_workslice layer_in_dataset_id=layer_in_dataset.id %}" method="POST">
+          {% csrf_token %}
+          {{ form.as_p }}
+          <div id="cell-selection-information"></div>
+          <input type="submit" value="Check out" id="grab-some-data-submit">
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="span9">
+    <!-- map_canvas is a magic name for Bootstrap to not mangle images with max-width -->
+    <div id="map_canvas" style="height: 600px; width: 100%; border: 1px dashed red;">
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extrascripts %}
+{{ block.super }}
+<script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+<script src="{% static 'workslice-slippy-map.js' %}"></script>
+<!-- FIXME: if we have form data, display map at its former position -->
+<script defer>
+  {% autoescape off %}
+  var worksliceSlippyMap = new WorksliceSlippyMap(
+      "map_canvas",
+      {{ layer_in_dataset.js_display_bounds_array }},
+      {{ layer_in_dataset.js_workslice_geojson }}
+  );
+  {% if form.is_bound %}
+  worksliceSlippyMap.startGrabbingData();
+  {% endif %}
+  {% endautoescape %}
+</script>
+{% endblock %}
