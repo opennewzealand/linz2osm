@@ -24,7 +24,7 @@ class WorksliceForm(forms.Form):
         data = cleaned_data.get('cells')
         if data is None or data == '':
             raise forms.ValidationError('You must select at least one cell.')
-        raise forms.ValidationError('Not implemented yet' % (data))
+        raise forms.ValidationError('Not implemented yet')
         return cleaned_data    
     
 

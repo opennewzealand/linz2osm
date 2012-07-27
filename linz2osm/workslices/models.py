@@ -15,7 +15,7 @@ class WorksliceManager(models.Manager):
     def create_workslice(self, layer, dataset, user):
         layer_in_dataset = LayerInDataset.objects.get(layer=layer,dataset=dataset)
         workslice = self.create(layer_in_dataset = layer_in_dataset,
-                                checkout_extent = layer_in_dataset.extent,
+                                checkout_extent = gis.geos.MultiPolygon(layer_in_dataset.extent),
                                 user = user,
                                 state = 'processing',
                                 checked_out_at = datetime.now(),
@@ -45,7 +45,7 @@ class Workslice(models.Model):
     followup_deadline = models.DateTimeField(null=True, blank=True)
     user = models.ForeignKey(auth.models.User)
     layer_in_dataset = models.ForeignKey(LayerInDataset)
-    checkout_extent = gis.db.models.PolygonField()
+    checkout_extent = gis.db.models.MultiPolygonField()
     feature_count = models.IntegerField(null=True)
     file_size = models.IntegerField(null=True)
     
@@ -72,3 +72,7 @@ class Workslice(models.Model):
         
     objects = WorksliceManager()
 
+
+class WorksliceFeature(models.Model):
+    workslice = models.ForeignKey(Workslice)
+    feature_id = models.IntegerField()
