@@ -131,9 +131,7 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson) {
     var hover;
     var selection_layer;
     var hover_layer;
-    
-    var CELL_SIZES; 
-    
+        
     function Cell(test_lon, test_lat, cpd) {
         var self = this;
 
@@ -203,13 +201,14 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson) {
             var msg = "";
             
             if(len <= 0) {
-                msg = "Select at least one cell from the map";
+                msg = "Select at least one cell from the map. ";
             } else if(len === 1) {
-                msg = "1 cell selected.";
+                msg = "1 cell selected. ";
             } else {
-                msg = contents.length + " cells selected.";
+                msg = contents.length + " cells selected. ";
             }
             $("#cell-selection-information").html(msg);
+            $("#feature-selection-information").html('');
         }
         
         /* FIXME: speed up adding cell */
@@ -285,8 +284,8 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson) {
         style: {
             strokeOpacity: 0,
             strokeWidth: 0,
-            fillOpacity: 0.3,
-            fillColor: '#0077cc'
+            fillOpacity: 0.5,
+            fillColor: '#ff7700'
         }
     });
     this.map.addLayer(selection_layer);
@@ -337,12 +336,18 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson) {
         style: {
             strokeOpacity: 1,
             strokeWidth: 2,
-            strokeColor: '#0077cc',
+            strokeColor: '#ff7700',
             fillOpacity: 0,
         }
     });
     this.map.addLayer(hover_layer);
 
+    this.map.events.register('zoomend', self, function() {
+        if(selecting_cells) {
+            updateCellDensityAndSelection();
+        }
+    });
+    
     /* TODO: highlight red when about to delete a cell */
     function highlightCell(cell) {
         if (!highlighted_cell || cell.toString() != highlighted_cell.toString()) {
@@ -352,34 +357,45 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson) {
         highlighted_cell = cell;
     }
     
-    this.getWGSExtent = function() {
+    function getWGSExtent() {
         return self.map.getExtent().transform(smp, wgs84);
-    };
+    }
 
-    this.getMinimumSizeDegrees = function() {
-        var extent = self.getWGSExtent();
+    function getMinimumSizeDegrees() {
+        var extent = getWGSExtent();
         var height = extent.top - extent.bottom;
         var width = extent.right - extent.left;
         return Math.min(height, width);
-    };
+    }
 
+    function roundup(val, next) {
+        return Math.ceil(val / next) * next;
+    }
+    
+    function calculateCellDensity() {
+        var target = 4.0 / getMinimumSizeDegrees(); // have at least 4 cells
+        var power = Math.log(target) / Math.log(2);
+        // Next highest even power of 2.
+        return Math.max(Math.pow(2, roundup(power, 2)), 1);
+    }
+    
     function updateCellDensityAndSelection() {
         var newCellDensity = calculateCellDensity();
-        if (newCelldensity > currentCellDensity) {
-            // convert cells;
+        console.log(newCellDensity);
+        if (newCellDensity > currentCellDensity) {
+            cells.clear();
+            // FIXME: resize 
         } else if (newCellDensity < currentCellDensity) {
             cells.clear();
-            // redraw cells
         }
         currentCellDensity = newCellDensity;
     }
-
-    this.map.events.register
 
     this.startGrabbingData = function() {
         selecting_cells = true;
         /* FIXME: initialize cells from cells input field populated by server */
         cells.clear();
+        updateCellDensityAndSelection();
         selection.activate();
         hover.activate();
                 
@@ -398,6 +414,18 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson) {
         $("#grab-some-data-view-mode").show();
     };
     
+    $("#feature-count-form").submit(function(event) {
+        event.preventDefault();
+        $.post(
+            $("#feature-count-form").attr('action'),
+            $("#grab-some-data-form").serialize(),
+            function(data, textStatus, jqXHR) {
+                $("#feature-selection-information").html(data.info);
+            },
+            'json'
+        )
+    });
+        
     $("#grab-some-data-start").click(function(event) {
         event.preventDefault();
         self.startGrabbingData();
@@ -412,5 +440,6 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson) {
         event.preventDefault();
         cells.clear();
     });
+
 }
 

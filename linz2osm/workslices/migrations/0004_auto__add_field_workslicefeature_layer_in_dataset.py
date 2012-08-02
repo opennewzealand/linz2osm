@@ -8,25 +8,16 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding model 'WorksliceFeature'
-        db.create_table('workslices_workslicefeature', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('workslice', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['workslices.Workslice'])),
-            ('feature_id', self.gf('django.db.models.fields.IntegerField')()),
-        ))
-        db.send_create_signal('workslices', ['WorksliceFeature'])
+        # Adding field 'WorksliceFeature.layer_in_dataset'
+        db.add_column('workslices_workslicefeature', 'layer_in_dataset',
+                      self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['data_dict.LayerInDataset']),
+                      keep_default=False)
 
-
-        # Changing field 'Workslice.checkout_extent'
-        db.alter_column('workslices_workslice', 'checkout_extent', self.gf('django.contrib.gis.db.models.fields.MultiPolygonField')())
 
     def backwards(self, orm):
-        # Deleting model 'WorksliceFeature'
-        db.delete_table('workslices_workslicefeature')
+        # Deleting field 'WorksliceFeature.layer_in_dataset'
+        db.delete_column('workslices_workslicefeature', 'layer_in_dataset_id')
 
-
-        # Changing field 'Workslice.checkout_extent'
-        db.alter_column('workslices_workslice', 'checkout_extent', self.gf('django.contrib.gis.db.models.fields.PolygonField')())
 
     models = {
         'auth.group': {
@@ -105,6 +96,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'WorksliceFeature'},
             'feature_id': ('django.db.models.fields.IntegerField', [], {}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'layer_in_dataset': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['data_dict.LayerInDataset']"}),
             'workslice': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['workslices.Workslice']"})
         }
     }

@@ -18,9 +18,9 @@
 {% block content %}
 <div class="row">
   <div class="span3">
-    <h2>Stats go here</h2>
+    <h2>Stats</h2>
     X workslices checked out,
-    X features done
+    Y features done.
 
     <div id="grab-some-data">
       <h2>Check out data</h2>
@@ -30,10 +30,16 @@
       <div id="grab-some-data-select-mode" {% if not form.is_bound %}style="display: none;"{% endif %}>
         <a href="#cancel-grab-data" id="grab-some-data-cancel">Cancel</a> |
         <a href="#reset-grab-data" id="grab-some-data-reset">Reset</a>
+        <div>
+          <span id="cell-selection-information"></span>
+          <span id="feature-selection-information"></span>
+        </div>
+        <form id="feature-count-form" action="{% url linz2osm.workslices.views.workslice_info layer_in_dataset_id=layer_in_dataset.id %}" method="POST">
+          <input type="submit" value="Feature count" id="feature-count-submit">
+        </form>
         <form id="grab-some-data-form" action="{% url linz2osm.workslices.views.create_workslice layer_in_dataset_id=layer_in_dataset.id %}" method="POST">
           {% csrf_token %}
           {{ form.as_p }}
-          <div id="cell-selection-information"></div>
           <input type="submit" value="Check out" id="grab-some-data-submit">
         </form>
       </div>

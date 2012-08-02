@@ -11,7 +11,6 @@ class Migration(SchemaMigration):
         # Adding model 'Workslice'
         db.create_table('workslices_workslice', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(unique=True, max_length=255)),
             ('state', self.gf('django.db.models.fields.CharField')(max_length=30)),
             ('checked_out_at', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
             ('status_changed_at', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
@@ -99,7 +98,6 @@ class Migration(SchemaMigration):
             'followup_deadline': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'layer_in_dataset': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['data_dict.LayerInDataset']"}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255'}),
             'state': ('django.db.models.fields.CharField', [], {'max_length': '30'}),
             'status_changed_at': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']"})

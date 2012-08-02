@@ -18,18 +18,42 @@ def get_layer_geometry_type(database_id, layer):
     r = cursor.fetchone()
     return tuple(r[:2])
 
+def get_layer_feature_ids(layer_in_dataset, extent=None, feature_limit=None):
+    cursor = connections[layer_in_dataset.dataset.name].cursor()
+
+    sql = 'SELECT ogc_fid FROM %s'
+    params = []
+    
+    if extent:
+        extent_trans = extent.transform(layer_in_dataset.dataset.srid, True).hexewkb
+        sql += ' WHERE (wkb_geometry && %%s) AND ST_Within(ST_Centroid(wkb_geometry), %%s )'
+        params += [extent_trans, extent_trans]
+
+    sql += ' ORDER BY ogc_fid'
+    if feature_limit:
+        sql += ' LIMIT %d' % (feature_limit + 1)
+
+    print sql
+    print params
+    cursor.execute(sql % layer_in_dataset.layer.name, params)
+    if (feature_limit is not None) and cursor.rowcount > feature_limit:
+        return None # FIXME: use exceptions - should have checked feature count before approving workslice
+    return [r[0] for r in cursor.fetchall()]
+        
+
 def get_layer_feature_count(database_id, layer, intersect_geom=None):
     cursor = connections[database_id].cursor()
+    layer_srid = get_layer_geometry_type(database_id, layer)[1]
     if intersect_geom and intersect_geom.srid is None:
-        srid = get_layer_geometry_type(database_id, layer)[1]
-        intersect_geom.srid = srid
+        intersect_geom.srid = layer_srid
     
     sql = 'SELECT count(*) FROM %s'
     params = []
     if intersect_geom:
-        sql += ' WHERE wkb_geometry && %%s'
-        params = [intersect_geom.hexewkb]
-    
+        intersect_trans = intersect_geom.transform(layer_srid, True).hexewkb
+        sql += ' WHERE wkb_geometry && %%s AND ST_Within(ST_Centroid(wkb_geometry), %%s )'
+        params += [intersect_trans, intersect_trans]
+
     cursor.execute(sql % layer.name, params) 
     return cursor.fetchone()[0]
     

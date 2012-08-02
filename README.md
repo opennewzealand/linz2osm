@@ -13,7 +13,6 @@ Requirements
  * RabbitMQ
  * Celery 3 or later and django-celery
  * GDAL 1.5 or later
- * Mapnik 2.0 or later
  
 Install
 -------

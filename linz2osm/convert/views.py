@@ -86,7 +86,8 @@ def layer_data_export(request, dataset_id, layer_name):
         if form.is_valid():
             if 'checkout' in request.REQUEST:
                 try:
-                    workslice = Workslice.objects.create_workslice(layer, dataset, request.user)
+                    layer_in_dataset = LayerInDataset.objects.get(layer=layer,dataset=dataset)
+                    workslice = Workslice.objects.create_workslice(layer_in_dataset, request.user)
                 except osm.Error, e:
                     ctx['error'] = str(e)
                 else:
