@@ -51,17 +51,6 @@
 {{block.super}}
 {% if original %}
 <div class="rpanel">
-    {% with original.datasets.all as lds %}
-    {% if lds %}
-    <h4>Export Data to .osc files:</h4>
-    <ul>
-    {% for ds in lds %}
-    <li><a href="/convert/{{ds.name}}/{{original.name}}/">{{ds.description}}</a></li>
-    {% endfor %}
-    </ul>
-    {% endif %}
-    {% endwith %}
-
     <h4><a href="{{ original.linz_dictionary_url}}">LINZ Data Definition</a></h4>
 </div>
 {% endif %}

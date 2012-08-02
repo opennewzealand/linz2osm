@@ -1,7 +1,6 @@
 LINZ-2-OSM
 ==========
 
-
 Requirements
 ------------
 
