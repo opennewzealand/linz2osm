@@ -1,5 +1,6 @@
 import re
 import json
+import django.db
 
 from django.shortcuts import get_object_or_404, render_to_response
 from django.template import RequestContext
@@ -10,7 +11,7 @@ from django.contrib.gis.geos import MultiPolygon, Polygon
 from django import forms
 
 from linz2osm.data_dict.models import Layer, Dataset, LayerInDataset
-from linz2osm.workslices.models import Workslice, Cell, WorksliceTooFeaturefulError, FEATURE_LIMIT
+from linz2osm.workslices.models import Workslice, Cell, WorksliceTooFeaturefulError, WorksliceInsufficientlyFeaturefulError, FEATURE_LIMIT
 from linz2osm.convert import osm
 
 class BootstrapErrorList(forms.util.ErrorList):
@@ -67,10 +68,13 @@ def create_workslice(request, layer_in_dataset_id):
         if form.is_valid():
             try:
                 workslice = Workslice.objects.create_workslice(layer_in_dataset, request.user, form.extent)
+                print django.db.connections[layer_in_dataset.dataset.name].queries
             except osm.Error, e:
                 ctx['error'] = str(e)
             except WorksliceTooFeaturefulError, e:
                 form._errors["__all__"] = form.error_class([u"Too many features in selection (over %d): Please reduce selection" % FEATURE_LIMIT])
+            except WorksliceInsufficientlyFeaturefulError, e:
+                form._errors["__all__"] = form.error_class([u"No features in selection"])
             else:
                 response = HttpResponse()
                 response.status_code = 303
@@ -98,10 +102,11 @@ def workslice_info(request, layer_in_dataset_id):
         elif feature_count > 0:
             ctx['info'] = "One feature in selection."
         elif feature_count == 0:
-            ctx['info'] = "No features in selection. (%d cells: form extent is %s)" % (form.num_cells, form.extent.wkt)
+            ctx['info'] = "No features in selection."
         else:
             ctx['info'] = "Serious error calculating features."
     else:
         ctx['info'] = " ".join(form.errors['__all__'])
+    ctx['queries'] = django.db.connections[layer_in_dataset.dataset.name].queries
 
     return HttpResponse(json.dumps(ctx), content_type='application/json')

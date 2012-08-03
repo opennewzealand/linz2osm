@@ -12,7 +12,7 @@ celery = Celery('tasks', broker = settings.BROKER_URL)
 @celery.task
 def osm_export(workslice):
     start_t = time.time()
-    data = osm.export(workslice.layer_in_dataset.dataset.name, workslice.layer_in_dataset.layer)
+    data = osm.export(workslice)
 
     filepath = "%s/%s.osc" % (settings.MEDIA_ROOT, workslice.name)
     f = open(filepath, 'w')

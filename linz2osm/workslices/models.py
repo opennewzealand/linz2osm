@@ -44,7 +44,7 @@ class WorksliceManager(models.GeoManager):
                 if finished_extent.geom_type == 'Polygon':
                     finished_extent = gis.geos.MultiPolygon(finished_extent)
                 workslice = self.create(layer_in_dataset = layer_in_dataset,
-                                        checkout_extent = finished_extent or gis.geos.MultiPolygon(layer_in_dataset.extent),
+                                        checkout_extent = finished_extent,
                                         user = user,
                                         state = 'processing',
                                         checked_out_at = datetime.now(),
@@ -54,6 +54,8 @@ class WorksliceManager(models.GeoManager):
                 workslice.save()
                 WorksliceFeature.objects.allocate_workslice_features(workslice)
         except WorksliceTooFeaturefulError, e:
+            raise e
+        except WorksliceInsufficientlyFeaturefulError, e:
             raise e
         else:
             tasks.osm_export.delay(workslice)
@@ -83,6 +85,9 @@ class Workslice(models.Model):
     @property
     def name(self):
         return "%d-%s-%s-%s" % (self.id, self.layer_in_dataset.layer.name, self.layer_in_dataset.dataset.name, self.user.username)
+
+    def formatted_feature_id_list(self):
+        return ",".join(str(wf.feature_id) for wf in self.workslicefeature_set.all())
     
     @models.permalink
     def get_absolute_url(self):
@@ -109,13 +114,18 @@ class Workslice(models.Model):
 
 class WorksliceTooFeaturefulError(Exception):
     pass
+
+class WorksliceInsufficientlyFeaturefulError(Exception):
+    pass
     
 class WorksliceFeatureManager(models.Manager):
     def allocate_workslice_features(self, workslice):
         layer_in_dataset = workslice.layer_in_dataset
         covered_fids = osm.get_layer_feature_ids(layer_in_dataset, workslice.checkout_extent, FEATURE_LIMIT)
-        if not covered_fids:
+        if covered_fids is None:
             raise WorksliceTooFeaturefulError
+        if len(covered_fids) == 0:
+            raise WorksliceInsufficientlyFeaturefulError
 
         ws_feats = [
             WorksliceFeature(

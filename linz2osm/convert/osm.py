@@ -26,15 +26,13 @@ def get_layer_feature_ids(layer_in_dataset, extent=None, feature_limit=None):
     
     if extent:
         extent_trans = extent.transform(layer_in_dataset.dataset.srid, True).hexewkb
-        sql += ' WHERE (wkb_geometry && %%s) AND ST_Within(ST_Centroid(wkb_geometry), %%s )'
+        sql += ' WHERE (wkb_geometry && %%s) AND ST_CoveredBy(ST_Centroid(wkb_geometry), %%s )'
         params += [extent_trans, extent_trans]
 
     sql += ' ORDER BY ogc_fid'
     if feature_limit:
         sql += ' LIMIT %d' % (feature_limit + 1)
 
-    print sql
-    print params
     cursor.execute(sql % layer_in_dataset.layer.name, params)
     if (feature_limit is not None) and cursor.rowcount > feature_limit:
         return None # FIXME: use exceptions - should have checked feature count before approving workslice
@@ -51,7 +49,7 @@ def get_layer_feature_count(database_id, layer, intersect_geom=None):
     params = []
     if intersect_geom:
         intersect_trans = intersect_geom.transform(layer_srid, True).hexewkb
-        sql += ' WHERE wkb_geometry && %%s AND ST_Within(ST_Centroid(wkb_geometry), %%s )'
+        sql += ' WHERE wkb_geometry && %%s AND ST_CoveredBy(ST_Centroid(wkb_geometry), %%s )'
         params += [intersect_trans, intersect_trans]
 
     cursor.execute(sql % layer.name, params) 
@@ -61,7 +59,8 @@ def get_layer_stats(database_id, layer):
     geom_type, srid = get_layer_geometry_type(database_id, layer)
     cursor = connections[database_id].cursor()
 
-    cursor.execute("SELECT ST_AsHexEWKB(ST_Transform(ST_SetSRID(ST_Envelope(ST_Extent(wkb_geometry)), %d), 4326)) FROM %s;" % (srid, layer.name))
+    # Expand bounds by 1,001 metres
+    cursor.execute("SELECT ST_AsHexEWKB(ST_Transform(ST_SetSRID(ST_Envelope(ST_Buffer(ST_Extent(wkb_geometry), 1001.0)), %d), 4326)) FROM %s;" % (srid, layer.name))
     extent = geos.GEOSGeometry(cursor.fetchone()[0])
     
     r = {
@@ -103,7 +102,9 @@ def get_layer_stats(database_id, layer):
     return r
     
 
-def export(database_id, layer, bbox=None, feature_limit=None):
+def export(workslice):
+    database_id = workslice.layer_in_dataset.dataset.name
+    layer = workslice.layer_in_dataset.layer
     cursor = connections[database_id].cursor()
     db_info = settings.DATABASES[database_id]
     
@@ -123,15 +124,10 @@ def export(database_id, layer, bbox=None, feature_limit=None):
     
     columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, db_info['_srid'])] + ['"%s"' % c for c in data_columns]
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
-    if bbox is None:
-        if feature_limit is not None:
-            sql_base += ' LIMIT %d' % feature_limit
-        cursor.execute(sql_base)
-    else:
-        sql = sql_base + ' WHERE setsrid(%s,%d) && st_transform(st_setsrid(ST_MakeBox2D(ST_MakePoint(%%s, %%s), ST_MakePoint(%%s, %%s)), 4326), %d)' % (geom_column, db_info['_srid'], db_info['_srid'])
-        if feature_limit is not None:
-            sql += ' LIMIT %d' % feature_limit
-        cursor.execute(sql, bbox)
+
+    sql_base += 'WHERE ogc_fid IN (%s)' % workslice.formatted_feature_id_list()
+
+    cursor.execute(sql_base)
     
     for i,row in enumerate(cursor):
         if row[0] is None:
