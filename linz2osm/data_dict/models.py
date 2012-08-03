@@ -136,6 +136,7 @@ class LayerInDataset(geomodels.Model):
     layer = geomodels.ForeignKey(Layer)
     features_total = geomodels.IntegerField()
     extent = geomodels.GeometryField(null=True)
+    tagging_approved = geomodels.BooleanField(default=False)
 
     def js_display_bounds_array(self):
         min_x, min_y, max_x, max_y = [f for f in self.extent.extent]
