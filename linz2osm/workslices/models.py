@@ -58,6 +58,7 @@ class WorksliceManager(models.GeoManager):
         except WorksliceInsufficientlyFeaturefulError, e:
             raise e
         else:
+            # TODO: also have a task to bulk restart these should celery fall over
             tasks.osm_export.delay(workslice)
             return workslice
 
