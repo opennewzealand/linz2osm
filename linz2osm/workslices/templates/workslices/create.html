@@ -18,9 +18,15 @@
 {% block content %}
 <div class="row">
   <div class="span3">
-    <h2>Stats</h2>
-    X workslices checked out,
-    Y features done.
+    <div>
+      <h2>Stats</h2>
+      <ul>
+        <li>{{ layer_in_dataset.features_total }} total features.</li>
+        <li>{{ layer_in_dataset.features_todo }} to do.</li>
+        <li>{{ layer_in_dataset.features_in_progress }} in progress.</li>
+        <li>{{ layer_in_dataset.features_complete }} done.</li>
+      </ul>
+    </div>
 
     <div id="grab-some-data">
       <h2>Check out data</h2>
@@ -43,6 +49,11 @@
           <input type="submit" value="Check out" id="grab-some-data-submit">
         </form>
       </div>
+    </div>
+
+    <div>
+      <h2>Current checkouts</h2>
+      Coming soon
     </div>
   </div>
   <div class="span9">

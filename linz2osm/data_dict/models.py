@@ -2,7 +2,7 @@ import decimal
 
 import pydermonkey
 from django.db import models, connections
-from django.db.models import Q
+from django.db.models import Sum
 from django.utils import text
 from django.conf import settings
 from django.contrib.gis.db import models as geomodels
@@ -152,9 +152,8 @@ class LayerInDataset(geomodels.Model):
             }
         } """ % self.extent.geojson
 
-
     def js_workslice_geojson(self):
-        shown_workslices = self.workslice_set.filter(Q(state='processing')|Q(state='out')|Q(state='complete')|Q(state='blocked'))
+        shown_workslices = self.workslice_set.filter(state__in=('processing','out','complete','blocked',))
         
         return """
             { "type": "FeatureCollection",
@@ -167,6 +166,15 @@ class LayerInDataset(geomodels.Model):
               }
             }
         """ % ",".join([self.js_extent_geojson(), ",".join(ws.js_feature_geojson() for ws in shown_workslices)])
+
+    def features_complete(self):
+        return self.workslice_set.filter(state__in=('complete',)).aggregate(Sum('feature_count'))['feature_count__sum'] or 0
+
+    def features_in_progress(self):
+        return self.workslice_set.filter(state__in=('processing','out','blocked',)).aggregate(Sum('feature_count'))['feature_count__sum'] or 0
+
+    def features_todo(self):
+        return (self.features_total - self.features_complete() - self.features_in_progress()) or 0
 
                            
 class TagManager(models.Manager):

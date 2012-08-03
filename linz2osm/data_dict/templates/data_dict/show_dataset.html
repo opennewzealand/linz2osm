@@ -19,18 +19,18 @@
       <tr>
         <th>Layer</th>
         <th>Feature Count</th>
-        <th>Complete</th>
-        <th>In Progress</th>
         <th>To Do</th>
+        <th>In Progress</th>
+        <th>Complete</th>
         <th colspan="2"></th>
       </tr>
       {% for layer_in_dataset in layers_in_dataset %}
       <tr>
         <td>{{ layer_in_dataset.layer.name }}</td>
         <td>{{ layer_in_dataset.features_total }}</td>
-        <td>0</td>
-        <td>0</td>
-        <td>{{ layer_in_dataset.features_total }}</td>
+        <td>{{ layer_in_dataset.features_todo }}</td>
+        <td>{{ layer_in_dataset.features_in_progress }}</td>
+        <td>{{ layer_in_dataset.features_complete }}</td>
         <td><a href="{% url linz2osm.data_dict.views.layer_stats layer_in_dataset.layer.name %}">Stats</td>
         <td><a href="{% url linz2osm.workslices.views.create_workslice layer_in_dataset.id %}">Show Check Outs</a>
       </tr>
