@@ -1,0 +1,23 @@
+{% extends "global.html" %}
+{% load i18n staticfiles %}
+
+{% block breadcrumbs %}
+<li>
+  <a href="/">Home</a> &rsaquo;
+</li>
+<li class="active">
+  Login
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="span12">
+    <form id="login-form" action="{% url linz2osm.lobby.views.login %}" method="POST">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <input type="submit" value="Login" id="login-submit">
+    </form>
+  </div>
+</div>
+{% endblock %}

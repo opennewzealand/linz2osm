@@ -33,6 +33,11 @@
             {% if user.is_staff %}
               <li><a href="/admin/">Admin</a></li>
             {% endif %}
+            {% if user.is_authenticated %}
+              <li><a href="/logout/">Log Out {{ user.username }}</a></li>
+            {% else %}
+              <li><a href="/login/">Log In</a></li>
+            {% endif %}
           </ul>
         </div>
       </div>

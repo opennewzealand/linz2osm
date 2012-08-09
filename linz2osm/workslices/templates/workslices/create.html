@@ -28,6 +28,7 @@
       </ul>
     </div>
 
+    {% if user.is_authenticated %}
     <div id="grab-some-data">
       <h2>Check out data</h2>
       <div id="grab-some-data-view-mode" {% if form.is_bound %}style="display: none;"{% endif %}>
@@ -50,6 +51,7 @@
         </form>
       </div>
     </div>
+    {% endif %}
 
     <div>
       <h2>Current checkouts</h2>

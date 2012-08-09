@@ -64,6 +64,8 @@ def create_workslice(request, layer_in_dataset_id):
         'title': "%s - %s" % (layer_in_dataset.dataset.description, layer_in_dataset.layer.name),
     }
     if request.method == 'POST':
+        if not request.user.is_authenticated():
+            return HttpResponseRedirect('/login/')
         form = WorksliceForm(request.POST, error_class=BootstrapErrorList)
         if form.is_valid():
             try:

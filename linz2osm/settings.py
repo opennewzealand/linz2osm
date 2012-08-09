@@ -110,6 +110,8 @@ INSTALLED_APPS = (
 CACHE_BACKEND = 'db://django_cache'
 BROKER_URL = 'amqp://guest@localhost//'
 
+LOGIN_URL = '/login/'
+
 # Override anything here with a settings_site.py file
 try:
     from settings_site import *

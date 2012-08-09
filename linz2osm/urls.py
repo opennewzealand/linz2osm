@@ -21,4 +21,6 @@ urlpatterns += patterns('',
     (r'^doc/', include('django.contrib.admindocs.urls')),
     (r'^admin/', include(admin.site.urls)),
     (r'^/?$', 'linz2osm.lobby.views.home_page'),
+    (r'^login/', 'linz2osm.lobby.views.login'),
+    (r'^logout/', 'linz2osm.lobby.views.logout'),
 )
