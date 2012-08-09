@@ -47,6 +47,10 @@ class Dataset(models.Model):
     def __unicode__(self):
         return unicode(self.description)
 
+    @models.permalink
+    def get_absolute_url(self):
+        return ('linz2osm.data_dict.views.show_dataset', (), {'dataset_id': self.name})
+    
     objects = DatasetManager()
     
 class Layer(models.Model):

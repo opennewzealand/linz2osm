@@ -4,10 +4,10 @@
 {% block breadcrumbs %}
 <div class="breadcrumbs">
   <li>
-    <a href="/">{% trans "Home" %}</a> &rsaquo;
+    <a href="/">{% trans "Home" %}</a> <span class="divider">&rsaquo;</span>
   </li>
   <li>
-    <a href="/">{{ layer_in_dataset.dataset.description }}</a> &rsaquo;
+    <a href="{{ layer_in_dataset.dataset.get_absolute_url }}">{{ layer_in_dataset.dataset.description }}</a> <span class="divider">&rsaquo;</span>
   </li>
   <li class="active">
      {{ layer_in_dataset.layer.name }}
