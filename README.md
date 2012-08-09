@@ -12,6 +12,7 @@ Requirements
  * RabbitMQ
  * Celery 3 or later and django-celery
  * GDAL 1.5 or later
+ * BeautifulSoup (only if generating layers from LINZ data dictionary with dd_load)
  
 Install
 -------
@@ -35,7 +36,9 @@ Install
  * run `manage.py loaddata example_tags` to load some example tags for road_cl,
    and some defaults for all layers.
  * run `manage.py generate_datasets` to configure the app for the datasets and layers you've added
- * run `manage.py runserver` and head to http://localhost:8000
+ * run `manage.py runserver`
+ * run `manage.py celery -A linz2osm.workslices worker
+ * head to http://localhost:8000
  * have fun! :)
 
 New Datasets
