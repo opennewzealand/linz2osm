@@ -55,7 +55,25 @@
 
     <div>
       <h2>Current checkouts</h2>
-      Coming soon
+      <table class="table table-condensed">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Features</th>
+            <th>Status</th>
+            <th>Checked Out</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for ws in workslices %}
+          <tr>
+            <td>{{ ws.user.username }}</td>
+            <td>{{ ws.feature_count }}</td>
+            <td>{{ ws.friendly_status }}</td>
+            <td><a href="{{ ws.get_absolute_url }}">{{ ws.checked_out_at }}</a></td>
+          </tr>
+        {% endfor %}
+      </table>
     </div>
   </div>
   <div class="span8">

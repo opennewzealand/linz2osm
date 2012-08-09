@@ -81,7 +81,7 @@ def create_workslice(request, layer_in_dataset_id):
 
     ctx = {
         'layer_in_dataset': layer_in_dataset,
-        'workslices': layer_in_dataset,
+        'workslices': layer_in_dataset.workslice_set.all(),
         'title': "%s - %s" % (layer_in_dataset.dataset.description, layer_in_dataset.layer.name),
     }
     if request.method == 'POST':
