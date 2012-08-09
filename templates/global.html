@@ -30,11 +30,12 @@
           <a class="brand" href="/">LINZ-2-OSM</a>
           <ul class="nav">
             <li><a href="/">Home</a></li>
+            <li><a href="/workslices/list/">Workslices</a></li>
             {% if user.is_staff %}
               <li><a href="/admin/">Admin</a></li>
             {% endif %}
             {% if user.is_authenticated %}
-              <li><a href="/logout/">Log Out {{ user.username }}</a></li>
+              <li><a href="/logout/">Log Out from {{ user.username }}</a></li>
             {% else %}
               <li><a href="/login/">Log In</a></li>
             {% endif %}

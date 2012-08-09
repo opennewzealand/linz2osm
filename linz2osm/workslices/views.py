@@ -8,6 +8,7 @@ from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.utils import simplejson, text
 from django.conf import settings
 from django.contrib.gis.geos import MultiPolygon, Polygon
+from django.contrib.auth.models import User
 from django import forms
 
 from linz2osm.data_dict.models import Layer, Dataset, LayerInDataset
@@ -46,6 +47,7 @@ def show_workslice(request, workslice_id=None):
     ctx = {
         'workslice_id': workslice_id,
         'workslice': workslice,
+        'layer_in_dataset': workslice.layer_in_dataset,
         'title': 'Workslice #%d' % workslice.id,
         'status_name': workslice.friendly_status(),
         'post_checkout_status': workslice.post_checkout_status(),
@@ -55,6 +57,25 @@ def show_workslice(request, workslice_id=None):
 
     return render_to_response('workslices/show.html', ctx, context_instance=RequestContext(request))
 
+class WorksliceFilterForm(forms.Form):
+    state = forms.ChoiceField(choices=Workslice.STATES, required=False)
+    dataset = forms.ModelChoiceField(queryset=Dataset.objects.order_by('description').all(), required=False)
+    layer = forms.ModelChoiceField(queryset=Layer.objects.order_by('name').all(), required=False)
+    user = forms.ModelChoiceField(queryset=User.objects.order_by('username').all(), required=False)
+
+def list_workslices(request, username=None):
+    if username:
+        user = get_object_or_404(User, username=username)
+    else:
+        user = request.user
+
+    workslices = Workslice.objects.filter(user=user).order_by('checked_out_at')
+    ctx = {
+        'workslices': workslices,
+    }
+    return render_to_response('workslices/list.html', ctx, context_instance=RequestContext(request))
+
+    
 def create_workslice(request, layer_in_dataset_id):
     layer_in_dataset = get_object_or_404(LayerInDataset, pk=layer_in_dataset_id)
 

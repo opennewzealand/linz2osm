@@ -50,8 +50,26 @@
     </dl>
   </div>
   <div class="span8">
-    <h1>Map, maybe?</h1>
+    <!-- map_canvas is a magic name for Bootstrap to not mangle images with max-width -->
+    <div id="map_canvas" style="height: 600px; width: 100%; border: 1px dashed red;">
+    </div>
   </div>
 </div>
 {% endblock %}
 
+{% block extrascripts %}
+{{ block.super }}
+<script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+<script src="{% static 'workslice-slippy-map.js' %}"></script>
+<!-- FIXME: if we have form data, display map at its former position -->
+<script defer>
+  {% autoescape off %}
+  var worksliceSlippyMap = new WorksliceSlippyMap(
+      "map_canvas",
+      {{ layer_in_dataset.js_display_bounds_array }},
+      {{ layer_in_dataset.js_workslice_geojson }},
+      {{ workslice_id }}
+  );
+  {% endautoescape %}
+</script>
+{% endblock %}

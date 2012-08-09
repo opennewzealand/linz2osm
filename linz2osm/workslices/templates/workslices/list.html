@@ -1,0 +1,46 @@
+{% extends "global.html" %}
+{% load i18n staticfiles %}
+
+{% block breadcrumbs %}
+<li>
+  <a href="/">{% trans "Home" %}</a> <span class="divider">&rsaquo;</span>
+</li>
+<li class="active">
+  Workslices
+</li>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="row">
+  <div class="span12">
+    <h1>Workslices</h1>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Dataset</th>
+          <th>Layer</th>
+          <th>Features</th>
+          <th>Status</th>
+          <th>Checked Out</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for ws in workslices %}
+        <tr>
+          <td>{{ ws.user.username }}</td>
+          <td>{{ ws.layer_in_dataset.dataset.description }}</td>
+          <td>{{ ws.layer_in_dataset.layer.name }}</td>
+          <td>{{ ws.feature_count }}</td>
+          <td>{{ ws.friendly_status }}</td>
+          <td>{{ ws.checked_out_at }}</td>
+          <td><a href="{{ ws.get_absolute_url }}">Details</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+

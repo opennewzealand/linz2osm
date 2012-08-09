@@ -1,4 +1,4 @@
-function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson) {
+function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id) {
     var self = this;
     this.map = null;
     var wgs84 = new OpenLayers.Projection("EPSG:4326");
@@ -31,6 +31,38 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson) {
 
     loadMap(bounds_ary);
 
+    var highlightColouringRules = [
+        new OpenLayers.Rule({
+            filter: new OpenLayers.Filter.Comparison({
+                type: OpenLayers.Filter.Comparison.EQUAL_TO,
+                property: "model",
+                value: "LayerInDataset"
+            }),
+            symbolizer: {
+                strokeOpacity: 0,
+                fillOpacity: 0
+            }
+        }),
+        new OpenLayers.Rule({
+            filter: new OpenLayers.Filter.Comparison({
+                type: OpenLayers.Filter.Comparison.EQUAL_TO,
+                property: "id",
+                value: highlight_id
+            }),
+            symbolizer: {
+                strokeColor: '#ff0000',
+                fillColor: '#ff0000'
+            }
+        }),
+        new OpenLayers.Rule({
+            elseFilter: true,
+            symbolizer: {
+                strokeColor: '#777777',
+                fillColor: '#777777'
+            }
+        })
+    ];
+    
     var CHECKOUT_COLOURING_RULES = [
         new OpenLayers.Rule({
             filter: new OpenLayers.Filter.Comparison({
@@ -97,6 +129,13 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson) {
     ];
 
     function addFeatures(geojson) {
+        var featureRules;
+        if(highlight_id !== undefined) {
+            featureRules = highlightColouringRules;
+        } else {
+            featureRules = CHECKOUT_COLOURING_RULES;
+        }
+        
         var geojson_format = new OpenLayers.Format.GeoJSON({
             internalProjection: smp,
             externalProjection: wgs84
@@ -107,7 +146,7 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson) {
                 strokeWidth: 2,
                 fillOpacity: 0.3
             },{
-                rules: CHECKOUT_COLOURING_RULES
+                rules: featureRules
             }
         );
         var checkouts_layer = new OpenLayers.Layer.Vector('Checkouts', {
