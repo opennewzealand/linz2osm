@@ -9,11 +9,11 @@ class DatasetAdmin(admin.ModelAdmin):
     readonly_fields = ('name', 'database_name', 'srid',)
     search_fields = ('name', 'database_name', 'description', 'srid',)
 
-class LayerInDatasetInline(admin.TabularInline):
+class LayerInDatasetInline(admin.StackedInline):
     model = LayerInDataset
     max_num = 1
     readonly_fields = ('dataset', 'layer', 'features_total', 'extent',)
-    fields = ('tagging_approved', 'dataset', 'layer', 'features_total',)
+    fields = ('tagging_approved', 'completed', 'dataset', 'layer', 'features_total',)
     exclude=('extent',)
     can_delete = False
 

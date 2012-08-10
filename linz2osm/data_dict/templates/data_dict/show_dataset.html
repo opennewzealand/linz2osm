@@ -28,9 +28,13 @@
       <tr>
         <td>{{ layer_in_dataset.layer.name }}</td>
         <td>{{ layer_in_dataset.features_total }}</td>
+        {% if layer_in_dataset.completed %}
+        <td colspan="3">Completed</td>
+        {% else %}
         <td>{{ layer_in_dataset.features_todo }}</td>
         <td>{{ layer_in_dataset.features_in_progress }}</td>
         <td>{{ layer_in_dataset.features_complete }}</td>
+        {% endif %}
         <td><a href="{% url linz2osm.data_dict.views.layer_stats layer_in_dataset.layer.name %}">Stats</td>
         {% if layer_in_dataset.tagging_approved %}
         <td><a href="{% url linz2osm.workslices.views.create_workslice layer_in_dataset.id %}">Show Check Outs</a>

@@ -22,9 +22,13 @@
       <h2>Stats</h2>
       <ul>
         <li>{{ layer_in_dataset.features_total }} total features.</li>
+        {% if layer_in_dataset.completed %}
+        <li>Layer is marked as complete.</li>
+        {% else %}
         <li>{{ layer_in_dataset.features_todo }} to do.</li>
         <li>{{ layer_in_dataset.features_in_progress }} in progress.</li>
         <li>{{ layer_in_dataset.features_complete }} done.</li>
+        {% endif %}
       </ul>
     </div>
 

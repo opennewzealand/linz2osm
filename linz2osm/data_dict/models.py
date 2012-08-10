@@ -141,6 +141,10 @@ class LayerInDataset(geomodels.Model):
     features_total = geomodels.IntegerField()
     extent = geomodels.GeometryField(null=True)
     tagging_approved = geomodels.BooleanField(default=False)
+    completed = geomodels.BooleanField(default=False)
+
+    def __unicode__(self):
+        return "%s / %s" % (self.dataset.description, self.layer.name,)
 
     def js_display_bounds_array(self):
         min_x, min_y, max_x, max_y = [f for f in self.extent.extent]
