@@ -32,7 +32,7 @@
       </ul>
     </div>
 
-    {% if user.is_authenticated %}
+    {% if user.is_authenticated and not layer_in_dataset.completed %}
     <div id="grab-some-data">
       <h2>Check out data</h2>
       <div id="grab-some-data-view-mode" {% if form.is_bound %}style="display: none;"{% endif %}>
