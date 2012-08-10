@@ -15,7 +15,7 @@ createdb ${dataset_db} -T template_postgis
 
 for shapefile in $1/*.shp
 do
-    if [ "`basename ${shapefile}`" = "contour.shp" ]
+    if [[ "`basename ${shapefile}`" = contour*.shp ]]
     then
         continue
     fi
