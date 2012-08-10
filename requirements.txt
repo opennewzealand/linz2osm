@@ -1,6 +1,5 @@
 BeautifulSoup>=3.2.1
 Django==1.4
-GDAL>=1.9.1
 Pygments>=1.5
 South>=0.7.5
 celery>=3.0.1
@@ -8,7 +7,7 @@ django-celery>=3.0.1
 ipython>=0.13
 mercurial>=2.0.2
 oauth>=1.0.1
-psycopg2>=2.4.5
+# psycopg2>=2.4.5
 pydermonkey>=0.0.6
 simplejson>=2.3.2
 virtualenv>=1.7.1.2

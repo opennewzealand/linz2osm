@@ -6,13 +6,24 @@ Requirements
 
  * Django 1.4
  * PostgreSQL 8.3 or later + PostGIS 1.5 or later
- * Pydermonkey
+ * Pydermonkey (see notes)
  * Pygments
  * Django South
  * RabbitMQ
  * Celery 3 or later and django-celery
  * GDAL 1.5 or later
  * BeautifulSoup (only if generating layers from LINZ data dictionary with dd_load)
+
+Installing Pydermonkey
+----------------------
+
+Pydermonkey needs to build spidermonkey-1.8.1pre, and the URL is out of date. To install:
+
+ * run `pip install --no-install pydermonkey`
+ * go into the build/pydermonkey directory, and checkout spidermonkey-1.8.1pre to a `spidermonkey-1.8.1pre` directory:
+   run `hg clone http://hg.toolness.com/spidermonkey/ -u 1.8.1pre spidermonkey-1.8.1pre`
+ * run `python setup.py build_spidermonkey`
+ * go back to the virtualenv root and run `pip install --no-download pydermonkey`
  
 Install
 -------
