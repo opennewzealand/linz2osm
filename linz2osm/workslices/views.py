@@ -64,12 +64,12 @@ class WorksliceFilterForm(forms.Form):
     user = forms.ModelChoiceField(queryset=User.objects.order_by('username').all(), required=False)
 
 def list_workslices(request, username=None):
+    workslices = Workslice.objects
     if username:
         user = get_object_or_404(User, username=username)
-    else:
-        user = request.user
-
-    workslices = Workslice.objects.filter(user=user).order_by('checked_out_at')
+        workslices = workslices.filter(user=user)
+        
+    workslices = workslices.order_by('checked_out_at')
     ctx = {
         'workslices': workslices,
     }
