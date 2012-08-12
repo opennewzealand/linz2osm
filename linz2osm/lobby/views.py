@@ -14,7 +14,7 @@ class LoginForm(forms.Form):
     
 def home_page(request):
     ctx = {
-        'datasets': Dataset.objects.all(),
+        'datasets': Dataset.objects.order_by('description').all(),
         }
     return render_to_response('lobby/home_page.html', ctx, context_instance=RequestContext(request))
 
