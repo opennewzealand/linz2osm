@@ -2,7 +2,7 @@ from xml.etree import ElementTree
 import hashlib
 from cStringIO import StringIO
 
-from django.db import connections
+from django.db import connection, connections
 from django.conf import settings
 from django.contrib.gis import geos
 from django.utils import simplejson
@@ -10,6 +10,11 @@ from django.core.cache import cache
 
 class Error(Exception):
     pass
+
+def get_srtext_from_srid(srid):
+    cursor = connection.cursor()
+    cursor.execute('SELECT srtext FROM spatial_ref_sys WHERE srid=%s;', [srid])
+    return cursor.fetchone()[0]
 
 def get_layer_geometry_type(database_id, layer):
     """ Returns a (geometry_type, srid) tuple """
@@ -25,9 +30,10 @@ def get_layer_feature_ids(layer_in_dataset, extent=None, feature_limit=None):
     params = []
     
     if extent:
-        extent_trans = extent.transform(layer_in_dataset.dataset.srid, True).hexewkb
-        sql += ' WHERE (wkb_geometry && %%s) AND ST_CoveredBy(ST_Centroid(wkb_geometry), %%s )'
-        params += [extent_trans, extent_trans]
+        srid = layer_in_dataset.dataset.srid
+        extent_trans = extent.hexewkb
+        sql += ' WHERE (wkb_geometry && ST_Transform(%%s, %%s)) AND ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s, %%s))'
+        params += [extent_trans, srid, extent_trans, srid]
 
     sql += ' ORDER BY ogc_fid'
     if feature_limit:
@@ -48,9 +54,9 @@ def get_layer_feature_count(database_id, layer, intersect_geom=None):
     sql = 'SELECT count(*) FROM %s'
     params = []
     if intersect_geom:
-        intersect_trans = intersect_geom.transform(layer_srid, True).hexewkb
-        sql += ' WHERE wkb_geometry && %%s AND ST_CoveredBy(ST_Centroid(wkb_geometry), %%s )'
-        params += [intersect_trans, intersect_trans]
+        intersect_trans = intersect_geom.hexewkb
+        sql += ' WHERE wkb_geometry && ST_Transform(%%s, %%s) AND ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s, %%s))'
+        params += [intersect_trans, layer_srid, intersect_trans, layer_srid]
 
     cursor.execute(sql % layer.name, params) 
     return cursor.fetchone()[0]
