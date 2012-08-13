@@ -18,10 +18,11 @@
     <table class="table">
       <tr>
         <th>Layer</th>
-        <th>Feature Count</th>
-        <th>To Do</th>
-        <th>In Progress</th>
-        <th>Complete</th>
+        <th># Features</th>
+        <th># To Do</th>
+        <th># In Progress</th>
+        <th># Complete</th>
+        <th>% Complete</th>
         <th colspan="2"></th>
       </tr>
       {% for layer_in_dataset in layers_in_dataset %}
@@ -31,9 +32,15 @@
         {% if layer_in_dataset.completed %}
         <td colspan="3">Completed</td>
         {% else %}
-        <td>{{ layer_in_dataset.features_todo }}</td>
-        <td>{{ layer_in_dataset.features_in_progress }}</td>
-        <td>{{ layer_in_dataset.features_complete }}</td>
+        <td>
+          {{ layer_in_dataset.features_todo }}
+        </td>
+        <td>
+          {{ layer_in_dataset.features_in_progress }}
+        </td>
+        <td>
+          {{ layer_in_dataset.features_complete }} 
+        </td>
         {% endif %}
         <td><a href="{% url linz2osm.data_dict.views.layer_stats layer_in_dataset.layer.name %}">Stats</td>
         {% if layer_in_dataset.tagging_approved %}

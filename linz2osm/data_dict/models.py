@@ -179,11 +179,20 @@ class LayerInDataset(geomodels.Model):
     def features_complete(self):
         return self.workslice_set.filter(state__in=('complete',)).aggregate(Sum('feature_count'))['feature_count__sum'] or 0
 
+    def features_complete_pct(self):
+        return (100.0 * self.features_complete() / self.features_total)
+    
     def features_in_progress(self):
         return self.workslice_set.filter(state__in=('processing','out','blocked',)).aggregate(Sum('feature_count'))['feature_count__sum'] or 0
 
+    def features_in_progress_pct(self):
+        return (100.0 * self.features_in_progress() / self.features_total)
+    
     def features_todo(self):
         return (self.features_total - self.features_complete() - self.features_in_progress()) or 0
+    
+    def features_todo_pct(self):
+        return (100.0 * self.features_todo() / self.features_total)
 
                            
 class TagManager(models.Manager):
