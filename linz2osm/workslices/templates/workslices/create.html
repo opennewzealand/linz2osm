@@ -79,6 +79,11 @@
         {% endfor %}
       </table>
     </div>
+
+    <div style="overflow: auto; word-break: normal;">
+      <h2>Notes</h2>
+      {{ layer_in_dataset.layer.notes|linebreaks }}
+    </div>
   </div>
   <div class="span8">
     <!-- map_canvas is a magic name for Bootstrap to not mangle images with max-width -->
