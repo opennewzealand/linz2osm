@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
+
 import re
 import json
 import django.db
@@ -90,6 +92,7 @@ def update_workslice(request, workslice_id=None):
                 for t in workslice.acceptable_transitions():
                     if t[0] == transition:
                         workslice.state = transition
+                        workslice.status_changed_at = datetime.now() 
                         if transition == "abandoned":
                             workslice.workslicefeature_set.all().delete()
                         workslice.save()
