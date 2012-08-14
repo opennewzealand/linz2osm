@@ -1,0 +1,91 @@
+# Django settings for linz2osm project.
+
+DEBUG = True
+TEMPLATE_DEBUG = DEBUG
+
+ADMINS = (
+    ('You', 'your.email.here@example.com'),
+)
+
+MANAGERS = ADMINS
+
+DATABASES = {
+    'default': {
+        'ENGINE' : 'django.contrib.gis.db.backends.postgis',
+        'NAME' : 'linz2osm',
+        # 'USER' : 'linz2osm',
+        # 'PASSWORD' : '',
+        # 'HOST': 'localhost',
+    },
+    'chathams': {
+        '_description': "Chathams",
+        '_srid': 3793,
+        'ENGINE' : 'django.contrib.gis.db.backends.postgis',
+        'NAME' : 'osm_chathams_v16',
+         # 'USER' : 'linz2osm',
+         # 'PASSWORD' : '',
+         # 'HOST': 'localhost',
+    },
+    'antarctic': {
+         '_description': "Antarctic 2012-07-06",
+         '_srid': 5479,
+         'ENGINE' : 'django.contrib.gis.db.backends.postgis',
+         'NAME' : 'antarctic_topo50',
+    },
+    'antipodes_is': {
+         '_description': "Antipodes Islands 2012-07-06",
+         '_srid': 3790,
+         'ENGINE' : 'django.contrib.gis.db.backends.postgis',
+         'NAME' : 'antipodes_is_topo25',
+    },
+    'auckland_is': {
+         '_description': "Auckland Islands 2012-07-06",
+         '_srid': 3788,
+         'ENGINE' : 'django.contrib.gis.db.backends.postgis',
+         'NAME' : 'auckland_is_topo50',
+    },
+    'bounty_is': {
+         '_description': "Bounty Islands 2012-07-06",
+         '_srid': 3790,
+         'ENGINE' : 'django.contrib.gis.db.backends.postgis',
+         'NAME' : 'bounty_is_topo25',
+    },
+    'campbell_is': {
+         '_description': "Campbell Islands 2012-07-06",
+         '_srid': 3789,
+         'ENGINE' : 'django.contrib.gis.db.backends.postgis',
+         'NAME' : 'campbell_is_topo50',
+    },
+    'kermadec_is': {
+         '_description': "Kermadec Islands 2012-07-06",
+         '_srid': 3791,
+         'ENGINE' : 'django.contrib.gis.db.backends.postgis',
+         'NAME' : 'kermadec_is_topo25',
+    },
+    'mainland': {
+         '_description': "NZ Mainland 2012-07-06",
+         '_srid': 2193,
+         'ENGINE' : 'django.contrib.gis.db.backends.postgis',
+         'NAME' : 'nz_mainland_topo50',
+    },
+    'snares_is': {
+         '_description': "The Snares 2012-07-06",
+         '_srid': 3790,
+         'ENGINE' : 'django.contrib.gis.db.backends.postgis',
+         'NAME' : 'snares_is_topo25',
+    },
+}
+
+
+MEDIA_ROOT = '/path/to/src/linz2osm/src/media/'
+STATIC_ROOT = '/path/to/src/linz2osm/src/static/'
+STATICFILES_DIRS = (
+    '/path/to/src/linz2osm/src/assets/',
+)
+
+SECRET_KEY = 'this-is-very-secret-2347'
+
+TEMPLATE_DIRS = (
+    "/path/to/src/linz2osm/src/templates",
+)
+
