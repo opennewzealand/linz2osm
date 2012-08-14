@@ -46,6 +46,10 @@
           ({{ workslice.file_size|filesizeformat }})
         </dd>
         {% endifequal %}
+      {% else %}
+        <div class="progress progress-striped active">
+          <div class="bar" id="processing-progress-bar" style="width: 0%;"></div>
+        </div>
       {% endif %}
     </dl>
   </div>
@@ -70,6 +74,19 @@
       {{ layer_in_dataset.js_workslice_geojson }},
       {{ workslice_id }}
   );
+  {% if status_name == 'Processing' %}
+  var progressTimer = 7000;
+  window.setTimeout(function() {
+      document.location.reload(true);
+  }, 7000);
+  for(var i = 0; i <= 100; i += 2) {
+      window.setTimeout(function(k) {
+          return function() {
+              $("#processing-progress-bar").attr("style", "width: " + k + "%;");
+          };
+      }(i), (i / 100) * progressTimer);
+  }
+  {% endif %}
   {% endautoescape %}
 </script>
 {% endblock %}
