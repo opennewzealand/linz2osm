@@ -11,35 +11,48 @@
 {% endblock %}
 
 {% block content %}
-<div id="content-main" class="row">
-  <div class="span12">
-    <h1>Workslices</h1>
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>User</th>
-          <th>Dataset</th>
-          <th>Layer</th>
-          <th>Features</th>
-          <th>Status</th>
-          <th>Checked Out</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-      {% for ws in workslices %}
-        <tr>
-          <td>{{ ws.user.username }}</td>
-          <td>{{ ws.layer_in_dataset.dataset.description }}</td>
-          <td>{{ ws.layer_in_dataset.layer.name }}</td>
-          <td>{{ ws.feature_count }}</td>
-          <td>{{ ws.friendly_status }}</td>
-          <td>{{ ws.checked_out_at }}</td>
-          <td><a href="{{ ws.get_absolute_url }}">Details</a></td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+<div id="content-main">
+  <div class="row-fluid">
+    <div class="span12">
+      <h1>Workslices</h1>
+    </div>
+  </div>
+  <div class="row-fluid">
+    <div class="span2">
+      <form id="workslice-filter-form" action="{% url linz2osm.workslices.views.list_workslices %}" method="GET" class="form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Filter" id="filter-workslices-submit">
+      </form>
+    </div>
+    <div class="span9">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Dataset</th>
+            <th>Layer</th>
+            <th>Features</th>
+            <th>State</th>
+            <th>Checked Out</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ws in workslices %}
+          <tr>
+            <td>{{ ws.user.username }}</td>
+            <td>{{ ws.layer_in_dataset.dataset.description }}</td>
+            <td>{{ ws.layer_in_dataset.layer.name }}</td>
+            <td>{{ ws.feature_count }}</td>
+            <td>{{ ws.friendly_status }}</td>
+            <td>{{ ws.checked_out_at }}</td>
+            <td><a href="{{ ws.get_absolute_url }}">Details</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 {% endblock %}

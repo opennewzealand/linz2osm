@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import re
 import json
 import django.db
@@ -57,21 +59,49 @@ def show_workslice(request, workslice_id=None):
 
     return render_to_response('workslices/show.html', ctx, context_instance=RequestContext(request))
 
+SORT_CHOICES = [
+    ( 'checked_out_at', 'Checked Out ↑',),
+    ( '-checked_out_at', 'Checked Out ↓',),
+    ( 'user', 'User ↑',),
+    ( '-user', 'User ↓',),
+    ( 'feature_count', 'Features ↑',),
+    ( '-feature_count', 'Features ↓',),
+    ( 'state', 'State ↑',),
+    ( '-state', 'State ↓',),
+]
+
 class WorksliceFilterForm(forms.Form):
-    state = forms.ChoiceField(choices=Workslice.STATES, required=False)
+    ws_state = forms.TypedChoiceField(choices=[['', '----------']] + Workslice.STATES, required=False, initial='', label='State')
     dataset = forms.ModelChoiceField(queryset=Dataset.objects.order_by('description').all(), required=False)
     layer = forms.ModelChoiceField(queryset=Layer.objects.order_by('name').all(), required=False)
     user = forms.ModelChoiceField(queryset=User.objects.order_by('username').all(), required=False)
+    order_by = forms.TypedChoiceField(choices=SORT_CHOICES, required=False, initial='checked_out_at', label='Order by')
 
 def list_workslices(request, username=None):
     workslices = Workslice.objects
+    form = WorksliceFilterForm(request.GET)
     if username:
         user = get_object_or_404(User, username=username)
         workslices = workslices.filter(user=user)
+    if form.is_valid():
+        if form.cleaned_data['ws_state']:
+            workslices = workslices.filter(state=form.cleaned_data['ws_state'])
+        if form.cleaned_data['dataset']:
+            workslices = workslices.filter(layer_in_dataset_id__in=[lid.id for lid in LayerInDataset.objects.filter(dataset=form.cleaned_data['dataset'])])
+        if form.cleaned_data['layer']:
+            workslices = workslices.filter(layer_in_dataset_id__in=[lid.id for lid in LayerInDataset.objects.filter(layer=form.cleaned_data['layer'])])
+        if form.cleaned_data['user']:
+            workslices = workslices.filter(user=form.cleaned_data['user'])
+        if form.cleaned_data['order_by']:
+            workslices = workslices.order_by(form.cleaned_data['order_by'])
+        else:
+            workslices = workslices.order_by('checked_out_at')
+    else:
+        workslices = workslices.order_by('checked_out_at')
         
-    workslices = workslices.order_by('checked_out_at')
     ctx = {
         'workslices': workslices,
+        'form': form,
     }
     return render_to_response('workslices/list.html', ctx, context_instance=RequestContext(request))
 
