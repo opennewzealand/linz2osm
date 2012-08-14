@@ -109,7 +109,8 @@ def get_layer_stats(database_id, layer):
     
 
 def export(workslice):
-    database_id = workslice.layer_in_dataset.dataset.name
+    dataset = workslice.layer_in_dataset.dataset
+    database_id = dataset.name
     layer = workslice.layer_in_dataset.layer
     cursor = connections[database_id].cursor()
     db_info = settings.DATABASES[database_id]
@@ -143,6 +144,10 @@ def export(workslice):
             continue
         
         row_data = dict(zip(data_columns,row[1:]))
+        row_data['layer_name'] = layer.name
+        row_data['dataset_name'] = dataset.name
+        row_data['workslice_id'] = workslice.id
+        print str(row_data)
         
         row_tags = {}
         for tag in layer_tags:
