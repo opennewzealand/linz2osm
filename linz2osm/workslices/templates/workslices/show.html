@@ -27,7 +27,7 @@
       <dt>User</dt>
       <dd>{{ workslice.user.username }}</dd>
       <dt>Layer</dt>
-      <dd>{{ workslice.layer_in_dataset.layer.name }}</dd>
+      <dd><a href="{{ workslice.layer_in_dataset.get_absolute_url }}">{{ workslice.layer_in_dataset.layer.name }}</a></dd>
       <dt>Features</dt>
       <dd>{{ workslice.feature_count }}</dd>
       <dt>Dataset</dt>
@@ -52,6 +52,15 @@
         </div>
       {% endif %}
     </dl>
+    {% if user.is_superuser or user == workslice.user %}
+    {{ form.non_field_errors|safe }}
+    {% for transition, transition_descr in workslice.acceptable_transitions %}
+    <form action="{% url linz2osm.workslices.views.update_workslice workslice_id=workslice.id %}" method="POST">
+      <input type="hidden" name="transition" value="{{ transition }}">
+      <input type="submit" value="{{ transition_descr }}">
+    </form>
+    {% endfor %}
+    {% endif %}
   </div>
   <div class="span8">
     <!-- map_canvas is a magic name for Bootstrap to not mangle images with max-width -->

@@ -73,6 +73,14 @@ class Workslice(models.Model):
         ('complete', 'Completed'),     # User has marked the workslice as merged into OSM
     ]
     STATES_LOOKUP = dict(STATES)
+    TRANSITIONS = {
+        'draft': [('processing', 'Process')],
+        'processing': [],
+        'out': [('abandoned', 'Abandon'), ('blocked', 'Mark Blocked'), ('complete', 'Mark Complete')],
+        'abandoned': [],
+        'blocked': [('abandoned', 'Abandon'), ('out', 'Unblock'), ('complete', 'Mark Complete')],
+        'complete': [('abandon', 'Abandon')],
+        }
     state = models.CharField(max_length=30, choices=STATES)
     checked_out_at = models.DateTimeField(null=True, blank=True)
     status_changed_at = models.DateTimeField(null=True, blank=True)
@@ -83,10 +91,14 @@ class Workslice(models.Model):
     feature_count = models.IntegerField(null=True)
     file_size = models.IntegerField(null=True)
 
+    
     @property
     def name(self):
         return "%d-%s-%s-%s" % (self.id, self.layer_in_dataset.layer.name, self.layer_in_dataset.dataset.name, self.user.username)
 
+    def acceptable_transitions(self):
+        return self.__class__.TRANSITIONS[self.state]
+    
     def formatted_feature_id_list(self):
         return ",".join(str(wf.feature_id) for wf in self.workslicefeature_set.all())
     

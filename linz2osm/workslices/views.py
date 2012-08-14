@@ -46,6 +46,27 @@ class WorksliceForm(forms.Form):
 
 def show_workslice(request, workslice_id=None):
     workslice = get_object_or_404(Workslice, pk=workslice_id)
+    # FIXME: just need a workslice
+    ctx = {
+        'workslice_id': workslice_id,
+        'workslice': workslice,
+        'layer_in_dataset': workslice.layer_in_dataset,
+        'title': 'Workslice #%d' % workslice.id,
+        'status_name': workslice.friendly_status(),
+        'post_checkout_status': workslice.post_checkout_status(),
+        'file_name': "%s.osc" % workslice.name,
+        'file_path': "%s%s.osc" % (settings.MEDIA_URL, workslice.name),
+        'form': WorksliceUpdateForm(error_class=BootstrapErrorList),
+    }
+
+    return render_to_response('workslices/show.html', ctx, context_instance=RequestContext(request))
+
+class WorksliceUpdateForm(forms.Form):
+    transition = forms.CharField(widget=forms.HiddenInput(), required=True)
+
+def update_workslice(request, workslice_id=None):
+    workslice = get_object_or_404(Workslice, pk=workslice_id)
+    # FIXME: just need a workslice
     ctx = {
         'workslice_id': workslice_id,
         'workslice': workslice,
@@ -56,7 +77,27 @@ def show_workslice(request, workslice_id=None):
         'file_name': "%s.osc" % workslice.name,
         'file_path': "%s%s.osc" % (settings.MEDIA_URL, workslice.name),
     }
-
+    
+    if request.method == 'POST':
+        form = WorksliceUpdateForm(request.POST, error_class=BootstrapErrorList)
+        if form.is_valid():
+            if not request.user.is_authenticated():
+                return HttpResponseRedirect('/login/')
+            if not (request.user.is_superuser or (request.user == workslice.user)):
+                form._errors["__all__"] = form.error_class([u"You do not own this workslice"])
+            else:
+                transition = form.cleaned_data['transition']
+                for t in workslice.acceptable_transitions():
+                    if t[0] == transition:
+                        workslice.state = transition
+                        if transition == "abandoned":
+                            workslice.workslicefeature_set.all().delete()
+                        workslice.save()
+                        return HttpResponseRedirect(workslice.get_absolute_url())
+                form._errors["__all__"] = form.error_class([u"Not allowed to make this workslice '%s'" % transition])
+    else:
+        form = WorksliceUpdateForm(error_class=BootstrapErrorList)
+    ctx['form'] = form
     return render_to_response('workslices/show.html', ctx, context_instance=RequestContext(request))
 
 SORT_CHOICES = [

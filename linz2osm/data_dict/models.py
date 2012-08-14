@@ -146,6 +146,10 @@ class LayerInDataset(geomodels.Model):
     def __unicode__(self):
         return "%s / %s" % (self.dataset.description, self.layer.name,)
 
+    @models.permalink
+    def get_absolute_url(self):
+        return ('linz2osm.workslices.views.create_workslice', (), {'layer_in_dataset_id': self.id})
+
     def js_display_bounds_array(self):
         min_x, min_y, max_x, max_y = [f for f in self.extent.extent]
         x_margin = (max_x - min_x) * 0.1 

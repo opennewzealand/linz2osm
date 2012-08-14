@@ -77,15 +77,15 @@ DATABASES = {
 }
 
 
-MEDIA_ROOT = '/path/to/src/linz2osm/src/media/'
-STATIC_ROOT = '/path/to/src/linz2osm/src/static/'
+MEDIA_ROOT = '/path/to/src/linz2osm/media/'
+STATIC_ROOT = '/path/to/src/linz2osm/static/'
 STATICFILES_DIRS = (
-    '/path/to/src/linz2osm/src/assets/',
+    '/path/to/src/linz2osm/assets/',
 )
 
 SECRET_KEY = 'this-is-very-secret-2347'
 
 TEMPLATE_DIRS = (
-    "/path/to/src/linz2osm/src/templates",
+    "/path/to/src/linz2osm/templates",
 )
 
