@@ -18,5 +18,4 @@ class Command(BaseCommand):
                 print "----"
                 
                 for table_name, column_name in char_columns:
-                    cursor.execute("ALTER TABLE %s ALTER COLUMN %s SET DATA TYPE character varying;" % (table_name, column_name))
-                    print "%s : %s.%s" % (conn_name, table_name, column_name)
+                    print "ALTER TABLE %s ALTER COLUMN %s SET DATA TYPE character varying;" % (table_name, column_name)
