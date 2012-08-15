@@ -12,6 +12,11 @@ class Command(BaseCommand):
                 cursor.execute("SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public' AND data_type = 'character';")
                 char_columns = cursor.fetchall()
 
+                print
+                print "----"
+                print conn_name
+                print "----"
+                
                 for table_name, column_name in char_columns:
                     cursor.execute("ALTER TABLE %s ALTER COLUMN %s SET DATA TYPE character varying;" % (table_name, column_name))
                     print "%s : %s.%s" % (conn_name, table_name, column_name)
