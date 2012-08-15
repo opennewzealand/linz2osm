@@ -108,6 +108,12 @@ def get_layer_stats(database_id, layer):
     return r
     
 
+def clean_data(cell):
+    if isinstance(cell, unicode) or isinstance(cell, str):
+        return cell.strip()
+    else:
+        return cell
+
 def export(workslice):
     dataset = workslice.layer_in_dataset.dataset
     database_id = dataset.name
@@ -143,11 +149,10 @@ def export(workslice):
         if row_geom.empty:
             continue
         
-        row_data = dict(zip(data_columns,row[1:]))
+        row_data = dict(zip(data_columns,[clean_data(c) for c in row[1:] ]))
         row_data['layer_name'] = layer.name
         row_data['dataset_name'] = dataset.name
         row_data['workslice_id'] = workslice.id
-        print str(row_data)
         
         row_tags = {}
         for tag in layer_tags:
