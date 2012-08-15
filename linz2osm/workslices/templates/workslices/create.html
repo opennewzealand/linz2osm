@@ -39,6 +39,10 @@
         <a href="#grab-some-data" id="grab-some-data-start">Check out data</a>
       </div>
       <div id="grab-some-data-select-mode" {% if not form.is_bound %}style="display: none;"{% endif %}>
+        <div class="alert alert-info">
+          When you change zoom level, the selection size will change and <strong>your selection will be lost</strong>
+        </div>
+        
         <a href="#cancel-grab-data" id="grab-some-data-cancel">Cancel</a> |
         <a href="#reset-grab-data" id="grab-some-data-reset">Reset</a>
         <div>
