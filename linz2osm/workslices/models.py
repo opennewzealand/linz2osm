@@ -36,8 +36,8 @@ class WorksliceManager(models.GeoManager):
     def create_workslice(self, layer_in_dataset, user, extent=None):
         try:
             with transaction.commit_on_success():
-                print "original extent"
-                print extent.ewkt
+                # print "original extent"
+                # print extent.ewkt
                 
                 # Get extent to use to get features (no clipping)
                 allocation_extent = extent or gis.geos.MultiPolygon(layer_in_dataset.extent)
@@ -59,10 +59,10 @@ class WorksliceManager(models.GeoManager):
                     
                 display_extent.srid = 4326
 
-                print "allocation extent"
-                print allocation_extent.ewkt
-                print "display extent"
-                print display_extent.ewkt
+                # print "allocation extent"
+                # print allocation_extent.ewkt
+                # print "display extent"
+                # print display_extent.ewkt
                 
                 # Get features    
                 workslice = self.create(layer_in_dataset = layer_in_dataset,
@@ -80,7 +80,6 @@ class WorksliceManager(models.GeoManager):
         except WorksliceInsufficientlyFeaturefulError, e:
             raise e
         else:
-            # TODO: also have a task to bulk restart these should celery fall over
             tasks.osm_export.delay(workslice)
             return workslice
 
@@ -174,8 +173,10 @@ class WorksliceFeatureManager(models.Manager):
                 feature_id=ogc_fid
                 ).exists()
             ]
-        if len(covered_fids) > FEATURE_LIMIT:
+        if len(ws_feats) > FEATURE_LIMIT:
             raise WorksliceTooFeaturefulError
+        if len(ws_feats) == 0:
+            raise WorksliceInsufficientlyFeaturefulError
         self.bulk_create(ws_feats)
         workslice.feature_count = len(ws_feats)
         workslice.save()

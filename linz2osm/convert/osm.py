@@ -138,7 +138,7 @@ def export(workslice):
     columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, dataset.srid)] + ['"%s"' % c for c in data_columns]
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
 
-    sql_base += 'WHERE ogc_fid IN (%s)' % workslice.formatted_feature_id_list()
+    sql_base += ' WHERE ogc_fid IN (%s)' % workslice.formatted_feature_id_list()
 
     cursor.execute(sql_base)
     
