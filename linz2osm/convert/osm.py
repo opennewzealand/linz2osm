@@ -135,7 +135,7 @@ def export(workslice):
     
     writer = OSMWriter(id_hash=(database_id, layer.name))
     
-    columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, db_info['_srid'])] + ['"%s"' % c for c in data_columns]
+    columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, dataset.srid)] + ['"%s"' % c for c in data_columns]
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
 
     sql_base += 'WHERE ogc_fid IN (%s)' % workslice.formatted_feature_id_list()
