@@ -36,15 +36,25 @@ class WorksliceManager(models.GeoManager):
     def create_workslice(self, layer_in_dataset, user, extent=None):
         try:
             with transaction.commit_on_success():
-                finished_extent = extent or gis.geos.MultiPolygon(layer_in_dataset.extent)
+                # Get extent to use to get features (no clipping)
+                allocation_extent = extent or gis.geos.MultiPolygon(layer_in_dataset.extent)
+                if allocation_extent.geom_type == 'Polygon':
+                    allocation_extent = gis.geos.MultiPolygon(allocation_extent)
+                allocation_extent.srid = 4326
+                    
+                # Get extent to show on map    
                 existing_checkouts = self.exclude(state__in=('draft', 'abandoned')).filter(layer_in_dataset=layer_in_dataset).unionagg()
+                display_extent = allocation_extent.clone()
                 if existing_checkouts is not None:
-                    finished_extent = finished_extent.difference(existing_checkouts)
-                finished_extent = finished_extent.intersection(layer_in_dataset.extent)
-                if finished_extent.geom_type == 'Polygon':
-                    finished_extent = gis.geos.MultiPolygon(finished_extent)
+                    display_extent = display_extent.difference(existing_checkouts)
+                display_extent = display_extent.intersection(layer_in_dataset.extent)
+                if display_extent.geom_type == 'Polygon':
+                    display_extent = gis.geos.MultiPolygon(display_extent)
+                display_extent.srid = 4326
+                
+                # Get features    
                 workslice = self.create(layer_in_dataset = layer_in_dataset,
-                                        checkout_extent = finished_extent,
+                                        checkout_extent = display_extent,
                                         user = user,
                                         state = 'processing',
                                         checked_out_at = datetime.now(),
@@ -52,7 +62,7 @@ class WorksliceManager(models.GeoManager):
                                         followup_deadline = datetime.now() + relativedelta(months = +2),
                                         )
                 workslice.save()
-                WorksliceFeature.objects.allocate_workslice_features(workslice)
+                WorksliceFeature.objects.allocate_workslice_features(workslice, allocation_extent)
         except WorksliceTooFeaturefulError, e:
             raise e
         except WorksliceInsufficientlyFeaturefulError, e:
@@ -132,9 +142,9 @@ class WorksliceInsufficientlyFeaturefulError(Exception):
     pass
     
 class WorksliceFeatureManager(models.Manager):
-    def allocate_workslice_features(self, workslice):
+    def allocate_workslice_features(self, workslice, extent):
         layer_in_dataset = workslice.layer_in_dataset
-        covered_fids = osm.get_layer_feature_ids(layer_in_dataset, workslice.checkout_extent, FEATURE_LIMIT)
+        covered_fids = osm.get_layer_feature_ids(layer_in_dataset, extent)
         if covered_fids is None:
             raise WorksliceTooFeaturefulError
         if len(covered_fids) == 0:
@@ -152,6 +162,8 @@ class WorksliceFeatureManager(models.Manager):
                 feature_id=ogc_fid
                 ).exists()
             ]
+        if len(covered_fids) > FEATURE_LIMIT:
+            raise WorksliceTooFeaturefulError
         self.bulk_create(ws_feats)
         workslice.feature_count = len(ws_feats)
         workslice.save()

@@ -27,25 +27,6 @@ class BootstrapErrorList(forms.util.ErrorList):
         return u'<div class="errorlist">%s</div>' % ''.join([
                 u'<div class="alert alert-error">%s</div>' % e for e in self])
 
-class WorksliceForm(forms.Form):
-    cells = forms.CharField(widget=forms.HiddenInput(), required=False)
-    
-    def clean(self):
-        cleaned_data = super(WorksliceForm, self).clean()
-        data = cleaned_data.get('cells')
-        if data is None or data == '':
-            raise forms.ValidationError('You must select at least one cell.')
-        cells = [Cell(t) for t in data.split("_")]
-        self.extent = MultiPolygon([c.as_polygon() for c in cells]).cascaded_union
-        self.extent.srid = 4326
-        self.num_cells = len(cells)
-        if not (isinstance(self.extent, Polygon)):
-            raise forms.ValidationError('Extent must be contiguous and not cross anti-meridian.')
-        if self.extent.num_interior_rings > 0:
-            raise forms.ValidationError('Extent must not have interior holes.')        
-        return cleaned_data
-    
-
 def show_workslice(request, workslice_id=None):
     workslice = get_object_or_404(Workslice, pk=workslice_id)
     # FIXME: just need a workslice
@@ -149,6 +130,24 @@ def list_workslices(request, username=None):
     }
     return render_to_response('workslices/list.html', ctx, context_instance=RequestContext(request))
 
+class WorksliceForm(forms.Form):
+    cells = forms.CharField(widget=forms.HiddenInput(), required=False)
+    
+    def clean(self):
+        cleaned_data = super(WorksliceForm, self).clean()
+        data = cleaned_data.get('cells')
+        if data is None or data == '':
+            raise forms.ValidationError('You must select at least one cell.')
+        cells = [Cell(t) for t in data.split("_")]
+        self.extent = MultiPolygon([c.as_polygon() for c in cells]).cascaded_union
+        self.extent.srid = 4326
+        self.num_cells = len(cells)
+        if not (isinstance(self.extent, Polygon)):
+            raise forms.ValidationError('Extent must be contiguous and not cross anti-meridian.')
+        if self.extent.num_interior_rings > 0:
+            raise forms.ValidationError('Extent must not have interior holes.')        
+        return cleaned_data
+    
     
 def create_workslice(request, layer_in_dataset_id):
     layer_in_dataset = get_object_or_404(LayerInDataset, pk=layer_in_dataset_id)
