@@ -36,6 +36,9 @@ class WorksliceManager(models.GeoManager):
     def create_workslice(self, layer_in_dataset, user, extent=None):
         try:
             with transaction.commit_on_success():
+                print "original extent"
+                print extent.ewkt
+                
                 # Get extent to use to get features (no clipping)
                 allocation_extent = extent or gis.geos.MultiPolygon(layer_in_dataset.extent)
                 if allocation_extent.geom_type == 'Polygon':
@@ -50,7 +53,16 @@ class WorksliceManager(models.GeoManager):
                 display_extent = display_extent.intersection(layer_in_dataset.extent)
                 if display_extent.geom_type == 'Polygon':
                     display_extent = gis.geos.MultiPolygon(display_extent)
+                elif display_extent.geom_type != 'MultiPolygon':
+                    # make a tiny circular checkout at the centroid of the checkout
+                    display_extent = gis.geos.MultiPolygon(extent.centroid.buffer(0.0000000012345))
+                    
                 display_extent.srid = 4326
+
+                print "allocation extent"
+                print allocation_extent.ewkt
+                print "display extent"
+                print display_extent.ewkt
                 
                 # Get features    
                 workslice = self.create(layer_in_dataset = layer_in_dataset,
@@ -89,7 +101,7 @@ class Workslice(models.Model):
         'out': [('abandoned', 'Abandon'), ('blocked', 'Mark Blocked'), ('complete', 'Mark Complete')],
         'abandoned': [],
         'blocked': [('abandoned', 'Abandon'), ('out', 'Unblock'), ('complete', 'Mark Complete')],
-        'complete': [('abandon', 'Abandon')],
+        'complete': [('abandoned', 'Abandon')],
         }
     state = models.CharField(max_length=30, choices=STATES)
     checked_out_at = models.DateTimeField(null=True, blank=True)
