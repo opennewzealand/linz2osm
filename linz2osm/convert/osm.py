@@ -103,7 +103,7 @@ def get_layer_stats(database_id, layer):
         'fields': {}
     }
     
-    cursor.execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s AND column_name NOT IN ('ogc_fid', 'wkb_geometry');", [layer.name])
+    cursor.execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s AND column_name NOT IN ('ogc_fid', 'wkb_geometry', 'macronated', 'grp_macron');", [layer.name])
     for col_name,col_type in cursor.fetchall():
         sql = 'SELECT count(*) FROM %(t)s WHERE %(c)s IS NOT NULL'
         if col_type in ('character varying',):
