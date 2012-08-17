@@ -234,6 +234,21 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
             updateCellSelectionInformation();
             $("input#id_cells").val(cells.toString());
         }
+
+        this.updateFeatureCount = function() {
+            if(contents.length > 0) {
+                $("#feature-selection-ajax-indicator").show();
+                $.post(
+                    $("#feature-count-form").attr('action'),
+                    $("#grab-some-data-form").serialize(),
+                    function(data, textStatus, jqXHR) {
+                        $("#feature-selection-information").html(data.info);
+                        $("#feature-selection-ajax-indicator").hide();
+                    },
+                    'json'
+                )
+            }
+        };
         
         function updateCellSelectionInformation() {
             var len = contents.length;
@@ -273,6 +288,7 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
             }
             updateCellSelectionInformation();
             $("input#id_cells").val(cells.toString());
+            self.updateFeatureCount();
             return retval;
         };
 
@@ -452,18 +468,6 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
         $("#grab-some-data-select-mode").hide();
         $("#grab-some-data-view-mode").show();
     };
-    
-    $("#feature-count-form").submit(function(event) {
-        event.preventDefault();
-        $.post(
-            $("#feature-count-form").attr('action'),
-            $("#grab-some-data-form").serialize(),
-            function(data, textStatus, jqXHR) {
-                $("#feature-selection-information").html(data.info);
-            },
-            'json'
-        )
-    });
         
     $("#grab-some-data-start").click(function(event) {
         event.preventDefault();
