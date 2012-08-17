@@ -7,7 +7,12 @@
 
 {% block bodyclass %}dashboard{% endblock %}
 
-{% block breadcrumbs %}{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="/">Back to Public Site</a> &laquo;
+<a href="/admin/">Admin</a>
+</div>
+{% endblock %}
 
 {% block content %}
 <div id="content-main">

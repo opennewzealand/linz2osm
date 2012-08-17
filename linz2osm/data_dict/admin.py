@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.template.loader import render_to_string
 
 from linz2osm.data_dict.models import Layer, Tag, LayerInDataset, Dataset
 
@@ -45,9 +46,11 @@ class LayerAdmin(admin.ModelAdmin):
     tag_count.short_description = 'Defined Tags'
     
     def dataset_descriptions(self, obj):
-        # TODO: show which are approved
-        return ", ".join([d.description for d in obj.datasets.all()])
-    dataset_descriptions.short_description = 'Available in' 
+        return render_to_string('admin/data_dict/layer/dataset_descriptions.html', {
+                'layer_in_datasets': obj.layerindataset_set.all()
+                })
+    dataset_descriptions.short_description = 'Available in'
+    dataset_descriptions.allow_tags = True
 
     def stats_link(self, obj):
         return "<a href='%s/stats/'>Layer Stats</a>" % obj.name

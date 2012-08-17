@@ -1,0 +1,12 @@
+<ul>
+  {% for lid in layer_in_datasets %}
+  <li>
+    {{ lid.dataset.description }}
+    {% if lid.tagging_approved %}
+      (<abbr title="Tagging approved">T</abbr>)
+    {% endif %}
+    {% if lid.completed %}
+      (<abbr title="Completed">C</abbr>)
+    {% endif %}
+  {% endfor %}
+</ul>
