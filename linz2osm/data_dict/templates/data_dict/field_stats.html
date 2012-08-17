@@ -1,0 +1,50 @@
+{% extends "global.html" %}
+{% load i18n stylize %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <li>
+    <a href="/">{% trans "Home" %}</a> <span class="divider">&rsaquo;</span>
+  </li>
+  <li>
+    <a href="{% url linz2osm.data_dict.views.show_dataset dataset_id=dataset.name %}">{{ dataset.description }}</a> <span class="divider">&rsaquo;</span>
+  </li>
+  <li>
+    {{layer}} <span class="divider">&rsaquo;</span>
+  </li>
+  <li>
+    <a href="{% url linz2osm.data_dict.views.layer_stats object_id=layer.name %}">Statistics</a> <span class="divider">&rsaquo;</span>
+  </li>
+  <li class="active">
+    {{ field_name }}
+  </li>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="span12">
+    <h2>{{ field_name }} values</h2>
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th>Value</th>
+          <th>Frequency</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for val, freq in statistics %}
+        <tr>
+          <td>
+            {{ val }}
+          </td>
+          <td>
+            {{ freq }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

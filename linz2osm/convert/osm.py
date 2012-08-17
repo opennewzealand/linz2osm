@@ -1,6 +1,7 @@
 from xml.etree import ElementTree
 import hashlib
 from cStringIO import StringIO
+import re
 
 from django.db import connection, connections
 from django.conf import settings
@@ -60,7 +61,33 @@ def get_layer_feature_count(database_id, layer, intersect_geom=None):
 
     cursor.execute(sql % layer.name, params) 
     return cursor.fetchone()[0]
+
+class NoSuchFieldNameError(Exception):
+    pass
+
+def get_field_stats(database_id, layer, field_name):
+    geom_type, srid = get_layer_geometry_type(database_id, layer)
+    cursor = connections[database_id].cursor()
+    if not re.match("\w+", field_name):
+        raise NoSuchFieldNameError
+    if field_name == 'ogc_fid' or field_name == 'wkb_geometry':
+        raise NoSuchFieldNameError
+    cursor.execute("SELECT data_type FROM information_schema.columns WHERE table_name=%s AND column_name=%s;", [layer.name, field_name])
+    col_type_row = cursor.fetchone()
+    if col_type_row is None:
+        raise NoSuchFieldNameError
+    col_type = col_type_row[0]
     
+    sql = "SELECT %(c)s, count(*) FROM %(t)s WHERE %(c)s IS NOT NULL "
+    if col_type in ('character varying',):
+        sql += " AND %(c)s <> '' "
+    elif col_type in ('double precision', 'integer',):
+        sql += " AND %(c)s <> 0 "
+    sql += "GROUP BY %(c)s ORDER BY count(*) DESC; "
+    
+    cursor.execute(sql % {'t': layer.name, 'c': field_name}) 
+    return cursor.fetchall()
+
 def get_layer_stats(database_id, layer):
     geom_type, srid = get_layer_geometry_type(database_id, layer)
     cursor = connections[database_id].cursor()
@@ -72,6 +99,7 @@ def get_layer_stats(database_id, layer):
     r = {
         'feature_count': get_layer_feature_count(database_id, layer),
         'extent': extent,
+        'primary_key': 'ogc_fid', # FIXME: feature-IDs
         'fields': {}
     }
     
@@ -85,6 +113,7 @@ def get_layer_stats(database_id, layer):
         cursor.execute(sql % {'t': layer.name, 'c': col_name}) 
         r['fields'][col_name] = {
             'non_empty_pc' : cursor.fetchone()[0] / float(r['feature_count']) * 100.0,
+            'col_type': col_type,
         }
     
     if geom_type in ('LINESTRING', 'POLYGON'):

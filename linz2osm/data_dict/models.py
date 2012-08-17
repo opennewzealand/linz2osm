@@ -142,7 +142,7 @@ class LayerInDataset(geomodels.Model):
     extent = geomodels.GeometryField(null=True)
     tagging_approved = geomodels.BooleanField(default=False)
     completed = geomodels.BooleanField(default=False)
-
+    
     def __unicode__(self):
         return "%s / %s" % (self.dataset.description, self.layer.name,)
 
@@ -150,6 +150,9 @@ class LayerInDataset(geomodels.Model):
     def get_absolute_url(self):
         return ('linz2osm.workslices.views.create_workslice', (), {'layer_in_dataset_id': self.id})
 
+    def get_statistics_for(self, field_name):
+        return osm.get_field_stats(self.dataset.name, self.layer, field_name)
+    
     def js_display_bounds_array(self):
         min_x, min_y, max_x, max_y = [f for f in self.extent.extent]
         x_margin = (max_x - min_x) * 0.1 

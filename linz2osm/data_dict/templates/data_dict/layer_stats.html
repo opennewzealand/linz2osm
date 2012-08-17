@@ -26,29 +26,44 @@
         {% with item.1 as stats %}
         <h2>{{ ds.1 }}</h2>
         
-        <table>
-            {% if stats.extent %}<tr><th>Extent:</th><td>{{stats.extent.extent}}</td></tr>{% endif %}
-            {% if stats.feature_count %}<tr><th>Features:</th><td>{{stats.feature_count}}</td></tr>{% endif %}
-            {% if stats.rings_avg %}<tr><th>Rings:</th><td>Average: {{stats.rings_avg|floatformat:"0"}} Max: {{stats.rings_max}}</td></tr>{% endif %}
-            {% if stats.points_avg %}<tr><th>Vertexes:</th><td>Average: {{stats.points_avg|floatformat:"0"}} Max: {{stats.points_max}}</td></tr>{% endif %}
-            {% if stats.points_ext_ring_avg %}<tr><th>Vertexes (Outer Ring):</th><td>Average: {{stats.points_ext_ring_avg|floatformat:"0"}} Max: {{stats.points_ext_ring_max}}</td></tr>{% endif %}
-            {% if stats.fields %}
-            <tr>
-                <th rowspan="{{stats.fields|length}}">Fields:</th>
-                <td>
-                    <table>
-                        <tbody>
-                            {% for f in stats.fields.items %}
-                            <tr>
-                                <th><code>{{f.0}}</code><th>
-                                <td><span title="Not NULL, and not empty (string fields) or not zero (numeric fields)">Non-empty</span>: {{f.1.non_empty_pc|floatformat:"0"}}%</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
+        <table class="table table-bordered">
+          <tbody>
+            {% if stats.extent %}
+              <tr><th>Extent:</th><td colspan=4>{{stats.extent.extent}}</td></tr>
             {% endif %}
+            {% if stats.feature_count %}
+              <tr><th>Features:</th><td colspan=4>{{stats.feature_count}}</td></tr>
+            {% endif %}
+            {% if stats.rings_avg %}
+              <tr><th>Rings:</th><td colspan=4>Average: {{stats.rings_avg|floatformat:"0"}} Max: {{stats.rings_max}}</td></tr>
+            {% endif %}
+            {% if stats.points_avg %}
+              <tr><th>Vertexes:</th><td colspan=4>Average: {{stats.points_avg|floatformat:"0"}} Max: {{stats.points_max}}</td></tr>
+            {% endif %}
+            {% if stats.points_ext_ring_avg %}
+              <tr><th>Vertexes (Outer Ring):</th><td colspan=4>Average: {{stats.points_ext_ring_avg|floatformat:"0"}} Max: {{stats.points_ext_ring_max}}</td></tr>
+            {% endif %}
+            {% if stats.fields %}
+              <tr>
+                <th rowspan="{{stats.fields|length|add:'1'}}">Fields:</th>
+              </tr>
+              {% for f in stats.fields.items %}
+              <tr>
+                <td><strong><code>{{f.0}}</code></strong></td>
+                <td>{{ f.1.col_type }}</td>
+                <td><span title="Not NULL, and not empty (string fields) or not zero (numeric fields)">Populated</span>: {{f.1.non_empty_pc|floatformat:"0"}}%</td>
+                <td>
+                  {% if f.0 != 'name' %}
+                  <a href="{% url linz2osm.data_dict.views.field_stats dataset_id=ds.0 layer_id=layer.name field_name=f.0 %}">Unique Values</a>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+              <tr>
+                <th>Primary Key:</th><td colspan=4><strong><code>{{ stats.primary_key }}</code></strong></td>
+              </tr>
+            {% endif %}
+          </tbody>
         </table>
         
         {% endwith %}

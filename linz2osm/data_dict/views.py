@@ -45,6 +45,22 @@ def layer_stats(request, object_id=None):
     
     return render_to_response('data_dict/layer_stats.html', c, context_instance=RequestContext(request))
 
+def field_stats(request, dataset_id=None, layer_id=None, field_name=None):
+    dataset = get_object_or_404(Dataset, name=dataset_id)
+    layer = get_object_or_404(Layer, name=layer_id)
+    layer_in_dataset = get_object_or_404(dataset.layerindataset_set, layer=layer)
+
+    ctx = {
+        'dataset': dataset,
+        'layer': layer,
+        'layer_in_dataset': layer_in_dataset,
+        'title': "%s/%s/%s Statistics" % (dataset.name, layer.name, field_name),
+        'statistics': layer_in_dataset.get_statistics_for(field_name),
+        'field_name': field_name,
+        }
+    return render_to_response('data_dict/field_stats.html', ctx, context_instance=RequestContext(request))
+
+    
 def show_dataset(request, dataset_id=None):
     dataset = get_object_or_404(Dataset, name=dataset_id)
     ctx = {
