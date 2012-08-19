@@ -1,3 +1,5 @@
+# Legal: http://djangosnippets.org/about/tos/
+
 """
 JSONField modified from: http://djangosnippets.org/snippets/377/
 """

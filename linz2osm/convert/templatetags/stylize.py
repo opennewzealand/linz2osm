@@ -1,3 +1,4 @@
+# Legal: http://djangosnippets.org/about/tos/
 # based on http://www.djangosnippets.org/snippets/350/
 
 from django.template import Library, Node, resolve_variable
