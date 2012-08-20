@@ -469,7 +469,6 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
     
     function updateCellDensityAndSelection() {
         var newCellDensity = calculateCellDensity();
-        console.log(newCellDensity);
         if (newCellDensity > currentCellDensity) {
             cells.clear();
             // FIXME: resize 
