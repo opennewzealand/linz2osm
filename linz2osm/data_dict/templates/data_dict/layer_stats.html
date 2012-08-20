@@ -1,5 +1,5 @@
 {% extends "global.html" %}
-{% load i18n stylize %}
+{% load i18n stylize humanize %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
@@ -29,19 +29,25 @@
         <table class="table table-bordered">
           <tbody>
             {% if stats.extent %}
-              <tr><th>Extent:</th><td colspan=4>{{stats.extent.extent}}</td></tr>
+              <tr>
+                <th>Extent:</th>
+                <td colspan=4>
+                  {{stats.extent.extent}}
+                  &mdash; <a href="{{ stats.extent_link }}">View on OSM</a>
+                </td>
+              </tr>
             {% endif %}
             {% if stats.feature_count %}
-              <tr><th>Features:</th><td colspan=4>{{stats.feature_count}}</td></tr>
+              <tr><th>Features:</th><td colspan=4>{{ stats.feature_count }}</td></tr>
             {% endif %}
             {% if stats.rings_avg %}
-              <tr><th>Rings:</th><td colspan=4>Average: {{stats.rings_avg|floatformat:"0"}} Max: {{stats.rings_max}}</td></tr>
+              <tr><th>Rings:</th><td colspan=4>Average: {{stats.rings_avg|floatformat:"0"}} Max: {{ stats.rings_max }}</td></tr>
             {% endif %}
             {% if stats.points_avg %}
-              <tr><th>Vertexes:</th><td colspan=4>Average: {{stats.points_avg|floatformat:"0"}} Max: {{stats.points_max}}</td></tr>
+              <tr><th>Vertices:</th><td colspan=4>Average: {{stats.points_avg|floatformat:"0"}} Max: {{ stats.points_max }}</td></tr>
             {% endif %}
             {% if stats.points_ext_ring_avg %}
-              <tr><th>Vertexes (Outer Ring):</th><td colspan=4>Average: {{stats.points_ext_ring_avg|floatformat:"0"}} Max: {{stats.points_ext_ring_max}}</td></tr>
+              <tr><th>Vertices (Outer Ring):</th><td colspan=4>Average: {{stats.points_ext_ring_avg|floatformat:"0"}} Max: {{ stats.points_ext_ring_max }}</td></tr>
             {% endif %}
             {% if stats.fields %}
               <tr>
@@ -58,7 +64,9 @@
                   {% ifequal f.1.non_empty_cnt 0 %}
                     None
                   {% else %}
+                    <span title="{{ f.1.non_empty_cnt|intcomma }} out of {{ stats.feature_count|intcomma }}">
                     {{f.1.non_empty_pc|floatformat:"0"}}%
+                    </span>
                   {% endifequal %}
                 </td>
                 <td>

@@ -111,10 +111,12 @@ def get_layer_stats(database_id, layer):
     # Expand bounds by 1,001 metres
     cursor.execute("SELECT ST_AsHexEWKB(ST_Transform(ST_SetSRID(ST_Envelope(ST_Buffer(ST_Extent(wkb_geometry), 1001.0)), %d), 4326)) FROM %s;" % (srid, layer.name))
     extent = geos.GEOSGeometry(cursor.fetchone()[0])
+    et = extent.extent
     
     r = {
         'feature_count': get_layer_feature_count(database_id, layer),
         'extent': extent,
+        'extent_link': "http://www.openstreetmap.org/index.html?minlon=%f&minlat=%f&maxlon=%f&maxlat=%f&box=yes" % et,
         'primary_key': 'ogc_fid', # FIXME: feature-IDs
         'fields': {}
     }

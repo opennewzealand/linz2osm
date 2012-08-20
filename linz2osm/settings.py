@@ -113,6 +113,7 @@ INSTALLED_APPS = (
     'django.contrib.admindocs',
     'django.contrib.staticfiles',
     'django.contrib.gis',
+    'django.contrib.humanize',
 
     'linz2osm.lobby',
     'linz2osm.data_dict',
