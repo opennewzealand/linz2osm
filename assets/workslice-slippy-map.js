@@ -419,7 +419,22 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
         if(selecting_cells) {
             updateCellDensityAndSelection();
         }
+        generateOSMLink();
     });
+
+    this.map.events.register('moveend', self, function() {
+        generateOSMLink();
+    });
+
+    function generateOSMLink() {
+        extent = self.map.getExtent().transform(smp, wgs84);
+        link = 'http://www.openstreetmap.org/index.html?minlon=' + extent.left +
+            '&maxlon=' + extent.right +
+            '&minlat=' + extent.bottom +
+            '&maxlat=' + extent.top +
+            '&box=yes';
+        $("a#osm-link").attr('href', link);
+    }
     
     /* TODO: highlight red when about to delete a cell */
     function highlightCell(cell) {
@@ -501,6 +516,6 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
         event.preventDefault();
         cells.clear();
     });
-
+    generateOSMLink();
 }
 
