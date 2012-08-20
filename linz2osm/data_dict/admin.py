@@ -14,6 +14,8 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import re
+
 from django.contrib import admin
 from django.template.loader import render_to_string
 
@@ -39,10 +41,90 @@ class TagInline(admin.StackedInline):
     extra = 3
     verbose_name = 'Tag'
     verbose_name_plural = 'Tags'
+
+# TODO: filter by geometry type
+# TODO: custom templates so choices aren't so ugly
+class TaggingApprovedListFilter(admin.SimpleListFilter):
+    title = 'tagging approved'
+    parameter_name = 'tagging_approved'
+
+    def lookups(self, request, model_admin):
+        datasets = Dataset.objects.order_by('description').all()
+        return tuple(
+            [("yes_%s" % ds.name, "%s approved" % (ds.description,)) for ds in datasets] +
+            [("no_%s" % ds.name, "%s not approved" % (ds.description),) for ds in datasets] +
+            [('none', 'None approved'),
+             ('any', 'Any approved'),
+             ('all', 'All approved'),
+             ('notall', 'Not all approved'),
+             ('nodatasets', 'Not available in any datasets'),
+             ])
+
+    def queryset(self, request, queryset):
+        if self.value() == 'nodatasets':
+            return queryset.exclude(layerindataset__id__isnull=False)
+        elif self.value() == 'all':
+            return queryset.exclude(layerindataset__tagging_approved=False).filter(layerindataset__tagging_approved=True)
+        elif self.value() == 'none':
+            return queryset.exclude(layerindataset__tagging_approved=True).filter(layerindataset__tagging_approved=False)
+        elif self.value() == 'any':
+            return queryset.filter(layerindataset__tagging_approved=True)
+        elif self.value() == 'notall':
+            return queryset.filter(layerindataset__tagging_approved=False)
+        else:
+            matches = re.match('(?P<condition>yes|no)_(?P<dataset_name>\w+)', str(self.value()))
+            if matches:
+                condition = matches.group('condition')
+                dataset_name = matches.group('dataset_name')
+                if condition == 'yes':
+                    return queryset.filter(layerindataset__dataset_id=dataset_name, layerindataset__tagging_approved=True)
+                elif condition == 'no':
+                    return queryset.filter(layerindataset__dataset_id=dataset_name, layerindataset__tagging_approved=False)
+
+        return queryset
+    
+class CompletedListFilter(admin.SimpleListFilter):
+    title = 'completed'
+    parameter_name = 'completed'
+
+    def lookups(self, request, model_admin):
+        datasets = Dataset.objects.order_by('description').all()
+        return tuple(
+            [("yes_%s" % ds.name, "%s completed" % (ds.description,)) for ds in datasets] +
+            [("no_%s" % ds.name, "%s not completed" % (ds.description),) for ds in datasets] +
+            [('none', 'None completed'),
+             ('any', 'Any completed'),
+             ('all', 'All completed'),
+             ('notall', 'Not all completed'),
+             ('nodatasets', 'Not available in any datasets'),
+             ])
+
+    def queryset(self, request, queryset):
+        if self.value() == 'nodatasets':
+            return queryset.exclude(layerindataset__id__isnull=False)
+        elif self.value() == 'all':
+            return queryset.exclude(layerindataset__completed=False).filter(layerindataset__completed=True)
+        elif self.value() == 'none':
+            return queryset.exclude(layerindataset__completed=True).filter(layerindataset__completed=False)
+        elif self.value() == 'any':
+            return queryset.filter(layerindataset__completed=True)
+        elif self.value() == 'notall':
+            return queryset.filter(layerindataset__completed=False)
+        else:
+            matches = re.match('(?P<condition>yes|no)_(?P<dataset_name>\w+)', str(self.value()))
+            if matches:
+                condition = matches.group('condition')
+                dataset_name = matches.group('dataset_name')
+                if condition == 'yes':
+                    return queryset.filter(layerindataset__dataset_id=dataset_name, layerindataset__completed=True)
+                elif condition == 'no':
+                    return queryset.filter(layerindataset__dataset_id=dataset_name, layerindataset__completed=False)
+
+        return queryset
     
 class LayerAdmin(admin.ModelAdmin):
     list_display = ('name', 'entity', 'get_geometry_type_display', 'stats_link', 'tag_count', 'dataset_descriptions', 'notes',)
-    list_filter = ('entity',)
+    list_filter = (TaggingApprovedListFilter, CompletedListFilter, 'datasets', 'entity',)
     inlines = [
         LayerInDatasetInline,
         TagInline,
