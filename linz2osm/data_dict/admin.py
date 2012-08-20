@@ -147,7 +147,7 @@ class LayerAdmin(admin.ModelAdmin):
         return render_to_string('admin/data_dict/layer/dataset_descriptions.html', {
                 'layer_in_datasets': obj.layerindataset_set.all()
                 })
-    dataset_descriptions.short_description = 'Available in'
+    dataset_descriptions.short_description = 'Available in which datasets'
     dataset_descriptions.allow_tags = True
 
     def stats_link(self, obj):
