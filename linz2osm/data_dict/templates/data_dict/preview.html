@@ -1,0 +1,46 @@
+{% extends "global.html" %}
+{% load i18n stylize staticfiles %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static 'stylize.css' %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <li>
+    <a href="/">{% trans "Home" %}</a> <span class="divider">&rsaquo;</span>
+  </li>
+  <li>
+    Layers <span class="divider">&rsaquo;</span>
+  </li>
+  <li>
+    {{layer}} <span class="divider">&rsaquo;</span>
+  </li>
+  <li class="active">
+    Preview
+  </li>  
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="span12">
+    <h2>{{ layer.name }} preview</h2>
+  </div>
+</div>
+<div class="row">
+  <div class="span5">
+    <form action='' method='POST'>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type='submit' value='Preview'>
+    </form>
+  </div>
+  <div class="span7">
+    {% if preview_data %}
+      {{ preview_data|stylize:"xml" }}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -161,8 +161,12 @@ def clean_data(cell):
 
 def export(workslice):
     dataset = workslice.layer_in_dataset.dataset
-    database_id = dataset.name
     layer = workslice.layer_in_dataset.layer
+    feature_ids = [wf.feature_id for wf in workslice.workslicefeature_set.all()]
+    return export_custom(dataset, layer, feature_ids, workslice.id)
+    
+def export_custom(dataset, layer, feature_ids = None, workslice_id = None):
+    database_id = dataset.name
     cursor = connections[database_id].cursor()
     db_info = settings.DATABASES[database_id]
     
@@ -183,7 +187,11 @@ def export(workslice):
     columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, dataset.srid)] + ['"%s"' % c for c in data_columns]
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
 
-    sql_base += ' WHERE ogc_fid IN (%s)' % workslice.formatted_feature_id_list()
+    if feature_ids is not None:
+        if len(feature_ids) > 0:
+            sql_base += ' WHERE ogc_fid IN (%s)' % (",".join([str(fid) for fid in feature_ids]))
+        else:
+            sql_base += ' WHERE ogc_fid IS NULL'
 
     cursor.execute(sql_base)
     
@@ -197,7 +205,8 @@ def export(workslice):
         row_data = dict(zip(data_columns,[clean_data(c) for c in row[1:] ]))
         row_data['layer_name'] = layer.name
         row_data['dataset_name'] = dataset.name
-        row_data['workslice_id'] = workslice.id
+        if workslice_id is not None:
+            row_data['workslice_id'] = workslice_id
         
         row_tags = {}
         for tag in layer_tags:

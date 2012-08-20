@@ -24,7 +24,7 @@
     }
     #content-main .vLargeTextField {
         width: 485px;
-        height: 6em;
+        height: 30em;
     }
     #content-main .codeExec .vLargeTextField {
         width: 210px;
@@ -36,22 +36,18 @@
 {% block object-tools %}
 {% if change %}{% if not is_popup %}
   <ul class="object-tools">
-    <li><a href="/data_dict/layer/{{ original.name }}/stats/" class="statslink">Statistics</a></li>
+    <li><a href="/data_dict/layer/{{ original.name }}/stats/" class="statslink">Stats</a></li>
     <li><a href="history/" class="historylink">{% trans "History" %}</a></li>
     {% if has_absolute_url %}
         <li><a href="../../../r/{{ content_type_id }}/{{ object_id }}/" class="viewsitelink">
             {% trans "View on site" %}</a>
         </li>
     {% endif%}
+    {% if original %}
+          <li><a href="{{ original.linz_dictionary_url}}">LINZ Definition</a></li>
+    {% endif %}
+    <li><a href="/data_dict/layer/{{ object_id }}/preview/">Preview</a></li>
   </ul>
 {% endif %}{% endif %}
 {% endblock %}
 
-{% block content %}
-{{block.super}}
-{% if original %}
-<div class="rpanel">
-    <h4><a href="{{ original.linz_dictionary_url}}">LINZ Data Definition</a></h4>
-</div>
-{% endif %}
-{% endblock %}

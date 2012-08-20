@@ -20,8 +20,11 @@ from django.shortcuts import get_object_or_404, render_to_response
 from django.http import HttpResponse
 from django.utils import simplejson
 from django.template import RequestContext
+from django import forms
 
 from linz2osm.data_dict.models import Layer, Tag, Dataset, LayerInDataset
+from linz2osm.utils.forms import BootstrapErrorList
+from linz2osm.convert import osm
 
 def tag_eval(request, object_id=None):
     if object_id:
@@ -48,8 +51,8 @@ def tag_eval(request, object_id=None):
     return HttpResponse(simplejson.dumps(r), content_type='text/plain')
 
 def layer_stats(request, object_id=None):
-    # FIXME: Why? 
-    # object_id = re.sub("_5F", "_", object_id)
+    # Because of breakage in django-admin, objectids come escaped
+    object_id = re.sub("_5F", "_", object_id)
     
     l = get_object_or_404(Layer, name=object_id)
     
@@ -85,5 +88,38 @@ def show_dataset(request, dataset_id=None):
         'title': dataset.description,
         }
     return render_to_response('data_dict/show_dataset.html', ctx, context_instance=RequestContext(request))
-        
+
+class PreviewForm(forms.Form):
+    # From http://stackoverflow.com/a/4880869/186777
+    def __init__(self, *args, **kwargs):
+        datasets = kwargs.pop('datasets')
+        super(PreviewForm, self).__init__(*args, **kwargs)
+        self.fields['dataset'].queryset = datasets
+    
+    dataset = forms.ModelChoiceField(queryset=Dataset.objects.none(), required=True)
+    starting_id = forms.IntegerField(min_value=0, required=False)
+
+def preview(request, layer_id=None):
+    layer_id = re.sub("_5F", "_", layer_id)
+    layer = get_object_or_404(Layer, pk=layer_id)
+    datasets = layer.datasets.order_by('description').all()
+
+    ctx = {
+        'layer': layer,
+        }
+
+    if request.method == 'POST':
+        form = PreviewForm(request.POST, error_class=BootstrapErrorList, datasets=datasets)
+        if form.is_valid():
+            starting_id = form.cleaned_data['starting_id'] or 0
+            if layer.geometry_type == 'POINT':
+                feature_count = 100
+            else:
+                feature_count = 10
+            feature_ids = [fid for fid in range(starting_id, starting_id + feature_count)]
+            ctx['preview_data'] = osm.export_custom(form.cleaned_data['dataset'], layer, feature_ids, '111222333444555666777888999')
+    else:
+        form = PreviewForm(error_class=BootstrapErrorList, datasets=datasets)
+    ctx['form'] = form
+    return render_to_response('data_dict/preview.html', ctx, context_instance=RequestContext(request))
 

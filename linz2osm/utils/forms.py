@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #  LINZ-2-OSM
 #  Copyright (C) 2010-2012 Koordinates Ltd.
 # 
@@ -14,12 +15,12 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from django.conf.urls.defaults import *
+from django import forms
 
-urlpatterns = patterns('linz2osm.data_dict.views',
-                       (r'^tag/eval/$', 'tag_eval'),
-                       (r'^layer/(?P<object_id>\w+)/stats/$', 'layer_stats'),
-                       (r'^dataset/(?P<dataset_id>\w+)/$', 'show_dataset'),
-                       (r'^field_stats/(?P<dataset_id>\w+)/(?P<layer_id>\w+)/(?P<field_name>\w+)/$', 'field_stats'),
-                       (r'^layer/(?P<layer_id>\w+)/preview/$', 'preview'),
-                       )
+class BootstrapErrorList(forms.util.ErrorList):
+    def __unicode__(self):
+        return self.as_divs()
+    def as_divs(self):
+        if not self: return ''
+        return u'<div class="errorlist">%s</div>' % ''.join([
+                u'<div class="alert alert-error">%s</div>' % e for e in self])

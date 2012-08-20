@@ -33,14 +33,7 @@ from django import forms
 from linz2osm.data_dict.models import Layer, Dataset, LayerInDataset
 from linz2osm.workslices.models import Workslice, Cell, WorksliceTooFeaturefulError, WorksliceInsufficientlyFeaturefulError, FEATURE_LIMIT
 from linz2osm.convert import osm
-
-class BootstrapErrorList(forms.util.ErrorList):
-    def __unicode__(self):
-        return self.as_divs()
-    def as_divs(self):
-        if not self: return ''
-        return u'<div class="errorlist">%s</div>' % ''.join([
-                u'<div class="alert alert-error">%s</div>' % e for e in self])
+from linz2osm.utils.forms import BootstrapErrorList
 
 def show_workslice(request, workslice_id=None):
     workslice = get_object_or_404(Workslice, pk=workslice_id)

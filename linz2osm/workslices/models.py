@@ -136,9 +136,6 @@ class Workslice(models.Model):
     def acceptable_transitions(self):
         return self.__class__.TRANSITIONS[self.state]
     
-    def formatted_feature_id_list(self):
-        return ",".join(str(wf.feature_id) for wf in self.workslicefeature_set.all())
-    
     @models.permalink
     def get_absolute_url(self):
         return ('linz2osm.workslices.views.show_workslice', (), {'workslice_id': self.id})
