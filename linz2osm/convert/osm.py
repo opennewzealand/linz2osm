@@ -126,10 +126,13 @@ def get_layer_stats(database_id, layer):
             sql += " AND %(c)s <> ''"
         elif col_type in ('double precision', 'integer',):
             sql += " AND %(c)s <> 0"
-        cursor.execute(sql % {'t': layer.name, 'c': col_name}) 
+        cursor.execute(sql % {'t': layer.name, 'c': col_name})
+        row = cursor.fetchone()
         r['fields'][col_name] = {
-            'non_empty_pc' : cursor.fetchone()[0] / float(r['feature_count']) * 100.0,
+            'non_empty_cnt': row[0],
+            'non_empty_pc' : row[0] / float(r['feature_count']) * 100.0,
             'col_type': col_type,
+            'show_distinct_values': (row[0] > 0 and (col_name not in ('name', 'name_id', 'road_name_id', 'elevation') or r['feature_count'] <= 1000)),
         }
     
     if geom_type in ('LINESTRING', 'POLYGON'):

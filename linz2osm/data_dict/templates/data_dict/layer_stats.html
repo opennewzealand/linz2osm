@@ -51,9 +51,18 @@
               <tr>
                 <td><strong><code>{{f.0}}</code></strong></td>
                 <td>{{ f.1.col_type }}</td>
-                <td><span title="Not NULL, and not empty (string fields) or not zero (numeric fields)">Populated</span>: {{f.1.non_empty_pc|floatformat:"0"}}%</td>
                 <td>
-                  {% if f.0 != 'name' and f.0 != 'road_name_id' and f.0 != 'elevation' %}
+                  <span title="Not NULL, and not empty (string fields) or not zero (numeric fields)">
+                    Populated
+                  </span>:
+                  {% ifequal f.1.non_empty_cnt 0 %}
+                    None
+                  {% else %}
+                    {{f.1.non_empty_pc|floatformat:"0"}}%
+                  {% endifequal %}
+                </td>
+                <td>
+                  {% if f.1.show_distinct_values %}
                   <a href="{% url linz2osm.data_dict.views.field_stats dataset_id=ds.0 layer_id=layer.name field_name=f.0 %}">Distinct Values</a>
                   {% endif %}
                 </td>
