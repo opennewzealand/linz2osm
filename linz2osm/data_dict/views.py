@@ -112,7 +112,7 @@ def preview(request, layer_id=None):
         form = PreviewForm(request.POST, error_class=BootstrapErrorList, datasets=datasets)
         if form.is_valid():
             starting_id = form.cleaned_data['starting_id'] or 0
-            if layer.geometry_type == 'POINT':
+            if layer.deduce_geometry_type() == 'POINT':
                 feature_count = 100
             else:
                 feature_count = 10

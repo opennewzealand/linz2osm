@@ -123,8 +123,8 @@ class CompletedListFilter(admin.SimpleListFilter):
         return queryset
     
 class LayerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'entity', 'get_geometry_type_display', 'stats_link', 'tag_count', 'dataset_descriptions', 'notes',)
-    list_filter = (TaggingApprovedListFilter, CompletedListFilter, 'datasets', 'entity',)
+    list_display = ('name', 'entity', 'geometry_type', 'stats_link', 'tag_count', 'dataset_descriptions', 'notes',)
+    list_filter = (TaggingApprovedListFilter, CompletedListFilter, 'geometry_type', 'datasets', 'entity',)
     inlines = [
         LayerInDatasetInline,
         TagInline,

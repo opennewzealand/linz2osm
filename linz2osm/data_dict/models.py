@@ -68,21 +68,27 @@ class Dataset(models.Model):
         return ('linz2osm.data_dict.views.show_dataset', (), {'dataset_id': self.name})
     
     objects = DatasetManager()
-    
+    
 class Layer(models.Model):
+    GEOTYPE_CHOICES = [
+        ('POINT', 'Point'),
+        ('LINESTRING', 'Linestring'),
+        ('POLYGON', 'Polygon'),
+        ]
+    
     name = models.CharField(max_length=100, primary_key=True)
     entity = models.CharField(max_length=200, blank=True, db_index=True)
     notes = models.TextField(blank=True)
     processors = JSONField(blank=True, null=True, help_text=('What geometry processors to apply. In the format [ ["name",{"arg":"value", ...}], ...]. Available processors:<br/>' + processor_list_html))
     datasets = models.ManyToManyField(Dataset, through='LayerInDataset')
+    geometry_type = models.CharField(max_length=255, blank=True, choices=GEOTYPE_CHOICES)
     
     def __unicode__(self):
         return unicode(self.name)
-    
-    @property
-    def geometry_type(self):
+
+    def deduce_geometry_type(self):
         end = self.name.rsplit('_', 1)[-1]
-        if end in ('pnt', 'name', 'text', 'feat'):
+        if end in ('pnt', 'pnt2', 'name', 'text', 'feat'):
             return 'POINT'
         elif end in ('cl', 'edge', 'edg', 'coastline', 'contour'):
             return 'LINESTRING'
@@ -91,14 +97,7 @@ class Layer(models.Model):
         else:
             # unknown
             return None
-    
-    def get_geometry_type_display(self):
-        gt = self.geometry_type
-        if gt is None:
-            gt = "Unknown"
-        return text.capfirst(gt.lower())
-    get_geometry_type_display.short_description = 'Geometry Type'
-    
+        
     @property
     def linz_dictionary_url(self):
         BASE_URL = "http://apps.linz.govt.nz/topo-data-dictionary/index.aspx?page=class-%s"
@@ -131,7 +130,7 @@ class Layer(models.Model):
                 p_list.append(p)
         return p_list
 
-
+
 class LayerInDatasetManager(geomodels.GeoManager):
     def create_layer_in_dataset(self, layer, dataset):
         if not LayerInDataset.objects.filter(layer=layer, dataset=dataset).exists():
@@ -217,7 +216,7 @@ class LayerInDataset(geomodels.Model):
     def features_todo_pct(self):
         return (100.0 * self.features_todo() / self.features_total)
 
-                           
+                           
 class TagManager(models.Manager):
     def eval(self, code, fields):
         eval_fields = {}
