@@ -23,3 +23,7 @@ body {
    margin-top: 1em;
    float: right;
 }
+
+.preview-content pre {
+   overflow: visible;
+}

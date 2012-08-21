@@ -99,7 +99,7 @@ def get_field_stats(database_id, layer, field_name):
         sql += " AND %(c)s <> '' "
     elif col_type in ('double precision', 'integer',):
         sql += " AND %(c)s <> 0 "
-    sql += "GROUP BY %(c)s ORDER BY count(*) DESC; "
+    sql += "GROUP BY %(c)s ORDER BY count(*) DESC, %(c)s ASC; "
     
     cursor.execute(sql % {'t': layer.name, 'c': field_name}) 
     return cursor.fetchall()

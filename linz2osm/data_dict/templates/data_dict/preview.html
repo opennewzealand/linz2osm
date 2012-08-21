@@ -30,14 +30,14 @@
   </div>
 </div>
 <div class="row">
-  <div class="span5">
+  <div class="span4">
     <form action='' method='POST'>
     {% csrf_token %}
     {{ form.as_p }}
     <input type='submit' value='Preview'>
     </form>
   </div>
-  <div class="span7">
+  <div class="preview-content span12">
     {% if preview_data %}
       {{ preview_data|stylize:"xml" }}
     {% endif %}

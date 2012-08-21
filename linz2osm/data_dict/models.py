@@ -170,6 +170,15 @@ class LayerInDataset(geomodels.Model):
     def __unicode__(self):
         return "%s / %s" % (self.dataset.description, self.layer.name,)
 
+    @property
+    def row_class(self):
+        if self.completed:
+            return "success"
+        elif self.tagging_approved:
+            return "info"
+        else:
+            return "error"
+    
     @models.permalink
     def get_absolute_url(self):
         return ('linz2osm.workslices.views.create_workslice', (), {'layer_in_dataset_id': self.id})
