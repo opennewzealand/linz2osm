@@ -45,8 +45,6 @@ class Cell(object):
 
     def __unicode__(self):
         return "X: %f, Y: %f, CPD: %d" % (self.lon, self.lat, self.cpd)
-
-FEATURE_LIMIT = 1000
     
 class WorksliceManager(models.GeoManager):
     def create_workslice(self, layer_in_dataset, user, extent=None):
@@ -186,7 +184,7 @@ class WorksliceFeatureManager(models.Manager):
                 feature_id=ogc_fid
                 ).exists()
             ]
-        if len(ws_feats) > FEATURE_LIMIT:
+        if len(ws_feats) > layer_in_dataset.layer.feature_limit:
             raise WorksliceTooFeaturefulError
         if len(ws_feats) == 0:
             raise WorksliceInsufficientlyFeaturefulError

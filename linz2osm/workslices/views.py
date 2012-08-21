@@ -32,7 +32,7 @@ from django.contrib.auth.models import User
 from django import forms
 
 from linz2osm.data_dict.models import Layer, Dataset, LayerInDataset
-from linz2osm.workslices.models import Workslice, Cell, WorksliceTooFeaturefulError, WorksliceInsufficientlyFeaturefulError, FEATURE_LIMIT
+from linz2osm.workslices.models import Workslice, Cell, WorksliceTooFeaturefulError, WorksliceInsufficientlyFeaturefulError
 from linz2osm.convert import osm
 from linz2osm.utils.forms import BootstrapErrorList
 
@@ -174,11 +174,13 @@ class WorksliceForm(forms.Form):
     
 def create_workslice(request, layer_in_dataset_id):
     layer_in_dataset = get_object_or_404(LayerInDataset, pk=layer_in_dataset_id)
-
+    layer = layer_in_dataset.layer
+    dataset = layer_in_dataset.dataset
+    
     ctx = {
         'layer_in_dataset': layer_in_dataset,
         'workslices': layer_in_dataset.workslice_set.all(),
-        'title': "%s - %s" % (layer_in_dataset.dataset.description, layer_in_dataset.layer.name),
+        'title': "%s - %s" % (dataset.description, layer.name),
     }
     if request.method == 'POST':
         if not request.user.is_authenticated():
@@ -187,11 +189,11 @@ def create_workslice(request, layer_in_dataset_id):
         if form.is_valid():
             try:
                 workslice = Workslice.objects.create_workslice(layer_in_dataset, request.user, form.extent)
-                print django.db.connections[layer_in_dataset.dataset.name].queries
+                print django.db.connections[dataset.name].queries
             except osm.Error, e:
                 ctx['error'] = str(e)
             except WorksliceTooFeaturefulError, e:
-                form._errors["__all__"] = form.error_class([u"Too many features in selection (over %d): Please reduce selection" % FEATURE_LIMIT])
+                form._errors["__all__"] = form.error_class([u"Too many features in selection (over %d): Please reduce selection" % layer.feature_limit])
             except WorksliceInsufficientlyFeaturefulError, e:
                 form._errors["__all__"] = form.error_class([u"No features in selection"])
             else:
@@ -207,19 +209,20 @@ def create_workslice(request, layer_in_dataset_id):
 
 def workslice_info(request, layer_in_dataset_id):
     layer_in_dataset = get_object_or_404(LayerInDataset, pk=layer_in_dataset_id)
-
+    layer = layer_in_dataset.layer
+    dataset = layer_in_dataset.dataset
+    
     ctx = {}
     
     form = WorksliceForm(request.POST, error_class=BootstrapErrorList)
     if form.is_valid():
-        feature_count = osm.get_layer_feature_count(layer_in_dataset.dataset.name, layer_in_dataset.layer, form.extent)
-        # feature_count = len(osm.get_layer_feature_ids(layer_in_dataset, form.extent))
-        if feature_count > FEATURE_LIMIT:
-            ctx['info'] = "Too many features (over %d): please reduce selection." % FEATURE_LIMIT
+        feature_count = osm.get_layer_feature_count(dataset.name, layer, form.extent)
+        if feature_count > layer.feature_limit:
+            ctx['info'] = "Too many features (over %d): please reduce selection." % layer.feature_limit
         elif feature_count > 1:
             ctx['info'] = "%d features in selection." % feature_count
         elif feature_count > 0:
-            ctx['info'] = "One feature in selection."
+            ctx['info'] = "1 feature in selection."
         elif feature_count == 0:
             ctx['info'] = "No features in selection."
         else:

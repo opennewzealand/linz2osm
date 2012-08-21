@@ -86,6 +86,8 @@ class Layer(models.Model):
     def __unicode__(self):
         return unicode(self.name)
 
+    # This should only be needed for data_dict migration 0011:
+    # the authoritative version is the geometry_type field.
     def deduce_geometry_type(self):
         end = self.name.rsplit('_', 1)[-1]
         if end in ('pnt', 'pnt2', 'name', 'text', 'feat'):
@@ -97,6 +99,13 @@ class Layer(models.Model):
         else:
             # unknown
             return None
+
+    @property
+    def feature_limit(self):
+        if self.geometry_type == 'POINT':
+            return 1000
+        else:
+            return 100
         
     @property
     def linz_dictionary_url(self):
