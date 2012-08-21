@@ -1,5 +1,5 @@
 {% extends "global.html" %}
-{% load i18n staticfiles %}
+{% load i18n staticfiles humanize %}
 
 {% block breadcrumbs %}
 <li>
@@ -29,7 +29,7 @@
       <dt>Layer</dt>
       <dd><a href="{{ workslice.layer_in_dataset.get_absolute_url }}">{{ workslice.layer_in_dataset.layer.name }}</a></dd>
       <dt>Features</dt>
-      <dd>{{ workslice.feature_count }}</dd>
+      <dd>{{ workslice.feature_count|intcomma }}</dd>
       <dt>Dataset</dt>
       <dd>{{ workslice.layer_in_dataset.dataset.description }}</dd>
       <dt>Status</dt>
@@ -64,7 +64,7 @@
   </div>
   <div class="span8">
     <!-- map_canvas is a magic name for Bootstrap to not mangle images with max-width -->
-    <div id="map_canvas" style="height: 600px; width: 100%; border: 1px dashed red;">
+    <div id="map_canvas">
     </div>
   </div>
 </div>

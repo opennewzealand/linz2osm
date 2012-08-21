@@ -1,0 +1,25 @@
+body {
+   padding-top: 60px;
+   padding-bottom: 40px;
+}
+
+.pagination-info {
+   margin-left: 1em;
+   margin-right: 1em;
+}
+
+#map_canvas {
+   height: 600px;
+   width: 100%;
+   border: 1px dashed red;
+}
+
+.layer-notes {
+   overflow: auto;
+   word-break: normal;
+}
+
+#osm-link-container {
+   margin-top: 1em;
+   float: right;
+}

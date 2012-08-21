@@ -1,5 +1,5 @@
 {% extends "global.html" %}
-{% load i18n stylize staticfiles %}
+{% load i18n stylize staticfiles humanize %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
@@ -21,13 +21,13 @@
     <div>
       <h2>Stats</h2>
       <ul>
-        <li>{{ layer_in_dataset.features_total }} total features.</li>
+        <li>{{ layer_in_dataset.features_total|intcomma }} total features.</li>
         {% if layer_in_dataset.completed %}
         <li>Layer is marked as complete.</li>
         {% else %}
-        <li>{{ layer_in_dataset.features_todo }} to do.</li>
-        <li>{{ layer_in_dataset.features_in_progress }} in progress.</li>
-        <li>{{ layer_in_dataset.features_complete }} done.</li>
+        <li>{{ layer_in_dataset.features_todo|intcomma }} to do.</li>
+        <li>{{ layer_in_dataset.features_in_progress|intcomma }} in progress.</li>
+        <li>{{ layer_in_dataset.features_complete|intcomma }} done.</li>
         {% endif %}
       </ul>
     </div>
@@ -82,7 +82,7 @@
         {% for ws in workslices %}
           <tr>
             <td>{{ ws.user.username }}</td>
-            <td>{{ ws.feature_count }}</td>
+            <td>{{ ws.feature_count|intcomma }}</td>
             <td>{{ ws.friendly_status }}</td>
             <td><a href="{{ ws.get_absolute_url }}">{{ ws.checked_out_at }}</a></td>
           </tr>
@@ -90,16 +90,16 @@
       </table>
     </div>
 
-    <div style="overflow: auto; word-break: normal;">
+    <div class="layer-notes">
       <h2>Notes</h2>
       {{ layer_in_dataset.layer.notes|linebreaks }}
     </div>
   </div>
   <div class="span8">
     <!-- map_canvas is a magic name for Bootstrap to not mangle images with max-width -->
-    <div id="map_canvas" style="height: 600px; width: 100%; border: 1px dashed red;">
+    <div id="map_canvas">
     </div>
-    <div id="osm-link-container" style="margin-top: 1em; float: right;">
+    <div id="osm-link-container">
       <a href="#" id="osm-link" class="btn btn-info">View this area on OpenStreetMap</a>
     </div>
   </div>
