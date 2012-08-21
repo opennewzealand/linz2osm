@@ -38,7 +38,7 @@ class LayerInDatasetInline(admin.StackedInline):
 
 class TagInline(admin.StackedInline):
     model = Tag
-    extra = 3
+    extra = 2
     verbose_name = 'Tag'
     verbose_name_plural = 'Tags'
 
