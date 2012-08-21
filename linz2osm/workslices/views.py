@@ -21,6 +21,7 @@ import re
 import json
 import django.db
 
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import get_object_or_404, render_to_response
 from django.template import RequestContext
 from django.http import HttpResponse, HttpResponseRedirect, Http404
@@ -108,8 +109,14 @@ class WorksliceFilterForm(forms.Form):
     dataset = forms.ModelChoiceField(queryset=Dataset.objects.order_by('description').all(), required=False)
     layer = forms.ModelChoiceField(queryset=Layer.objects.order_by('name').all(), required=False)
     user = forms.ModelChoiceField(queryset=User.objects.order_by('username').all(), required=False)
-    order_by = forms.TypedChoiceField(choices=SORT_CHOICES, required=False, initial='checked_out_at', label='Order by')
+    order_by = forms.TypedChoiceField(choices=SORT_CHOICES, required=False, initial='-checked_out_at', label='Order by')
 
+    @property
+    def uri_components(self):
+        return "".join(["&%s=%s" % (name, value) for name, value in self.data.iteritems() if name != 'page'])
+
+WORKSLICES_PER_PAGE = 20
+    
 def list_workslices(request, username=None):
     workslices = Workslice.objects
     form = WorksliceFilterForm(request.GET)
@@ -128,12 +135,20 @@ def list_workslices(request, username=None):
         if form.cleaned_data['order_by']:
             workslices = workslices.order_by(form.cleaned_data['order_by'])
         else:
-            workslices = workslices.order_by('checked_out_at')
+            workslices = workslices.order_by('-checked_out_at')
     else:
         workslices = workslices.order_by('checked_out_at')
+    paginator = Paginator(workslices, WORKSLICES_PER_PAGE)
+    page = request.GET.get('page')
+    try:
+        display_workslices = paginator.page(page)
+    except PageNotAnInteger:
+        display_workslices = paginator.page(1)
+    except EmptyPage:
+        display_workslices = paginator.page(paginator.num_pages)
         
     ctx = {
-        'workslices': workslices,
+        'workslices': display_workslices,
         'form': form,
     }
     return render_to_response('workslices/list.html', ctx, context_instance=RequestContext(request))

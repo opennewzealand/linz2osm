@@ -22,7 +22,7 @@
       <form id="workslice-filter-form" action="{% url linz2osm.workslices.views.list_workslices %}" method="GET" class="form">
         {% csrf_token %}
         {{ form.as_p }}
-        <input type="submit" value="Filter" id="filter-workslices-submit">
+        <input type="submit" value="Filter" id="filter-workslices-submit" class="btn btn-primary">
       </form>
     </div>
     <div class="span9">
@@ -52,6 +52,27 @@
           {% endfor %}
         </tbody>
       </table>
+      <div>
+        <span>
+        {% if workslices.has_previous %}
+        <a class="btn btn-primary" href="?page={{ workslices.previous_page_number }}{{ form.uri_components }}">Previous</a>
+        {% endif %}
+        </span>
+
+        <span style="margin-left: 1em; margin-right: 1em;">
+          {% if workslices.paginator.num_pages == 1 and workslices.paginator.count == 0 %}
+          Nothing found
+          {% else %}
+          Page {{ workslices.number }} of {{ workslices.paginator.num_pages }}
+          {% endif %}
+        </span>
+
+        <span>
+        {% if workslices.has_next %}
+        <a class="btn btn-primary" href="?page={{ workslices.next_page_number }}{{ form.uri_components }}">Next</a>
+        {% endif %}
+        </span>
+      </div>
     </div>
   </div>
 </div>

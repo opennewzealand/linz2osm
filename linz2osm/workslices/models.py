@@ -127,7 +127,7 @@ class Workslice(models.Model):
     checkout_extent = models.MultiPolygonField()
     feature_count = models.IntegerField(null=True)
     file_size = models.IntegerField(null=True)
-
+    # FIXME: store file name so changes won't mess it up
     
     @property
     def name(self):
