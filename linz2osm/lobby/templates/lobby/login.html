@@ -12,12 +12,25 @@
 
 {% block content %}
 <div class="row">
-  <div class="span12">
+  <div class="span6">
     <form id="login-form" action="{% url linz2osm.lobby.views.login %}" method="POST">
       {% csrf_token %}
       {{ form.as_p }}
       <input type="submit" value="Login" id="login-submit">
     </form>
+  </div>
+</div>
+<div class="row">
+  <div class="span6">
+      <div class="alert alert-success alert-block">
+        <h5>Get an account</h5>
+        If you want to get involved, read about the project on the
+        <a href="http://wiki.openstreetmap.org/wiki/LINZ">about</a>
+        page, introduce yourself on the
+        <a href="http://groups.google.com/group/nzopengis">NZOpenGIS</a>
+        mailing list, and let us know how you want to help.
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

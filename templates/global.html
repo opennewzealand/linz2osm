@@ -28,6 +28,7 @@
             {% if user.is_staff %}
               <li><a href="/admin/">Admin</a></li>
             {% endif %}
+            <li><a href="http://wiki.openstreetmap.org/wiki/LINZ">About</a></li>
             {% if user.is_authenticated %}
               <li><a href="/logout/">Log Out from {{ user.username }}</a></li>
             {% else %}
