@@ -1,5 +1,5 @@
 {% extends "global.html" %}
-{% load i18n stylize %}
+{% load i18n %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
@@ -25,6 +25,11 @@
 <div class="row">
   <div class="span12">
     <h2>{{ field_name }} values</h2>
+    <ul class="nav nav-pills">
+      <li>
+        <a href="{% url linz2osm.data_dict.views.layer_stats object_id=layer.name %}">Return to {{ layer.name }} statistics</a>
+      </li>
+    </ul>
     <table class="table table-condensed">
       <thead>
         <tr>

@@ -53,13 +53,19 @@
                 <li>
                   <a href="{% url linz2osm.data_dict.views.layer_stats layer_in_dataset.layer.name %}">
                     <i class="icon-th-list"></i>
-                    Stats
+                    Statistics
                   </a>
                 </li>
                 <li>
                   <a href="{% url linz2osm.data_dict.views.preview layer_id=layer_in_dataset.layer %}">
                     <i class="icon-eye-open"></i>
                     Preview
+                  </a>
+                </li>
+                <li>
+                  <a href="{% url linz2osm.data_dict.views.show_tagging layer_id=layer_in_dataset.layer %}">
+                    <i class="icon-tags"></i>
+                    Tagging
                   </a>
                 </li>
               </ul>

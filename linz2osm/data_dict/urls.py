@@ -22,4 +22,5 @@ urlpatterns = patterns('linz2osm.data_dict.views',
                        (r'^dataset/(?P<dataset_id>\w+)/$', 'show_dataset'),
                        (r'^field_stats/(?P<dataset_id>\w+)/(?P<layer_id>\w+)/(?P<field_name>\w+)/$', 'field_stats'),
                        (r'^layer/(?P<layer_id>\w+)/preview/$', 'preview'),
+                       (r'^layer/(?P<layer_id>\w+)/tagging/$', 'show_tagging'),
                        )

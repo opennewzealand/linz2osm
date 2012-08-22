@@ -1,5 +1,5 @@
 {% extends "global.html" %}
-{% load i18n stylize humanize %}
+{% load i18n humanize %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
@@ -19,12 +19,30 @@
 {% endblock %}
 
 {% block content %}
+<div class="row">
+  <div class="span12">
+    <h2>{{ layer.name }}</h2>
+    <ul class="nav nav-tabs">
+      <li class="active">
+        <a href="#" class="disabled">Statistics</a>
+      </li>
+      <li>
+        <a href="{% url linz2osm.data_dict.views.preview layer_id=layer %}">Preview</a>
+      </li>
+      <li>
+        <a href="{% url linz2osm.data_dict.views.show_tagging layer_id=layer %}">Tagging</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+
 {% for item in statistics.items %}
     <div class="row">
       <div class="span12">
         {% with item.0 as ds %}
         {% with item.1 as stats %}
-        <h2>{{ ds.1 }}</h2>
+        <h3>{{ ds.1 }}</h3>
         
         <table class="table table-bordered">
           <tbody>

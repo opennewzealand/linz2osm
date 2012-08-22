@@ -18,7 +18,7 @@
     {{layer}} <span class="divider">&rsaquo;</span>
   </li>
   <li class="active">
-    Preview
+    Tagging
   </li>  
 </div>
 {% endblock %}
@@ -31,28 +31,25 @@
       <li>
         <a href="{% url linz2osm.data_dict.views.layer_stats layer.name %}">Statistics</a>
       </li>
-      <li class="active">
-        <a href="#" class="disabled">Preview</a>
-      </li>
       <li>
-        <a href="{% url linz2osm.data_dict.views.show_tagging layer_id=layer %}">Tagging</a>
+        <a href="{% url linz2osm.data_dict.views.preview layer_id=layer %}">Preview</a>
+      </li>
+      <li class="active">
+        <a href="#" class="disabled">Tagging</a>
       </li>
     </ul>
+  </div>
+</div>
 
-  </div>
+{% for tag in layer.get_all_tags %}
+<div class="span8 code-content">
+  <strong><code>{{tag.tag}}</code></strong>
+  {% if not tag.layer %}
+  <i class="icon-globe" title="This tag is applied to all layers"></i>
+  {% endif %}
+  {% if tag.code %}
+  {{ tag.code|stylize_no_ln:"js" }}
+  {% endif %}
 </div>
-<div class="row">
-  <div class="span4">
-    <form action='' method='POST'>
-    {% csrf_token %}
-    {{ form.as_p }}
-    <input type='submit' value='Preview'>
-    </form>
-  </div>
-  <div class="preview-content span12">
-    {% if preview_data %}
-      {{ preview_data|stylize_inline_ln:"xml" }}
-    {% endif %}
-  </div>
-</div>
+{% endfor %}
 {% endblock %}

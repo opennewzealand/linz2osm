@@ -126,3 +126,12 @@ def preview(request, layer_id=None):
     ctx['form'] = form
     return render_to_response('data_dict/preview.html', ctx, context_instance=RequestContext(request))
 
+def show_tagging(request, layer_id=None):
+    layer_id = re.sub("_5F", "_", layer_id)
+    layer = get_object_or_404(Layer, pk=layer_id)
+
+    ctx = {
+        'layer': layer,
+        }
+
+    return render_to_response('data_dict/show_tagging.html', ctx, context_instance=RequestContext(request))
