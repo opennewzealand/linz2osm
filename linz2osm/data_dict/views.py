@@ -129,9 +129,11 @@ def preview(request, layer_id=None):
 def show_tagging(request, layer_id=None):
     layer_id = re.sub("_5F", "_", layer_id)
     layer = get_object_or_404(Layer, pk=layer_id)
-
+    all_tags = sorted(layer.get_all_tags())
+    
     ctx = {
         'layer': layer,
+        'all_tags': all_tags,
         }
 
     return render_to_response('data_dict/show_tagging.html', ctx, context_instance=RequestContext(request))

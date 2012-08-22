@@ -15,8 +15,10 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import decimal
-
 import pydermonkey
+
+from functools import total_ordering
+
 from django.db import models, connections
 from django.db.models import Sum
 from django.utils import text
@@ -272,13 +274,13 @@ class TagManager(models.Manager):
     def default(self):
         return self.get_query_set().filter(layer__isnull=True)
 
+@total_ordering
 class Tag(models.Model):
     objects = TagManager()
     
     layer = models.ForeignKey(Layer, null=True, related_name='tags')
     tag = models.CharField(max_length=100, help_text="OSM tag name")
     code = models.TextField(blank=True, help_text="Javascript code that sets the 'value' paramter to a non-null value to set the tag. 'fields' is an object with all available attributes for the current record")
-    
     
     class Meta:
         unique_together = ('layer', 'tag',)
@@ -293,4 +295,19 @@ class Tag(models.Model):
     
     def eval(self, fields):
         return Tag.objects.eval(self.code, fields)
+
+    def __lt__(self, other):
+        if other.layer_id:
+            if not self.layer_id:
+                return False
+        else:
+            if self.layer_id:
+                return True
+        if other.tag.startswith("LINZ:"):
+            if not self.tag.startswith("LINZ:"):
+                return True
+        else:
+            if self.tag.startswith("LINZ:"):
+                return False
+        return self.tag.__lt__(other.tag)
         

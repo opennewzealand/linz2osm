@@ -7,6 +7,7 @@ http://linz2osm.openstreetmap.org.nz/
 Requirements
 ------------
 
+ * Python 2.7 (not tested with Python 3)
  * Django 1.4
  * PostgreSQL 8.3 or later + PostGIS 1.5 or later
  * Pydermonkey (see notes)

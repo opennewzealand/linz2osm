@@ -43,7 +43,7 @@
         </td>
         {% endif %}
         <td>
-          <ul class="nav nav-pills">
+          <ul class="nav nav-pills layer-list-nav-content">
             <li class="dropdown">
               <a class="dropdown-toggle" data-toggle="dropdown" href="#">
                 More Info
@@ -68,6 +68,14 @@
                     Tagging
                   </a>
                 </li>
+                {% if user.is_staff %}
+                <li>
+                  <a href="/admin/data_dict/layer/{{ layer_in_dataset.layer.name }}/">
+                    <i class="icon-pencil"></i>
+                    Admin
+                  </a>
+                </li>
+                {% endif %}
               </ul>
             </li>
             {% if layer_in_dataset.tagging_approved %}

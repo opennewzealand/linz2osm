@@ -27,7 +27,7 @@
 <div class="row">
   <div class="span12">
     <h2>{{ layer.name }}</h2>
-    <ul class="nav nav-tabs">
+    <ul class="nav nav-pills">
       <li>
         <a href="{% url linz2osm.data_dict.views.layer_stats layer.name %}">Statistics</a>
       </li>
@@ -37,8 +37,16 @@
       <li>
         <a href="{% url linz2osm.data_dict.views.show_tagging layer_id=layer %}">Tagging</a>
       </li>
+      <li class="divider pills-horizontal-spacer">&nbsp;</li>
+      {% if user.is_staff %}
+      <li>
+        <a href="/admin/data_dict/layer/{{ layer.name }}/">
+          <i class="icon-pencil"></i>
+          Admin
+        </a>
+      </li>
+      {% endif %}
     </ul>
-
   </div>
 </div>
 <div class="row">

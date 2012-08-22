@@ -27,3 +27,11 @@ body {
 .preview-content pre {
    overflow: visible;
 }
+
+.layer-list-nav-content {
+   margin-bottom: 0px;
+}
+
+.pills-horizontal-spacer {
+   width: 40px;
+}
