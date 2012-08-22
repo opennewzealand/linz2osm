@@ -151,7 +151,7 @@ class LayerAdmin(admin.ModelAdmin):
     dataset_descriptions.allow_tags = True
 
     def stats_link(self, obj):
-        return "<a href='%s/stats/'>Layer Stats</a>" % obj.name
+        return "<a href='/data_dict/layer/%s/stats/'>Layer Stats</a>" % obj.name
     stats_link.short_description = 'Statistics'
     stats_link.allow_tags = True
 
