@@ -13,7 +13,7 @@
     {{layer}} <span class="divider">&rsaquo;</span>
   </li>
   <li>
-    <a href="{% url linz2osm.data_dict.views.layer_stats object_id=layer.name %}">Statistics</a> <span class="divider">&rsaquo;</span>
+    <a href="{% url linz2osm.data_dict.views.layer_stats layer_id=layer.name %}">Statistics</a> <span class="divider">&rsaquo;</span>
   </li>
   <li class="active">
     {{ field_name }}
@@ -27,7 +27,7 @@
     <h2>{{ field_name }} values</h2>
     <ul class="nav nav-pills">
       <li>
-        <a href="{% url linz2osm.data_dict.views.layer_stats object_id=layer.name %}">Return to {{ layer.name }} statistics</a>
+        <a href="{% url linz2osm.data_dict.views.layer_stats layer_id=layer.name %}">Return to {{ layer.name }} statistics</a>
       </li>
     </ul>
     <table class="table table-condensed">
