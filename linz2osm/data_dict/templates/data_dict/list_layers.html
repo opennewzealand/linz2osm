@@ -1,0 +1,68 @@
+{% extends "global.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <li>
+    <a href="/">{% trans "Home" %}</a> <span class="divider">&rsaquo;</span>
+  </li>
+  <li class="active">
+     Layers
+  </li>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="span12">
+    <h2>Layers</h2>
+    <ul class="nav nav-pills">
+      <li>
+        <a href="{% url linz2osm.data_dict.views.export_data_dict %}">
+          <i class="icon-file"></i>
+          Export layers and tags
+        </a>
+      </li>
+    </ul>
+    <table class="table table-striped">
+      <tr>
+        <th>Layer</th>
+        <th>Datasets</th>
+        <th></th>
+      </tr>
+      {% for layer in layers %}
+      <tr>
+        <td><strong>{{ layer.name }}</strong></td>
+        <td>
+          <ul class="unstyled">
+            {% for lid in layer.layerindatasets_ordered %}
+            <li>
+              {% if lid.completed %}
+                <i class="icon-ok" title="Layer complete in this dataset"></i>
+                <span class="label label-success">
+              {% elif lid.tagging_approved %}
+                <i class="icon-upload" title="Tagging approved for this dataset and uploads under way"></i>
+                <span class="label label-info">
+              {% else %}
+                <i class="icon-tags" title="Tagging not yet approved for this dataset"></i>
+                <span class="label label-warning">
+              {% endif %}
+                {{ lid.dataset.description }}
+                </span>
+            </li>
+            {% endfor %}
+          </ul>
+        </td>
+        <td>
+          <ul class="nav nav-pills layer-list-nav-content">
+            {% include "data_dict/layer_info_dropdown.html" with layer=layer %}
+          </ul>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+        

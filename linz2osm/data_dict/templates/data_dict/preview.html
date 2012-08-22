@@ -26,33 +26,7 @@
 {% block content %}
 <div class="row">
   <div class="span12">
-    <h2>{{ layer.name }}</h2>
-    <ul class="nav nav-pills">
-      <li>
-        <a href="{% url linz2osm.data_dict.views.layer_stats layer.name %}">Statistics</a>
-      </li>
-      <li class="active">
-        <a href="#" class="disabled">Preview</a>
-      </li>
-      <li>
-        <a href="{% url linz2osm.data_dict.views.show_tagging layer_id=layer %}">Tagging</a>
-      </li>
-      <li class="divider pills-horizontal-spacer">&nbsp;</li>
-      <li>
-        <a href="{{ layer.linz_dictionary_url }}">
-          <i class="icon-hand-right"></i>
-          LINZ Definition
-        </a>
-      </li>
-      {% if user.is_staff %}
-      <li>
-        <a href="/admin/data_dict/layer/{{ layer.name }}/">
-          <i class="icon-pencil"></i>
-          Admin
-        </a>
-      </li>
-      {% endif %}
-    </ul>
+    {% include "data_dict/layer_info_nav_pills.html" with current="preview" %}
   </div>
 </div>
 <div class="row">

@@ -29,6 +29,7 @@ else:
 
 urlpatterns += patterns('',
     (r'^data_dict/', include('linz2osm.data_dict.urls')),
+    (r'^layers/', 'linz2osm.data_dict.views.list_layers'),
     (r'^workslices/', include('linz2osm.workslices.urls')),
     (r'^doc/', include('django.contrib.admindocs.urls')),
     (r'^admin/', include(admin.site.urls)),

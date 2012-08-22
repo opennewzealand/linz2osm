@@ -1,0 +1,6 @@
+<layer-set>
+{{ layers }}
+</layer-set>
+<tag-set>
+{{ tags }}
+</tag-set>

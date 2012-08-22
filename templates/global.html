@@ -23,17 +23,18 @@
         <div class="container-fluid">
           <a class="brand" href="/">LINZ-2-OSM</a>
           <ul class="nav">
-            <li><a href="/">Home</a></li>
+            <li><a href="/">Datasets</a></li>
+            <li><a href="/layers/">Layers</a></li>
             <li><a href="/workslices/list/">Workslices</a></li>
             {% if user.is_staff %}
               <li><a href="/admin/">Admin</a></li>
             {% endif %}
-            <li><a href="http://wiki.openstreetmap.org/wiki/LINZ">About</a></li>
             {% if user.is_authenticated %}
               <li><a href="/logout/">Log Out from {{ user.username }}</a></li>
             {% else %}
               <li><a href="/login/">Log In</a></li>
             {% endif %}
+            <li><a href="http://wiki.openstreetmap.org/wiki/LINZ"><i class="icon-hand-right icon-white"></i>Wiki</a></li>
           </ul>
         </div>
       </div>

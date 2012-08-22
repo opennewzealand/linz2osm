@@ -113,6 +113,9 @@ class Layer(models.Model):
     def linz_dictionary_url(self):
         BASE_URL = "http://apps.linz.govt.nz/topo-data-dictionary/index.aspx?page=class-%s"
         return BASE_URL % self.name
+
+    def layerindatasets_ordered(self):
+        return self.layerindataset_set.order_by('dataset__description')
     
     def get_all_tags(self):
         # if we override a default one, use the specific one

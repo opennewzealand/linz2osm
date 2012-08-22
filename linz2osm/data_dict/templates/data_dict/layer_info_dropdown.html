@@ -1,0 +1,41 @@
+            <li class="dropdown">
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                More Info
+                <span class="caret"></span>
+              </a>
+              <ul class="dropdown-menu">
+                <li>
+                  <a href="{% url linz2osm.data_dict.views.layer_stats layer_id=layer %}">
+                    <i class="icon-th-list"></i>
+                    Statistics
+                  </a>
+                </li>
+                <li>
+                  <a href="{% url linz2osm.data_dict.views.preview layer_id=layer %}">
+                    <i class="icon-eye-open"></i>
+                    Preview
+                  </a>
+                </li>
+                <li>
+                  <a href="{% url linz2osm.data_dict.views.show_tagging layer_id=layer %}">
+                    <i class="icon-tags"></i>
+                    Tagging
+                  </a>
+                </li>
+                <li class="divider"></li>
+                <li>
+                  <a href="{{ layer.linz_dictionary_url }}">
+                    <i class="icon-hand-right"></i>
+                    LINZ Definition
+                  </a>
+                </li>
+                {% if user.is_staff %}
+                <li>
+                  <a href="/admin/data_dict/layer/{{ layer.name }}/">
+                    <i class="icon-pencil"></i>
+                    Admin
+                  </a>
+                </li>
+                {% endif %}
+              </ul>
+            </li>

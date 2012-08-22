@@ -16,6 +16,10 @@
 
 import re
 
+from itertools import chain
+from datetime import datetime
+
+from django.core import serializers
 from django.shortcuts import get_object_or_404, render_to_response
 from django.http import HttpResponse
 from django.utils import simplejson
@@ -50,11 +54,11 @@ def tag_eval(request, object_id=None):
         }
     return HttpResponse(simplejson.dumps(r), content_type='text/plain')
 
-def layer_stats(request, object_id=None):
-    # Because of breakage in django-admin, objectids come escaped
-    object_id = re.sub("_5F", "_", object_id)
+def layer_stats(request, layer_id=None):
+    # Because of interesting things in django-admin, objectids come escaped
+    layer_id = re.sub("_5F", "_", layer_id)
     
-    l = get_object_or_404(Layer, name=object_id)
+    l = get_object_or_404(Layer, name=layer_id)
     
     c = {
         'layer': l,
@@ -137,3 +141,20 @@ def show_tagging(request, layer_id=None):
         }
 
     return render_to_response('data_dict/show_tagging.html', ctx, context_instance=RequestContext(request))
+
+def export_data_dict(request):
+    response = HttpResponse(
+        serializers.serialize(
+            "xml", chain(
+                Layer.objects.order_by('name').all(),
+                Tag.objects.order_by('layer', 'tag').all()),
+            indent=4,
+            content_type='application/xml'))
+    response['Content-Disposition'] = "attachment; filename=export-%s.xml" % (datetime.strftime(datetime.now(), "%F-%T"),)
+    return response
+
+def list_layers(request):
+    ctx = {
+        'layers': Layer.objects.order_by('name').all(),
+        }
+    return render_to_response('data_dict/list_layers.html', ctx, context_instance=RequestContext(request))
