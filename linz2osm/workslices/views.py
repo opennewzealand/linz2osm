@@ -115,7 +115,7 @@ class WorksliceFilterForm(forms.Form):
     def uri_components(self):
         return "".join(["&%s=%s" % (name, value) for name, value in self.data.iteritems() if name != 'page'])
 
-WORKSLICES_PER_PAGE = 20
+WORKSLICES_PER_PAGE = 15
     
 def list_workslices(request, username=None):
     workslices = Workslice.objects

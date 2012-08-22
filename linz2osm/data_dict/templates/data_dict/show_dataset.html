@@ -22,9 +22,10 @@
         <th># To Do</th>
         <th># In Progress</th>
         <th># Complete</th>
-        <th colspan="2"></th>
+        <th></th>
       </tr>
       {% for layer_in_dataset in layers_in_dataset %}
+      {% comment %} row_class only works in bootstrap >= 2.1 {% endcomment %}
       <tr class="{{ layer_in_dataset.row_class }}">
         <td><strong>{{ layer_in_dataset.layer.name }}</strong></td>
         <td>{{ layer_in_dataset.features_total }}</td>
@@ -42,32 +43,34 @@
         </td>
         {% endif %}
         <td>
-          <div class="btn-group">
-            <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
-              More Info
-              <span class="caret"></span>
-            </a>
-            <ul class="dropdown-menu">
-              <li>
-                <a href="{% url linz2osm.data_dict.views.layer_stats layer_in_dataset.layer.name %}">
-                  <i class="icon-th-list"></i>
-                  Stats
-                </a>
-              </li>
-              <li>
-                <a href="{% url linz2osm.data_dict.views.preview layer_id=layer_in_dataset.layer %}">
-                  <i class="icon-eye-open"></i>
-                  Preview
-                </a>
-              </li>
-            </ul>
-          </div>
+          <ul class="nav nav-pills">
+            <li class="dropdown">
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                More Info
+                <span class="caret"></span>
+              </a>
+              <ul class="dropdown-menu">
+                <li>
+                  <a href="{% url linz2osm.data_dict.views.layer_stats layer_in_dataset.layer.name %}">
+                    <i class="icon-th-list"></i>
+                    Stats
+                  </a>
+                </li>
+                <li>
+                  <a href="{% url linz2osm.data_dict.views.preview layer_id=layer_in_dataset.layer %}">
+                    <i class="icon-eye-open"></i>
+                    Preview
+                  </a>
+                </li>
+              </ul>
+            </li>
+            {% if layer_in_dataset.tagging_approved %}
+            <li><a href="{% url linz2osm.workslices.views.create_workslice layer_in_dataset.id %}">Workslices</li>
+            {% else %}
+            <li class="disabled"><a href="#" class="disabled">Tagging not ready</a></li>
+            {% endif %}
+          </ul>
         </td>
-        {% if layer_in_dataset.tagging_approved %}
-        <td><a class="btn btn-primary" href="{% url linz2osm.workslices.views.create_workslice layer_in_dataset.id %}">Workslices</a>
-        {% else %}
-        <td>Tagging not ready</td>
-        {% endif %}
       </tr>
       {% endfor %}
     </table>

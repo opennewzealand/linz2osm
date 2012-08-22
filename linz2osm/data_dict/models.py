@@ -175,7 +175,7 @@ class LayerInDataset(geomodels.Model):
         if self.completed:
             return "success"
         elif self.tagging_approved:
-            return "info"
+            return ""
         else:
             return "error"
     

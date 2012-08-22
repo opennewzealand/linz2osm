@@ -18,7 +18,7 @@
     </div>
   </div>
   <div class="row">
-    <div class="span3">
+    <div class="span4">
       <form id="workslice-filter-form" action="{% url linz2osm.workslices.views.list_workslices %}" method="GET" class="form">
         {% csrf_token %}
         {{ form.as_p }}
