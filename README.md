@@ -1,6 +1,9 @@
 LINZ-2-OSM
 ==========
 
+Running at:
+http://linz2osm.openstreetmap.org.nz/
+
 Requirements
 ------------
 
