@@ -68,6 +68,13 @@
                     Tagging
                   </a>
                 </li>
+                <li class="divider"></li>
+                <li>
+                  <a href="{{ layer_in_dataset.layer.linz_dictionary_url }}">
+                    <i class="icon-hand-right"></i>
+                    LINZ Definition
+                  </a>
+                </li>
                 {% if user.is_staff %}
                 <li>
                   <a href="/admin/data_dict/layer/{{ layer_in_dataset.layer.name }}/">

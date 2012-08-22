@@ -38,6 +38,12 @@
         <a href="#" class="disabled">Tagging</a>
       </li>
       <li class="divider pills-horizontal-spacer">&nbsp;</li>
+      <li>
+        <a href="{{ layer.linz_dictionary_url }}">
+          <i class="icon-hand-right"></i>
+          LINZ Definition
+        </a>
+      </li>
       {% if user.is_staff %}
       <li>
         <a href="/admin/data_dict/layer/{{ layer.name }}/">

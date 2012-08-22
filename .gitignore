@@ -3,3 +3,4 @@ conf/linz2osm.wsgi
 media/*
 *.pyc
 *.pyo
+.#*
