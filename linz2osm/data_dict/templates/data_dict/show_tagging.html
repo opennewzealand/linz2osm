@@ -56,6 +56,20 @@
   </div>
 </div>
 
+<div class="row">
+  <div class="span12">
+    <h3>Processing</h3>
+  </div>
+</div>
+<div class="span8">  
+  {{ layer.get_processors_json|stylize_no_ln:"js" }}
+</div>
+<div class="row"></div>
+<div class="row">
+  <div class="span12">
+    <h3>Tags</h3>
+  </div>
+</div>
 {% for tag in all_tags %}
 <div class="span8 code-content">
   <strong><code>{{tag.tag}}</code></strong>
