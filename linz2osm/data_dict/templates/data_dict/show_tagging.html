@@ -56,14 +56,16 @@
   </div>
 </div>
 
+{% if layer.processors %}
 <div class="row">
   <div class="span12">
     <h3>Processing</h3>
   </div>
 </div>
-<div class="span8">  
+<div class="span8">
   {{ layer.get_processors_json|stylize_no_ln:"js" }}
 </div>
+{% endif %}
 <div class="row"></div>
 <div class="row">
   <div class="span12">
