@@ -130,7 +130,7 @@ class LayerAdmin(admin.ModelAdmin):
         TagInline,
     ]
     ordering = ('name',)
-    readonly_fields = ('name', 'entity',)
+    readonly_fields = ('name', 'entity', 'geometry_type')
     search_fields = ('name', 'notes',)
 
     class Media:
