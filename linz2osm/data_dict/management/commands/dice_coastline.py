@@ -18,13 +18,13 @@ from django.core.management.base import BaseCommand
 from django.contrib.gis.geos import GEOSGeometry, LineString
 from django.db import connections, transaction
 
-SPLIT_THRESHOLD = 1500
+SPLIT_THRESHOLD = 950
 SPLIT_AMOUNT = 900
 DB_NAME = 'mainland'
 
 @transaction.commit_manually(using=DB_NAME)
 class Command(BaseCommand):
-    help = "Populates the datasets and dataset-to-layer mappings from the databases configured in your settings_site.py file"
+    help = "Chops the mainland coastline up into sub-1000 node chunks"
 
     def handle(self, **options):
         c = connections[DB_NAME].cursor()
