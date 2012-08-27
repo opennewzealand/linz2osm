@@ -188,7 +188,7 @@ def export_custom(dataset, layer, feature_ids = None, workslice_id = None):
     layer_tags = layer.get_all_tags()
     processors = layer.get_processors()
     
-    writer = OSMWriter(id_hash=(database_id, layer.name))
+    writer = OSMWriter(id_hash=(database_id, layer.name, feature_ids))
     
     columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, dataset.srid)] + ['"%s"' % c for c in data_columns]
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
