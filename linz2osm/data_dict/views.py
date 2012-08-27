@@ -101,7 +101,7 @@ class PreviewForm(forms.Form):
         self.fields['dataset'].queryset = datasets
     
     dataset = forms.ModelChoiceField(queryset=Dataset.objects.none(), required=True)
-    starting_id = forms.IntegerField(min_value=0, required=False)
+    starting_id = forms.IntegerField(min_value=1, required=False)
     feature_limit = forms.IntegerField(min_value=0, max_value=100, required=False, initial=10)
 
 def preview(request, layer_id=None):
@@ -116,7 +116,7 @@ def preview(request, layer_id=None):
     if request.method == 'POST':
         form = PreviewForm(request.POST, error_class=BootstrapErrorList, datasets=datasets)
         if form.is_valid():
-            starting_id = form.cleaned_data['starting_id'] or 0
+            starting_id = form.cleaned_data['starting_id'] or 1
             if form.cleaned_data['feature_limit']:
                 feature_count = form.cleaned_data['feature_limit']
             elif layer.geometry_type == 'POINT':
