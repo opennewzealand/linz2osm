@@ -5,6 +5,12 @@
               </a>
               <ul class="dropdown-menu">
                 <li>
+                  <a href="{% url linz2osm.data_dict.views.layer_notes layer_id=layer %}">
+                    <i class="icon-envelope"></i>
+                    Notes
+                  </a>
+                </li>
+                <li>
                   <a href="{% url linz2osm.data_dict.views.layer_stats layer_id=layer %}">
                     <i class="icon-th-list"></i>
                     Statistics

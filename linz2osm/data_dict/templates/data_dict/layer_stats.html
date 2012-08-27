@@ -25,6 +25,25 @@
   </div>
 </div>
 
+<div class="row">
+  <div class="span5">
+    <h3>Metadata</h3>
+
+    <table class="table table-bordered">
+      <tbody>
+        <tr>
+          <th>Geometry Type</th>
+          <td>{{layer.geometry_type}}</td>
+        </tr>
+        <tr>
+          <th>Entity</th>
+          <td>{{layer.entity}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
 {% for item in statistics.items %}
     <div class="row">
       <div class="span12">

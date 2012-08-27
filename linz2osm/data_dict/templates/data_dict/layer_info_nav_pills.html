@@ -1,5 +1,9 @@
     <h2>{{ layer.name }}</h2>
     <ul class="nav nav-pills">
+      <li {% if current == 'layer_notes' %}class="active"{% endif %}>
+        <a href="{% url linz2osm.data_dict.views.layer_notes layer.name %}"
+           {% if current == 'layer_notes' %}class="disabled"{% endif %}>Notes</a>
+      </li>
       <li {% if current == 'layer_stats' %}class="active"{% endif %}>
         <a href="{% url linz2osm.data_dict.views.layer_stats layer.name %}"
            {% if current == 'layer_stats' %}class="disabled"{% endif %}>Statistics</a>

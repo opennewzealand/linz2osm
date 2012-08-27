@@ -1,0 +1,32 @@
+{% extends "global.html" %}
+{% load i18n staticfiles %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <li>
+    <a href="/">{% trans "Home" %}</a> <span class="divider">&rsaquo;</span>
+  </li>
+  <li>
+    <a href="/layers/">Layers</a><span class="divider">&rsaquo;</span>
+  </li>
+  <li>
+    {{layer}} <span class="divider">&rsaquo;</span>
+  </li>
+  <li class="active">
+    Notes
+  </li>  
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="span12">
+    {% include "data_dict/layer_info_nav_pills.html" with current="layer_notes" %}
+  </div>
+</div>
+<div class="row">
+  <div class="span12">
+    {{layer.notes|linebreaks}}
+  </div>
+</div>
+{% endblock %}

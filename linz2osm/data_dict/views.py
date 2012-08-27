@@ -142,6 +142,16 @@ def show_tagging(request, layer_id=None):
 
     return render_to_response('data_dict/show_tagging.html', ctx, context_instance=RequestContext(request))
 
+def layer_notes(request, layer_id=None):
+    layer_id = re.sub("_5F", "_", layer_id)
+    layer = get_object_or_404(Layer, pk=layer_id)
+    
+    ctx = {
+        'layer': layer,
+        }
+
+    return render_to_response('data_dict/layer_notes.html', ctx, context_instance=RequestContext(request))
+
 def export_data_dict(request):
     response = HttpResponse(
         serializers.serialize(
