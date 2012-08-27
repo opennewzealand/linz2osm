@@ -101,8 +101,8 @@ class PreviewForm(forms.Form):
         self.fields['dataset'].queryset = datasets
     
     dataset = forms.ModelChoiceField(queryset=Dataset.objects.none(), required=True)
-    starting_id = forms.IntegerField(min_value=1, required=False)
     feature_limit = forms.IntegerField(min_value=0, max_value=100, required=False, initial=10)
+    starting_id = forms.IntegerField(min_value=1, required=False, label='Starting feature ID')
 
 def preview(request, layer_id=None):
     layer_id = re.sub("_5F", "_", layer_id)
