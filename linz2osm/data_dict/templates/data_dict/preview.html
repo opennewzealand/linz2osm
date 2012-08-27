@@ -34,6 +34,15 @@
     <form action='' method='POST'>
     {% csrf_token %}
     {{ form.as_p }}
+    <div class="alert alert-info">
+      <p>
+        The feature ID refers to the internal feature ID, <tt>ogc_fid</tt>, which starts at 1.
+        This ID is for convenience in using the preview ONLY, and should not be uploaded to OSM.
+      </p>
+      <p>
+        The unrelated IDs that appear in the XML are generated on-the-fly and refer to the individual nodes.
+      </p>
+    </div>
     <input type='submit' value='Preview'>
     </form>
   </div>

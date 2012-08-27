@@ -105,6 +105,7 @@ def get_field_stats(database_id, layer, field_name):
     return cursor.fetchall()
 
 def get_layer_stats(database_id, layer):
+    # FIXME: use layer_in_dataset object
     geom_type, srid = get_layer_geometry_type(database_id, layer)
     cursor = connections[database_id].cursor()
 
