@@ -161,7 +161,7 @@ def export_data_dict(request):
             indent=4,
             content_type='application/xml'))
     response['Content-Type'] = "application/xml"
-    response['Content-Disposition'] = "attachment; filename=linz2osm-data_dict-export-%s.xml" % (datetime.strftime(datetime.now(), "%F-%T"),)
+    response['Content-Disposition'] = "attachment; filename=linz2osm-data_dict-export-%s.xml" % (datetime.strftime(datetime.now(), "%F-%H-%M-%S"),)
     return response
 
 def list_layers(request):
