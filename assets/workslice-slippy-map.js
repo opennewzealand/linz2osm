@@ -169,7 +169,7 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
         );
         var checkouts_layer = new OpenLayers.Layer.Vector('Checkouts', {
             /* projection: wgs84, */
-            styleMap: new OpenLayers.StyleMap(style),
+            styleMap: new OpenLayers.StyleMap(style)
         });
         checkouts_layer.addFeatures(geojson_format.read(geojson));
         self.map.addLayer(checkouts_layer);

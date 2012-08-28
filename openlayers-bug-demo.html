@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Dateline in viewport bug case</title>
+  </head>
+  <body>
+    <div id="map_canvas"
+         style="width: 800px; height: 600px; border: 1px solid grey;">
+    </div>
+    <script src="http://www.openlayers.org/dev/OpenLayers.js"></script>
+    <script>
+      var wgs84 = new OpenLayers.Projection("EPSG:4326");
+      var smp = new OpenLayers.Projection("EPSG:900913");
+      var osm = new OpenLayers.Layer.OSM("Mapnik");
+      var map = new OpenLayers.Map("map_canvas", {
+        displayProjection: wgs84,
+        projection: smp,
+        controls: [
+          new OpenLayers.Control.Navigation(),
+          new OpenLayers.Control.PanZoomBar(),
+          new OpenLayers.Control.Attribution(),
+          new OpenLayers.Control.ScaleLine(),
+          new OpenLayers.Control.MousePosition(),
+          new OpenLayers.Control.KeyboardDefaults(),
+        ]
+      });
+      map.addLayer(osm);
+      map.zoomToMaxExtent();
+      map.setCenter((new OpenLayers.LonLat(168.0, -41.0)).transform(wgs84, smp), 6);
+      
+      var vector_layer = new OpenLayers.Layer.Vector('Vector features');
+      var lon1 = 170.0,
+          lon2 = 175.0,
+          lat1 = -45.0,
+          lat2 = -38.0;
+      var boundsWGS84 = [
+        new OpenLayers.Geometry.Point(lon1, lat1),
+        new OpenLayers.Geometry.Point(lon1, lat2),
+        new OpenLayers.Geometry.Point(lon2, lat2),
+        new OpenLayers.Geometry.Point(lon2, lat1)
+      ];
+      var sample_geom = new OpenLayers.Geometry.Polygon([
+        new OpenLayers.Geometry.LinearRing(boundsWGS84)
+      ]).transform(wgs84, smp);
+
+      vector_layer.addFeatures([new OpenLayers.Feature.Vector(sample_geom)]);
+      map.addLayer(vector_layer);
+    </script>
+  </body>
+</html>

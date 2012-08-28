@@ -4,3 +4,4 @@ media/*
 *.pyc
 *.pyo
 .#*
+assets/openlayers/OpenLayers-2.12
