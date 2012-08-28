@@ -226,11 +226,23 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
         this.equals = function(other) {
             return self.x === other.x && self.y === other.y && self.cpd === other.cpd;
         }
+
+        this.subdivideInto = function(newCellDensity) {
+            var newSize = 1.0 / newCellDensity;
+            var sizeMult = Math.floor(newCellDensity / self.cpd);
+            var output_ary = new Array();
+            
+            for(var ix = 0; ix < sizeMult; ++ix) {
+                for(var iy = 0; iy < sizeMult; ++iy) {
+                    output_ary.push(new Cell(this.lon + ((ix + 0.5) * newSize), this.lat + ((iy + 0.5) * newSize), newCellDensity));
+                }
+            }
+
+            return output_ary;
+        }
     }
 
-    this.getCells = function() {
-        return cells;
-    }
+    var CELL_COLLECTION_LIMIT = 10000;
     
     function CellCollection() {
         var self = this;
@@ -244,14 +256,33 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
                 }
             }
             return false;
-        }
+        };
 
+        this.subdivideCells = function(newCellDensity) {
+            selection_layer.destroyFeatures();
+            var oldContents = contents;
+            var len = oldContents.length;
+            
+            contents = new Array();
+            for(var i = 0; i < len; ++i) {
+                var newCells = oldContents[i].subdivideInto(newCellDensity);
+                for(var j = 0; j < newCells.length; ++j) {
+                    add(newCells[j]);
+                }
+            }
+            redrawAfterBulkContentsUpdate();
+        };
+
+        var redrawAfterBulkContentsUpdate = function() {
+            updateCellSelectionInformation();
+            $("input#id_cells").val(cells.toString());
+        };
+        
         this.clear = function() {
             contents = new Array();
             selection_layer.destroyFeatures();
-            updateCellSelectionInformation();
-            $("input#id_cells").val(cells.toString());
-        }
+            redrawAfterBulkContentsUpdate();
+        };
 
         this.updateFeatureCount = function() {
             if(contents.length > 0) {
@@ -276,8 +307,10 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
                 msg = "Select at least one cell from the map. ";
             } else if(len === 1) {
                 msg = "1 cell selected. ";
-            } else {
+            } else if(len < CELL_COLLECTION_LIMIT) {
                 msg = contents.length + " cells selected. ";
+            } else {
+                msg = contents.length + " cells selected. No more cells can be added. ";
             }
             $("#cell-selection-information").html(msg);
             $("#feature-selection-information").html('');
@@ -285,9 +318,11 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
         
         /* FIXME: speed up adding cell */
         var add = function(cell) {
-            cell.feature = new OpenLayers.Feature.Vector(cell.displayGeometry());
-            selection_layer.addFeatures([cell.feature]);
-            return contents.push(cell);
+            if(contents.length < CELL_COLLECTION_LIMIT) {
+                cell.feature = new OpenLayers.Feature.Vector(cell.displayGeometry());
+                selection_layer.addFeatures([cell.feature]);
+                return contents.push(cell);
+            }
         };
 
         var remove = function(idx) {
@@ -470,8 +505,7 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
     function updateCellDensityAndSelection() {
         var newCellDensity = calculateCellDensity();
         if (newCellDensity > currentCellDensity) {
-            cells.clear();
-            // FIXME: resize 
+            cells.subdivideCells(newCellDensity);
         } else if (newCellDensity < currentCellDensity) {
             cells.clear();
         }
