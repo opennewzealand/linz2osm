@@ -1,5 +1,5 @@
 {% extends "global.html" %}
-{% load i18n staticfiles %}
+{% load i18n staticfiles comments %}
 
 {% block breadcrumbs %}
 <li>
@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block content %}
-<div id="content-main">
+<div>
   <div class="row">
     <div class="span12">
       <h1>Workslices</h1>
@@ -32,9 +32,10 @@
             <th>User</th>
             <th>Dataset</th>
             <th>Layer</th>
-            <th>Features</th>
+            <th>#Features</th>
             <th>State</th>
             <th>Checked Out</th>
+            <th>#Comments</th>
             <th></th>
           </tr>
         </thead>
@@ -47,6 +48,10 @@
             <td>{{ ws.feature_count }}</td>
             <td>{{ ws.friendly_status }}</td>
             <td>{{ ws.checked_out_at }}</td>
+            <td>
+              {% get_comment_count for ws as ws_comment_count %}
+              {{ ws_comment_count }}
+            </td>
             <td><a href="{{ ws.get_absolute_url }}">Details</a></td>
           </tr>
           {% endfor %}

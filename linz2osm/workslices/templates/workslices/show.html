@@ -1,5 +1,5 @@
 {% extends "global.html" %}
-{% load i18n staticfiles humanize %}
+{% load i18n staticfiles humanize comments %}
 
 {% block breadcrumbs %}
 <li>
@@ -20,7 +20,7 @@
   {% endif %}
 </div>
 
-<div id="content-main" class="row">
+<div class="row">
   <div class="span4">
     <h1>Info</h1>
     <dl>
@@ -66,6 +66,22 @@
     <!-- map_canvas is a magic name for Bootstrap to not mangle images with max-width -->
     <div id="map_canvas">
     </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="span12">
+    <h2>Comments</h2>
+  </div>
+</div>
+<div class="row">
+  <div class="span4">
+    {% if user.is_authenticated %}
+    {% render_comment_form for workslice %}
+    {% endif %}
+  </div>
+  <div class="span8">
+    {% render_comment_list for workslice %}
   </div>
 </div>
 {% endblock %}

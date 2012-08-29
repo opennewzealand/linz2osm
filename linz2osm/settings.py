@@ -92,6 +92,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.gzip.GZipMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
 )
@@ -114,6 +115,10 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.gis',
     'django.contrib.humanize',
+    'django.contrib.sites',
+    'django.contrib.comments',
+    
+    'linz2osm.linz2osm_comments',
 
     'linz2osm.lobby',
     'linz2osm.data_dict',
@@ -123,6 +128,8 @@ INSTALLED_APPS = (
     'djcelery',
     'south',
 )
+
+COMMENTS_APP = 'linz2osm.linz2osm_comments'
 
 CACHE_BACKEND = 'db://django_cache'
 BROKER_URL = 'amqp://guest@localhost//'
