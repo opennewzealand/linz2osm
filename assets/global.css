@@ -11,7 +11,7 @@ body {
 #map_canvas {
    height: 600px;
    width: 100%;
-   border: 1px dashed red;
+   border: 1px solid grey;
 }
 
 .layer-notes {

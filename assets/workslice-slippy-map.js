@@ -20,7 +20,7 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
     var self = this;
     this.map = null;
     var wgs84 = new OpenLayers.Projection("EPSG:4326");
-    var smp = new OpenLayers.Projection("EPSG:900913");
+    var smp = new OpenLayers.Projection("EPSG:3857");
 
     function loadMap(bounds_ary) {
         var osm = new OpenLayers.Layer.OSM("Mapnik");
