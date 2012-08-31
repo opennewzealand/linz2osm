@@ -36,8 +36,7 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
                 new OpenLayers.Control.PanZoomBar(),
                 new OpenLayers.Control.Attribution(),
                 new OpenLayers.Control.ScaleLine(),
-                new OpenLayers.Control.MousePosition(),
-                new OpenLayers.Control.KeyboardDefaults(),
+                new OpenLayers.Control.MousePosition()
             ]
         };
     

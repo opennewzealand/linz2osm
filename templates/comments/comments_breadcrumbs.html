@@ -1,0 +1,19 @@
+<li>
+  <a href="/">Home</a>
+  <span class="divider">&rsaquo;</span>
+</li>
+<li>
+  <a href="{{ comment.content_object.type_url }}">
+    {{ comment.content_object.type_description }}s
+  </a>
+  <span class="divider">&rsaquo;</span>
+</li>
+<li>
+  <a href="{{ comment.content_object.get_absolute_url }}">
+    {{ comment.content_object_link_text }}
+  </a>
+  <span class="divider">&rsaquo;</span>
+</li>
+<li class="active">
+  Comment by {{ comment.name }} at {{ comment.submit_date }}
+</li>

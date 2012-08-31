@@ -1,0 +1,13 @@
+<dl id="comments">
+  {% for comment in comment_list %}
+    <dt id="c{{ comment.id }}">
+        {{ comment.submit_date }} - {{ comment.name }}
+        {% if comment.changeset %}
+            - <a target="_blank" href="{{ comment.changeset_link }}">{{ comment.changeset }}</a>
+        {% endif %}
+    </dt>
+    <dd>
+        <p>{{ comment.comment|linebreaks }}</p>
+    </dd>
+  {% endfor %}
+</dl>

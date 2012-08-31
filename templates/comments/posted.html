@@ -1,0 +1,14 @@
+{% extends "comments/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Thanks for commenting" %}.{% endblock %}
+
+{% block breadcrumbs %}
+{% include "comments/comments_breadcrumbs.html" %}
+{% endblock %}
+
+{% block content %}
+  <h1>{% trans "Thank you for your comment" %}.</h1>
+
+  <a href="{{ comment.content_object.get_absolute_url }}">Back to {{ comment.content_object.type_description }}</a>
+{% endblock %}

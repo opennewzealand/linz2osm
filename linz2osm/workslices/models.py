@@ -20,6 +20,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from fractions import Fraction
 
+from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.conf import settings
 from django.utils import text
@@ -156,6 +157,14 @@ class Workslice(models.Model):
         } """ %  (self.checkout_extent.geojson, self.state, self.id)
         
     objects = WorksliceManager()
+
+    @property
+    def type_description(self):
+        return "Workslice"
+
+    @property
+    def type_url(self):
+        return reverse('linz2osm.workslices.views.list_workslices')
 
 class WorksliceTooFeaturefulError(Exception):
     pass

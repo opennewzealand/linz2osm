@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.utils.encoding import force_unicode
 from linz2osm.linz2osm_comments.models import AuthenticatedComment, WorksliceComment
 import datetime
+import re
 
 class AuthenticatedCommentForm(CommentForm):
     def get_comment_model(self):
@@ -26,9 +27,21 @@ AuthenticatedCommentForm.base_fields.pop('url')
 AuthenticatedCommentForm.base_fields.pop('email')
 AuthenticatedCommentForm.base_fields.pop('name')
 
+CHANGESET_RE = re.compile("^(.*/)?(?P<changeset_id>[0-9]*)$")
+
 class WorksliceCommentForm(AuthenticatedCommentForm):
     changeset = forms.CharField(label=('Changeset'), required=False)
 
+    def clean_changeset(self):
+        changeset = self.cleaned_data['changeset']
+        if changeset:
+            m = CHANGESET_RE.match(changeset)
+            if m:
+                changeset = m.group('changeset_id')
+            else:
+                raise forms.ValidationError("Changeset must be a number or URL of OpenStreetMap page")
+        return changeset
+    
     def get_comment_model(self):
         return WorksliceComment
 
