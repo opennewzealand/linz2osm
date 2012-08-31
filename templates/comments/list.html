@@ -3,7 +3,7 @@
     <dt id="c{{ comment.id }}">
         {{ comment.submit_date }} - {{ comment.name }}
         {% if comment.changeset %}
-            - <a target="_blank" href="{{ comment.changeset_link }}">{{ comment.changeset }}</a>
+            - changeset <a target="_blank" href="{{ comment.changeset_link }}">{{ comment.changeset }}</a>
         {% endif %}
     </dt>
     <dd>
