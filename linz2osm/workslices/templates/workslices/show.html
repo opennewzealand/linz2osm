@@ -58,6 +58,7 @@
     {{ form.non_field_errors|safe }}
     {% for transition, transition_descr in workslice.acceptable_transitions %}
     <form action="{% url linz2osm.workslices.views.update_workslice workslice_id=workslice.id %}" method="POST">
+      {% csrf_token %}
       <input type="hidden" name="transition" value="{{ transition }}">
       <input type="submit" value="{{ transition_descr }}">
     </form>
