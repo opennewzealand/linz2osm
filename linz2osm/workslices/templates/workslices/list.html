@@ -36,7 +36,6 @@
             <th>State</th>
             <th>Checked Out</th>
             <th>#Comments</th>
-            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -47,12 +46,15 @@
             <td>{{ ws.layer_in_dataset.layer.name }}</td>
             <td>{{ ws.feature_count }}</td>
             <td>{{ ws.friendly_status }}</td>
-            <td>{{ ws.checked_out_at }}</td>
+            <td>
+              <a href="{{ ws.get_absolute_url }}">
+                {{ ws.checked_out_at }}
+              </a>
+            </td>
             <td>
               {% get_comment_count for ws as ws_comment_count %}
               {{ ws_comment_count }}
             </td>
-            <td><a href="{{ ws.get_absolute_url }}">Details</a></td>
           </tr>
           {% endfor %}
         </tbody>
