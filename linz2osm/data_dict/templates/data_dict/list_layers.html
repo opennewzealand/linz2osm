@@ -40,15 +40,21 @@
               {% if lid.completed %}
                 <i class="icon-ok" title="Layer complete in this dataset"></i>
                 <span class="label label-success">
+                  {{ lid.dataset.description }}
+                </span>
               {% elif lid.tagging_approved %}
                 <i class="icon-upload" title="Tagging approved for this dataset and uploads under way"></i>
                 <span class="label label-info">
+                <a href="{{ lid.get_absolute_url }}" class="unstyled">
+                  {{ lid.dataset.description }}
+                </a>
+                </span>
               {% else %}
                 <i class="icon-tags" title="Tagging not yet approved for this dataset"></i>
                 <span class="label label-warning">
-              {% endif %}
-                {{ lid.dataset.description }}
+                  {{ lid.dataset.description }}
                 </span>
+              {% endif %}
             </li>
             {% endfor %}
           </ul>

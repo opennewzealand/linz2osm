@@ -35,3 +35,7 @@ body {
 .pills-horizontal-spacer {
    width: 40px;
 }
+
+a.unstyled {
+   color: inherit;
+}
