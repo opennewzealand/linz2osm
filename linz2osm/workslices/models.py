@@ -156,8 +156,6 @@ class Workslice(models.Model):
             }
         } """ %  (self.checkout_extent.geojson, self.state, self.id)
         
-    objects = WorksliceManager()
-
     @property
     def type_description(self):
         return "Workslice"
@@ -165,6 +163,16 @@ class Workslice(models.Model):
     @property
     def type_url(self):
         return reverse('linz2osm.workslices.views.list_workslices')
+
+    @property
+    def osm_link(self):
+        if self.checkout_extent:
+            return "http://www.openstreetmap.org/index.html?minlon=%f&minlat=%f&maxlon=%f&maxlat=%f&box=yes" % self.checkout_extent.extent
+        else:
+            return "http://www.openstreetmap.org/index.html"
+
+    objects = WorksliceManager()
+
 
 class WorksliceTooFeaturefulError(Exception):
     pass

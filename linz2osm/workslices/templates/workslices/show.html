@@ -38,6 +38,8 @@
       {% endif %}
       <dd>{{ status_name }} since {{ workslice.status_changed_at|date:"DATETIME_FORMAT" }} ({{ workslice.status_changed_at|timesince }} ago)</dd>
       {% if status_name != 'Processing' %}
+      <dt>View bounding box</dt>
+      <dd><a href="{{ workslice.osm_link }}">On openstreetmap.org</a></dd>
 
         {% if user.id == workslice.user.id or user.is_superuser %}
         <dt>Download</dt>
