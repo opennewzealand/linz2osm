@@ -1,0 +1,179 @@
+[
+    {
+        "pk": "mainland",
+        "model": "data_dict.dataset",
+        "fields": {
+            "srid": 2193,
+            "database_name": "test_nz_mainland",
+            "description": "Mainland 2012/TEST"
+        }
+    },
+    {
+        "pk": "kermadec_is",
+        "model": "data_dict.dataset",
+        "fields": {
+            "srid": 3791,
+            "database_name": "test_kermadec_is_topo25",
+            "description": "Kermadec Islands 2012/TEST"
+        }
+    },
+    {
+        "pk": "opengps_mainland",
+        "model": "data_dict.dataset",
+        "fields": {
+            "srid": 2193,
+            "database_name": "test_opengps_roads",
+            "description": "TEST NZOpenGPS roads"
+        }
+    },
+    {
+        "pk": "cave_pnt",
+        "model": "data_dict.layer",
+        "fields": {
+            "geometry_type": "POINT",
+            "notes": "blah blah World War Three blah blah Secret Plans blah blah",
+            "processors": null,
+            "entity": "Cave"
+        }
+    },
+    {
+        "pk": "pipeline_cl",
+        "model": "data_dict.layer",
+        "fields": {
+            "geometry_type": "LINESTRING",
+            "notes": "blah blah Soviet Union blah blah Kidnapped Scientists blah blah",
+            "processors": null,
+            "entity": "Transmission line"
+        }
+    },
+    {
+        "pk": "nzopengps_road",
+        "model": "data_dict.layer",
+        "fields": {
+            "geometry_type": "LINESTRING",
+            "notes": "yet more notes",
+            "processors": null,
+            "entity": "Road"
+        }
+    },    
+    {
+        "pk": 1,
+        "model": "data_dict.layerindataset",
+        "fields": {
+            "layer": "cave_pnt",
+            "features_total": 11,
+            "tagging_approved": false,
+            "completed": false,
+            "dataset": "mainland",
+            "extent": "POLYGON ((-176.5911660484702281 -43.8383108196454643, -176.5909665058134692 -43.7068073877366245, -176.4774272465128035 -43.7068413552889723, -176.4773777312072696 -43.8383449425718155, -176.5911660484702281 -43.8383108196454643))"
+        }
+    },
+    {
+        "pk": 2,
+        "model": "data_dict.layerindataset",
+        "fields": {
+            "layer": "cave_pnt",
+            "features_total": 4,
+            "tagging_approved": false,
+            "completed": false,
+            "dataset": "kermadec_is",
+            "extent": "POLYGON ((-176.5911660484702281 -43.8383108196454643, -176.5909665058134692 -43.7068073877366245, -176.4774272465128035 -43.7068413552889723, -176.4773777312072696 -43.8383449425718155, -176.5911660484702281 -43.8383108196454643))"
+        }
+    },
+    {
+        "pk": 3,
+        "model": "data_dict.layerindataset",
+        "fields": {
+            "layer": "pipeline_cl",
+            "features_total": 70,
+            "tagging_approved": false,
+            "completed": false,
+            "dataset": "mainland",
+            "extent": "POLYGON ((-176.5911660484702281 -43.8383108196454643, -176.5909665058134692 -43.7068073877366245, -176.4774272465128035 -43.7068413552889723, -176.4773777312072696 -43.8383449425718155, -176.5911660484702281 -43.8383108196454643))"
+        }
+    },
+    {
+        "pk": 4,
+        "model": "data_dict.layerindataset",
+        "fields": {
+            "layer": "nzopengps_road",
+            "features_total": 70,
+            "tagging_approved": false,
+            "completed": false,
+            "dataset": "opengps_mainland",
+            "extent": "POLYGON ((-176.5911660484702281 -43.8383108196454643, -176.5909665058134692 -43.7068073877366245, -176.4774272465128035 -43.7068413552889723, -176.4773777312072696 -43.8383449425718155, -176.5911660484702281 -43.8383108196454643))"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = fields.name",
+            "layer": "cave_pnt",
+            "tag": "name"
+        }
+    },
+    {
+        "pk": 2,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = 'cave_entrance'",
+            "layer": "cave_pnt",
+            "tag": "natural"
+        }
+    },
+    {
+        "pk": 3,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = 'pipeline'",
+            "layer": "pipeline_cl",
+            "tag": "man_made"
+        }
+    },
+    {
+        "pk": 4,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = fields.pipeline_visibility",
+            "layer": "pipeline_cl",
+            "tag": "location"
+        }
+    },
+    {
+        "pk": 5,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = fields.name",
+            "layer": "nzopengps_road",
+            "tag": "name"
+        }
+    },
+    {
+        "pk": 6,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = 'v5'",
+            "layer": null,
+            "tag": "LINZ:version"
+        }
+    },
+    {
+        "pk": 7,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = 'global'",
+            "layer": null,
+            "tag": "sample"
+        }
+    },
+    {
+        "pk": 8,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = 'cave_pnt_special'",
+            "layer": "cave_pnt",
+            "tag": "sample"
+        }
+    }
+]
