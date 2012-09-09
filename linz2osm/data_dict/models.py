@@ -30,6 +30,10 @@ from linz2osm.convert import processing, osm
 
 processor_list_html = '<ul class="help">' + ''.join(['<li><strong>%s</strong>: %s</li>' % p for p in sorted(processing.get_available().items())]) + '</ul>'
 
+class Group(models.Model):
+    name = models.CharField(max_length=255, unique=True, primary_key=True)
+    description = models.TextField()
+    
 class DatasetManager(models.Manager):
     def clear_datasets(self):
         # cascades and also drops LayerInDatasets
@@ -56,6 +60,7 @@ class Dataset(models.Model):
     database_name = models.CharField(max_length=255)
     description = models.TextField()
     srid = models.IntegerField()
+    group = models.ForeignKey(Group, blank=True, null=True)
 
     def has_layer_in_schema(self, layer_name):
         cursor = connections[self.name].cursor()
@@ -84,6 +89,7 @@ class Layer(models.Model):
     processors = JSONField(blank=True, null=True, help_text=('What geometry processors to apply. In the format [ ["name",{"arg":"value", ...}], ...]. Available processors:<br/>' + processor_list_html))
     datasets = models.ManyToManyField(Dataset, through='LayerInDataset')
     geometry_type = models.CharField(max_length=255, blank=True, choices=GEOTYPE_CHOICES)
+    group = models.ForeignKey(Group, blank=True, null=True)
     
     def __unicode__(self):
         return unicode(self.name)
@@ -281,7 +287,9 @@ class TagManager(models.Manager):
 class Tag(models.Model):
     objects = TagManager()
     
-    layer = models.ForeignKey(Layer, null=True, related_name='tags')
+    layer = models.ForeignKey(Layer, null=True, blank=True, related_name='tags')
+    dataset = models.ForeignKey(Dataset, null=True, blank=True)
+    group = models.ForeignKey(Group, null=True, blank=True)
     tag = models.CharField(max_length=100, help_text="OSM tag name")
     code = models.TextField(blank=True, help_text="Javascript code that sets the 'value' paramter to a non-null value to set the tag. 'fields' is an object with all available attributes for the current record")
     
