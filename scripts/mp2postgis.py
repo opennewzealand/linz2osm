@@ -11,8 +11,13 @@
 
 import sys
 import datetime
+import re
 
 from textwrap import dedent
+
+SRID = 4326
+PKEY = "serial PRIMARY KEY"
+VARCHAR = "character varying(255)"
 
 # Define the mapping from Garmin type codes to OSM tags
 # Note that single items in parentheses need a trailing comma
@@ -153,26 +158,155 @@ polygontagmap = {
      (0x51,): {'natural': 'wetland', 'area': 'yes'} # added by JR, was marsh
     }
 
+def esc_quotes(text):
+    if text:
+        return text.replace("'", "''")
+    else:
+        return text
+
 def caps(words):
     return ' '.join([x.capitalize() for x in words.split()])
+
+def xy_from_text(coords):
+    lat, lon = coords.strip(" ()\n").split(",")
+    return (lon, lat)
 
 def sql_repr(obj):
     if isinstance(obj, str):
         return "'%s'" % obj
-    elif isinstance(obj, int):
-        return str(obj)
-    elif isinstance(obj, float):
-        return str(obj)
+    elif isinstance(obj, bool):
+        return str(obj).upper()
+    # Handled by default
+    # elif isinstance(obj, int):
+    #     return str(obj)
+    # elif isinstance(obj, float):
+    #     return str(obj)
     elif isinstance(obj, datetime.date):
         return "DATE '%s'" % str(obj)
+    elif isinstance(obj, tuple): # that is, a point
+        return "ST_GeomFromEWKT('SRID=%d;POINT(%s %s)')" % (SRID, obj[0], obj[1])
+    elif obj is None:
+        return 'NULL'
     else:
         return str(obj)
 
 class MPRecord(object):
     table_name = "mp_record"
+    closing_tags = ("[END]",)
+    columns = ()
+    
+    def __init__(self, initial_info, *args, **kwargs):
+        self.record = initial_info.copy()
+        super(MPRecord, self).__init__(*args, **kwargs)
+
+    @classmethod    
+    def table_creation_sql(cls):
+        return dedent("""
+            DROP TABLE IF EXISTS %(table_name)s;
+            CREATE TABLE %(table_name)s (%(columns_sql)s);
+        """) % {
+            'table_name': cls.table_name,
+            'columns_sql': cls.columns_sql(),
+            }
+
+    @classmethod
+    def columns_sql(cls):
+        return ', '.join(["%s %s" % rec for rec in cls.columns if rec[0] != 'wkb_geometry'])
+
+    @classmethod
+    def closable_with(cls, line):
+        return line.startswith(cls.closing_tags)
+    
+    def insert_sql(self):
+        column_list = [cname for (cname, ctype) in self.columns if (self.record.get(cname) is not None)]
+        values_list = [self.record.get(cname) for cname in column_list]
+        
+        return "INSERT INTO %(table_name)s (%(column_list)s) VALUES (%(values_list)s);\n" % {
+            "table_name": self.table_name,
+            "column_list": ', '.join(column_list),
+            "values_list": ', '.join([sql_repr(c) for c in values_list]),
+            }
+
+    def handle_line(self, line):
+        if line.strip() == "":
+            pass
+        else:
+            return False
+        return True
+    
+    def close_with_line(self, line):
+        return True
+
+class MPCountries(MPRecord):
+    table_name = "mp_country"
+    columns = MPRecord.columns + (
+        ("id", PKEY),
+        ("abbrev", VARCHAR),
+        ("label", VARCHAR),
+        )
+    closing_tags = MPRecord.closing_tags + ("[END-COUNTRIES]", "[END-Countries]",)
+
+    country_re = re.compile('Country(?P<idx>\d+)=(?P<name>[ 0-9A-Za-z\']+)(~\[0x1d\](?P<abbrev>\w+))?')
+
+    def __init__(self, initial_info, *args, **kwargs):
+        self.countries = []
+        super(MPCountries, self).__init__(initial_info, *args, **kwargs)
+
+    def handle_line(self, line):
+        if line.startswith('Country'):
+            mdata = self.country_re.match(line)
+            if mdata:
+                self.countries.append((mdata.group("idx"), mdata.group("abbrev"), esc_quotes(mdata.group("name"))))
+        else:
+            return super(MPCountries, self).handle_line(line)
+        return True
+
+    def insert_sql(self):
+        return "".join(["INSERT INTO %(table_name)s (id, abbrev, label) VALUES (%(values_list)s);\n" % {
+            "table_name": self.table_name,
+            "values_list": "%s, '%s', '%s'" % country,
+            } for country in self.countries])
+
+class MPRegions(MPRecord):
+    table_name = "mp_region"
+    columns = MPRecord.columns + (
+        ("id", PKEY),
+        ("abbrev", VARCHAR),
+        ("label", VARCHAR),
+        ("country_id", "integer"),
+        )
+    closing_tags = MPRecord.closing_tags + ("[END-REGIONS]", "[END-Regions]",)
+
+    region_re = re.compile('Region(?P<idx>\d+)=(?P<name>[ 0-9A-Za-z\']+)(~\[0x1d\](?P<abbrev>\w+))?')
+
+    def __init__(self, initial_info, *args, **kwargs):
+        self.regions = []
+        super(MPRegions, self).__init__(initial_info, *args, **kwargs)
+
+    def handle_line(self, line):
+        if line.startswith('Region'):
+            mdata = self.region_re.match(line)
+            if mdata:
+                self.regions.append([mdata.group("idx"), mdata.group("abbrev"), esc_quotes(mdata.group("name")), None])
+        # FIXME: Doesn't support regions in multiple countries
+        elif line.startswith('CountryIdx'):
+            country_id = line.split("=")[1].strip()
+            self.regions[-1][3] = int(country_id)
+        else:
+            return super(MPRegions, self).handle_line(line)
+        return True
+
+    def insert_sql(self):
+        return "".join(["INSERT INTO %(table_name)s (id, abbrev, label, country_id) VALUES (%(values_list)s);\n" % {
+            "table_name": self.table_name,
+            "values_list": ", ".join([sql_repr(v) for v in region]),
+            } for region in self.regions])
+    
+class MPGeometry(MPRecord):
+    table_name = "mp_geometry"
     geotype = "GEOMETRY"
-    columns = (
-        ("ogc_fid",       "serial PRIMARY KEY"),
+    columns = MPRecord.columns + (
+        ("ogc_fid",       PKEY),
         ("type",          "numeric(5,0)"),
         ("marine",        "boolean"),
         ("label",         "text"),
@@ -181,14 +315,14 @@ class MPRecord(object):
         ("linz_sufi",     "text"),
         ("linz_id",       "text"),
         ("created_date",  "date"),
+        ("wkb_geometry",  "geometry"), # Treated specially in columns_sql
         )
     
     def __init__(self, initial_info, *args, **kwargs):
-        self.record = initial_info.copy()
-        super(MPRecord, self).__init__(*args, **kwargs)
+        super(MPGeometry, self).__init__(initial_info, *args, **kwargs)
 
     @classmethod    
-    def table_creation_sql(cls, srid):
+    def table_creation_sql(cls):
         return dedent("""
             DROP TABLE IF EXISTS %(table_name)s;
             CREATE TABLE %(table_name)s (%(columns_sql)s);
@@ -196,22 +330,8 @@ class MPRecord(object):
         """) % {
             'table_name': cls.table_name,
             'columns_sql': cls.columns_sql(),
-            'srid': srid,
+            'srid': SRID,
             'geotype': cls.geotype,
-            }
-
-    @classmethod
-    def columns_sql(cls):
-        return ', '.join(["%s %s" % rec for rec in cls.columns])
-
-    def insert_sql(self):
-        column_list = [cname for (cname, ctype) in self.columns if self.record.get(cname)]
-        values_list = [self.record.get(cname) for cname in column_list]
-        
-        return "INSERT INTO %(table_name)s (%(column_list)s) VALUES (%(values_list)s);\n" % {
-            "table_name": self.table_name,
-            "column_list": ', '.join(column_list),
-            "values_list": ', '.join([sql_repr(c) for c in values_list]),
             }
 
     def handle_line(self, line):
@@ -249,18 +369,15 @@ class MPRecord(object):
         elif line.startswith('RoadID'):
             roadid = line.split('=')[1].strip()
             self.record['road_id'] = roadid
-
         else:
-            return False
+            return super(MPGeometry, self).handle_line(line)
         return True
 
-    def close_with_line(self, line):
-        pass
 
-class MPPoi(MPRecord):
+class MPPoi(MPGeometry):
     table_name = "mp_poi"
     geotype = 'POINT'
-    columns = MPRecord.columns + (
+    columns = MPGeometry.columns + (
         ("descr", "text"),
         ("city", "text"),
         ("region", "text"),
@@ -274,10 +391,19 @@ class MPPoi(MPRecord):
     def __init__(self, initial_info, *args, **kwargs):
         super(MPPoi, self).__init__(initial_info, *args, **kwargs)
 
-class MPLine(MPRecord):
+    def handle_line(self, line):
+        if line.startswith('Data'):
+            coords = line.split('=')[1].strip()
+            self.record['wkb_geometry'] = xy_from_text(coords)
+        else:
+            return super(MPPoi, self).handle_line(line)
+        return True
+
+        
+class MPLine(MPGeometry):
     table_name = "mp_line"
     geotype = 'LINESTRING'
-    columns = MPRecord.columns + (
+    columns = MPGeometry.columns + (
         ("descr", "text"),
         ("city", "text"),
         ("region", "text"),
@@ -285,37 +411,62 @@ class MPLine(MPRecord):
         ("house", "text"),
         ("phone", "text"),
         ("zip", "text"),
-        ("oneway", "boolean"),
-        ("toll", "boolean"),
+        ("oneway", "boolean NOT NULL DEFAULT FALSE"),
+        ("toll", "boolean NOT NULL DEFAULT FALSE"),
         ("speed", "numeric(2,0)"),
         ("road_class", "numeric(2,0)"),
         ("road_id", "numeric(2,0)"),
-        ("not_for_emergency", "boolean"),
-        ("not_for_delivery", "boolean"),
-        ("not_for_car", "boolean"),
-        ("not_for_bus", "boolean"),
-        ("not_for_taxi", "boolean"),
-        ("not_for_foot", "boolean"),
-        ("not_for_cycle", "boolean"),
-        ("not_for_truck", "boolean"),
+        ("not_for_emergency", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_goods", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_car", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_bus", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_taxi", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_foot", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_bicycle", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_truck", "boolean NOT NULL DEFAULT FALSE"),
         )
     
     def __init__(self, initial_info, *args, **kwargs):
         super(MPLine, self).__init__(initial_info, *args, **kwargs)
 
-class MPPolygon(MPRecord):
+    def handle_line(self, line):
+        if line.startswith('RouteParam'):
+            rparams = line.split('=')[1].split(',')
+            nparams = len(rparams)
+            # speedval has speeds in km/h corresponding to RouteParam speed value index
+            speedval = [8, 20, 40, 56, 72, 93, 108, 128]
+            self.record['speed'] = speedval[int(rparams[0])]
+            self.record['road_class'] = int(rparams[1])
+            if nparams >= 3:
+                if rparams[2].strip() == '1':
+                    self.record['oneway'] = True
+            if nparams >= 4:
+                if rparams[3].strip() == '1':
+                    self.record['toll'] = True
+            
+            # Note: taxi is not an approved access key
+            if nparams >= 5:
+                vehicles = ['emergency', 'goods', 'car', 'bus', 'taxi', 'foot', 'bicycle', 'truck']
+                for veh, res in zip(vehicles, rparams[4:]):
+                    if res.strip() == '1':
+                        self.record['not_for_' + veh] = True
+        else:
+            return super(MPLine, self).handle_line(line)
+        return True
+
+class MPPolygon(MPGeometry):
     table_name = "mp_polygon"
     geotype = 'POLYGON'
-    columns = MPRecord.columns + ()
+    columns = MPGeometry.columns + ()
     
     def __init__(self, initial_info, *args, **kwargs):
         super(MPPolygon, self).__init__(initial_info, *args, **kwargs)
 
 class MPFile(object):
-    def __init__(self, mpfile, srid, output):
+    def __init__(self, mpfile, output, errors):
         self.file_mp = mpfile
-        self.srid = srid
         self.out = output
+        self.err = errors
         
         # debug/stats counters
         self.poi_counter = 0
@@ -342,14 +493,21 @@ class MPFile(object):
         self.out.write('BEGIN;\n')
         self.write_headers()
         for line in self.file_mp:
-            self.handle_line(line)
+            retval = self.handle_line(line)
+            if not retval:
+                if self.record:
+                    self.err.write("-- Did not parse line (in %s)::: %s" % (self.record.table_name, line))
+                else:
+                    self.err.write("-- Did not parse line::: %s" % line)
         self.out.write('COMMIT;\n')
+        self.err.write("-- Points:    %d\n" % self.poi_counter)
+        self.err.write("-- Lines:     %d\n" % self.polyline_counter)
+        self.err.write("-- Polygons:  %d\n" % self.polygon_counter)
             
     def write_headers(self):
         self.out.write('SET statement_timeout=60000;\n')
-        self.out.write(MPPoi.table_creation_sql(self.srid))
-        self.out.write(MPLine.table_creation_sql(self.srid))
-        self.out.write(MPPolygon.table_creation_sql(self.srid))
+        for cls in [MPCountries, MPRegions, MPPoi, MPLine, MPPolygon]:
+            self.out.write(cls.table_creation_sql())
         self.out.write('SET statement_timeout=0;\n')
 
     def default_info(self):
@@ -365,10 +523,12 @@ class MPFile(object):
         self.nodeid -= 1
 
     def close_record_with_line(self, line):
-        self.record.close_with_line(line)
-        self.out.write(self.record.insert_sql())
-        self.parsing_record = False
-        self.clear_temp_records()
+        retval = self.record.close_with_line(line)
+        if retval:
+            self.out.write(self.record.insert_sql())
+            self.parsing_record = False
+            self.clear_temp_records()
+        return retval
         
     def handle_line(self, line):
         # print line
@@ -388,12 +548,16 @@ class MPFile(object):
                 self.linzid = line.split('=')[1].strip()
                 if self.linzid == '0':
                     self.linzid = None
-
+                    
         elif line.startswith(';created='):
             created_date_text = line.split('=')[1].strip()
             day, month, year = created_date_text.split("/")
             if day and month and year:
                 self.created_date = datetime.date(int(year), int(month), int(day))
+                
+        elif line.startswith(';'):
+            # comment
+            pass
 
         # FIXME: need to flush old records?
         elif line.startswith(('[POI]','[RGN10]','[RGN20]')):
@@ -408,11 +572,28 @@ class MPFile(object):
             self.start_record(MPPolygon(self.default_info()))
             self.polygon_counter += 1
 
-        elif line.startswith('[END]'):
-            self.close_record_with_line(line)
+        elif line.startswith(('[COUNTRIES]', '[Countries]')):
+            self.start_record(MPCountries({}))
+
+        elif line.startswith(('[REGIONS]', '[Regions]')):
+            self.start_record(MPRegions({}))
+
+        elif line.startswith('[END'):
+            if self.record and self.record.closable_with(line):
+                return self.close_record_with_line(line)
+            else:
+                return False
             
         elif self.parsing_record:
-            self.record.handle_line(line)
+            return self.record.handle_line(line)
+
+        # Makes error output more readable for now! 
+        # elif line.strip() == "":
+        #     pass
+
+        else:
+            return False
+        return True
 
 
 # Main flow
@@ -421,7 +602,7 @@ if len(sys.argv) < 2:
     exit()
 
 # globals
-mp_file = MPFile(open(sys.argv[1]), 4326, sys.stdout)
+mp_file = MPFile(open(sys.argv[1]), sys.stdout, open("error.log", "w"))
 mp_file.translate()
 exit()
 
@@ -434,36 +615,10 @@ for line in file_mp:
     # parsing data
     if poi or polyline or polygon:
        
-        if line.startswith('RouteParam'):
-            rparams = line.split('=')[1].split(',')
-            # speedval has speeds in km/h corresponding to RouteParam speed value index
-            speedval = [8, 20, 40, 56, 72, 93, 108, 128]
-            speed = ET.Element('tag', k='maxspeed', v=str(speedval[int(rparams[0])]))
-            speed.tail = '\n    '
-            node.append(speed)
-            rclass = ET.Element('tag', k='linz:garmin_road_class', v=str(rparams[1]))
-            rclass.tail = '\n    '
-            node.append(rclass)
-            for att, attval in zip(('oneway', 'toll'), rparams[2:3]):
-                if int(attval):
-                    attrib = ET.Element('tag', k=att, v='true')
-                    attrib.tail = '\n    '
-                    node.append(attrib)
-            # Note: taxi is not an approved access key
-            vehicles = ['emergency', 'goods', 'motorcar', 'psv', 'taxi', 'foot', 'bicycle', 'hgv']
-            for veh, res in zip(vehicles, rparams[4:]):
-                vehtag = ET.Element('tag', k=veh, v=('yes', 'no')[int(res)])
-                vehtag.tail = '\n    '
-                node.append(vehtag)
 
         # Get nodes from all zoom levels (ie. Data0, Data1, etc)
         # TODO: Only grab the lowest-numbered data line (highest-resolution) and ignore the rest
         if line.startswith('Data'):
-            if poi:
-                coords = line.split('=')[1].strip()
-                coords = coords.split(',')
-                node.set('lat',str(float(coords[0][1:])))
-                node.set('lon',str(float(coords[1][:-1])))
             if polyline or polygon:
                 # Just grab the line and parse it later when the [END] element is encountered
                 coords = line.split('=')[1].strip() + ','
@@ -514,27 +669,4 @@ for line in file_mp:
                 nd = ET.Element('nd', ref=str(nodIds[0]))
                 nd.tail = '\n    '
                 node.append(nd)
-
-            poi = False
-            polyline = False
-            polygon = False
-            roadid = ''
-            rnodes = {} # Clear out routing nodes to prepare for next entity
-
-            node.text = '\n    '
-            node.tail = '\n  '
-
-            f.write(ET.tostring(node))
-#            osm.append(node)
-else:
-	f.write('</osm>')
-
-# dump some stats
-print '======'
-print 'Totals'
-print '======'
-print 'POI', poi_counter
-print 'POLYLINE', polyline_counter
-print 'POLYGON', polygon_counter
-print 'Last nodeid', nodeid
 
