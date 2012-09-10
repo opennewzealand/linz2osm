@@ -237,6 +237,34 @@ class MPRecord(object):
     def close_with_line(self, line):
         return True
 
+class MPImgData(MPRecord):
+    table_name = "mp_img"
+    columns = MPRecord.columns + (
+        ("id", PKEY),
+        ("key", VARCHAR),
+        ("val", "text"),
+        )
+    closing_tags = MPRecord.closing_tags + ("[END-IMG ID]",)
+    
+    def __init__(self, initial_info, *args, **kwargs):
+        self.img_items = []
+        super(MPImgData, self).__init__(initial_info, *args, **kwargs)
+
+    def handle_line(self, line):
+        if line.find("=") >= 0:
+            key, value = line.strip().split("=")
+            self.img_items.append((key, value,))
+        else:
+            return super(MPImgData, self).handle_line(line)
+        return True
+
+    def insert_sql(self):
+        return "".join(["INSERT INTO %(table_name)s (key, val) VALUES ('%(key)s', '%(val)s');\n" % {
+                    "table_name": self.table_name,
+                    "key": esc_quotes(key),
+                    "val": esc_quotes(val),
+                    } for key, val in self.img_items])
+                    
 class MPCountries(MPRecord):
     table_name = "mp_country"
     columns = MPRecord.columns + (
@@ -246,7 +274,7 @@ class MPCountries(MPRecord):
         )
     closing_tags = MPRecord.closing_tags + ("[END-COUNTRIES]", "[END-Countries]",)
 
-    country_re = re.compile('Country(?P<idx>\d+)=(?P<name>[ 0-9A-Za-z\']+)(~\[0x1d\](?P<abbrev>\w+))?')
+    country_re = re.compile('^Country(?P<idx>\d+)=(?P<name>[ 0-9A-Za-z\']+)(~\[0x1d\](?P<abbrev>\w+))?$')
 
     def __init__(self, initial_info, *args, **kwargs):
         self.countries = []
@@ -254,7 +282,7 @@ class MPCountries(MPRecord):
 
     def handle_line(self, line):
         if line.startswith('Country'):
-            mdata = self.country_re.match(line)
+            mdata = self.country_re.match(line.strip())
             if mdata:
                 self.countries.append((mdata.group("idx"), mdata.group("abbrev"), esc_quotes(mdata.group("name"))))
         else:
@@ -277,7 +305,7 @@ class MPRegions(MPRecord):
         )
     closing_tags = MPRecord.closing_tags + ("[END-REGIONS]", "[END-Regions]",)
 
-    region_re = re.compile('Region(?P<idx>\d+)=(?P<name>[ 0-9A-Za-z\']+)(~\[0x1d\](?P<abbrev>\w+))?')
+    region_re = re.compile('^Region(?P<idx>\d+)=(?P<name>[ 0-9A-Za-z\']+)(~\[0x1d\](?P<abbrev>\w+))?$')
 
     def __init__(self, initial_info, *args, **kwargs):
         self.regions = []
@@ -285,7 +313,7 @@ class MPRegions(MPRecord):
 
     def handle_line(self, line):
         if line.startswith('Region'):
-            mdata = self.region_re.match(line)
+            mdata = self.region_re.match(line.strip())
             if mdata:
                 self.regions.append([mdata.group("idx"), mdata.group("abbrev"), esc_quotes(mdata.group("name")), None])
         # FIXME: Doesn't support regions in multiple countries
@@ -302,6 +330,87 @@ class MPRegions(MPRecord):
             "values_list": ", ".join([sql_repr(v) for v in region]),
             } for region in self.regions])
     
+class MPCities(MPRecord):
+    table_name = "mp_city"
+    columns = MPRecord.columns + (
+        ("id", PKEY),
+        ("label", VARCHAR),
+        ("region_id", "integer"),
+        )
+    closing_tags = MPRecord.closing_tags + ("[END-CITIES]", "[END-Cities]",)
+
+    city_re = re.compile('^City(?P<idx>\d+)=(?P<name>.+)$')
+
+    def __init__(self, initial_info, *args, **kwargs):
+        self.cities = []
+        super(MPCities, self).__init__(initial_info, *args, **kwargs)
+
+    def handle_line(self, line):
+        if line.startswith('City'):
+            mdata = self.city_re.match(line.strip())
+            if mdata:
+                self.cities.append([mdata.group("idx"), esc_quotes(mdata.group("name")), None])
+        # FIXME: Doesn't support cities in multiple regions
+        elif line.startswith('RegionIdx'):
+            region_id = line.split("=")[1].strip()
+            self.cities[-1][2] = int(region_id)
+        else:
+            return super(MPCities, self).handle_line(line)
+        return True
+
+    def insert_sql(self):
+        return "".join(["INSERT INTO %(table_name)s (id, abbrev, label, country_id) VALUES (%(values_list)s);\n" % {
+            "table_name": self.table_name,
+            "values_list": ", ".join([sql_repr(v) for v in city]),
+            } for city in self.cities])
+
+class MPRestrict(MPRecord):
+    table_name = "mp_restrict"
+    closing_tags = MPRecord.closing_tags + ("[END-RESTRICT]", "[END-Restrict]",)
+    columns = MPRecord.columns + (
+        ("id", PKEY),
+        ("nod", "integer"),
+        ("node_id_1", "integer"),
+        ("node_id_2", "integer"),
+        ("node_id_3", "integer"),
+        ("node_id_4", "integer"),
+        ("road_id_1", "integer"),
+        ("road_id_2", "integer"),
+        ("road_id_3", "integer"),
+        ("not_for_emergency", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_goods", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_car", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_bus", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_taxi", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_foot", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_bicycle", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_truck", "boolean NOT NULL DEFAULT FALSE"),
+        )
+
+    def __init__(self, initial_info, *args, **kwargs):
+        super(MPRestrict, self).__init__(initial_info, *args, **kwargs)
+
+    def handle_line(self, line):
+        if line.startswith("TraffPoints"):
+            traff_points = line.split("=")[1].strip().split(",")[:4]
+            for (counter, traff_point) in enumerate(traff_points):
+                self.record["node_id_%d" % (counter + 1,)] = int(traff_point)
+        elif line.startswith("TraffRoads"):
+            traff_roads = line.split("=")[1].strip().split(",")[:3]
+            for (counter, traff_road) in enumerate(traff_roads):
+                self.record["road_id_%d" % (counter + 1,)] = int(traff_road)
+        elif line.startswith("Nod"):
+            self.record["nod"] = int(line.split("=")[1].strip())
+        elif line.startswith("RestrParam"):
+            vehicles = ['emergency', 'goods', 'car', 'bus', 'taxi', 'foot', 'bicycle', 'truck']
+            restr_param = line.split("=")[1].strip().split(",")
+            for veh, res in zip(vehicles, restr_param):
+                if res.strip() == '1':
+                    self.record['not_for_' + veh] = True
+        else:
+            return super(MPRestrict, self).handle_line(line)
+        return True
+            
 class MPGeometry(MPRecord):
     table_name = "mp_geometry"
     geotype = "GEOMETRY"
@@ -315,6 +424,7 @@ class MPGeometry(MPRecord):
         ("linz_sufi",     "text"),
         ("linz_id",       "text"),
         ("created_date",  "date"),
+        ("auto_numbered_date", "date"),
         ("wkb_geometry",  "geometry"), # Treated specially in columns_sql
         )
     
@@ -463,6 +573,8 @@ class MPPolygon(MPGeometry):
         super(MPPolygon, self).__init__(initial_info, *args, **kwargs)
 
 class MPFile(object):
+    ymd_re = re.compile('(?P<year>[0-9]{4})(?P<month>[0-9]{2})(?P<day>[0-9]{2})')
+    
     def __init__(self, mpfile, output, errors):
         self.file_mp = mpfile
         self.out = output
@@ -486,6 +598,7 @@ class MPFile(object):
         self.sufi = None
         self.linzid = None
         self.created_date = None
+        self.auto_numbered_date = None
         self.found = False
         self.record = None        
         
@@ -506,7 +619,7 @@ class MPFile(object):
             
     def write_headers(self):
         self.out.write('SET statement_timeout=60000;\n')
-        for cls in [MPCountries, MPRegions, MPPoi, MPLine, MPPolygon]:
+        for cls in [MPImgData, MPCountries, MPRegions, MPCities, MPPoi, MPLine, MPPolygon, MPRestrict]:
             self.out.write(cls.table_creation_sql())
         self.out.write('SET statement_timeout=0;\n')
 
@@ -515,6 +628,7 @@ class MPFile(object):
             'linz_sufi': self.sufi,
             'linz_id': self.linzid,
             'created_date': self.created_date,
+            'auto_numbered_date': self.auto_numbered_date,
         }
 
     def start_record(self, record):
@@ -533,54 +647,75 @@ class MPFile(object):
     def handle_line(self, line):
         # print line
         # Marker for start of sections
-        if line.startswith(';sufi'):
-            if line == ';sufi-0' or line == ';sufi=0':
-                self.sufi = None
-            else:
-                self.sufi = line.split('=')[1].strip()
-                if self.sufi == '0':
+        if line.startswith(';'):
+            if line.startswith(';sufi'):
+                if line == ';sufi-0' or line == ';sufi=0':
                     self.sufi = None
+                else:
+                    self.sufi = line.split('=')[1].strip()
+                    if self.sufi == '0':
+                        self.sufi = None
 
-        elif line.startswith(';linzid'):
-            if line == ';linzid-0' or line == ';linzid=0':
-                self.linzid = None
-            else:
-                self.linzid = line.split('=')[1].strip()
-                if self.linzid == '0':
+            elif line.startswith(';linzid'):
+                if line == ';linzid-0' or line == ';linzid=0':
                     self.linzid = None
+                else:
+                    self.linzid = line.split('=')[1].strip()
+                    if self.linzid == '0':
+                        self.linzid = None
                     
-        elif line.startswith(';created='):
-            created_date_text = line.split('=')[1].strip()
-            day, month, year = created_date_text.split("/")
-            if day and month and year:
-                self.created_date = datetime.date(int(year), int(month), int(day))
+            elif line.startswith(';created='):
+                created_date_text = line.split('=')[1].strip()
+                day, month, year = created_date_text.split("/")
+                if day and month and year:
+                    self.created_date = datetime.date(int(year), int(month), int(day))
+
+            elif line.startswith(';Auto-numbered='):
+                auto_numbered_date_text = line.split("=")[1].strip()
+                mdata = self.ymd_re.match(auto_numbered_date_text)
+                if mdata:
+                    self.auto_numbered_date = datetime.date(int(mdata.group("year")), int(mdata.group("month")), int(mdata.group("day")))
                 
-        elif line.startswith(';'):
-            # comment
-            pass
-
-        # FIXME: need to flush old records?
-        elif line.startswith(('[POI]','[RGN10]','[RGN20]')):
-            self.start_record(MPPoi(self.default_info()))
-            self.poi_counter += 1
+            else:
+                return True
             
-        elif line.startswith(('[POLYLINE]','[RGN40]')):
-            self.start_record(MPLine(self.default_info()))
-            self.polyline_counter += 1
+        elif line.startswith('['):
+
+            if line.startswith('[END'):
+                if self.record and self.record.closable_with(line):
+                    return self.close_record_with_line(line)
+                else:
+                    return False
+
+            # FIXME: what if we're still parsing the old record?
+            elif line.startswith(('[POI]','[RGN10]','[RGN20]')):
+                self.start_record(MPPoi(self.default_info()))
+                self.poi_counter += 1
             
-        elif line.startswith(('[POLYGON]','[RGN80]')):
-            self.start_record(MPPolygon(self.default_info()))
-            self.polygon_counter += 1
+            elif line.startswith(('[POLYLINE]','[RGN40]')):
+                self.start_record(MPLine(self.default_info()))
+                self.polyline_counter += 1
+            
+            elif line.startswith(('[POLYGON]','[RGN80]')):
+                self.start_record(MPPolygon(self.default_info()))
+                self.polygon_counter += 1
 
-        elif line.startswith(('[COUNTRIES]', '[Countries]')):
-            self.start_record(MPCountries({}))
+            elif line.startswith(('[RESTRICT]', '[Restrict]',)):
+                self.start_record(MPRestrict(self.default_info()))
 
-        elif line.startswith(('[REGIONS]', '[Regions]')):
-            self.start_record(MPRegions({}))
+            elif line.startswith('[IMG ID]'):
+                self.start_record(MPImgData({}))
+                
+            elif line.startswith(('[COUNTRIES]', '[Countries]')):
+                self.start_record(MPCountries({}))
 
-        elif line.startswith('[END'):
-            if self.record and self.record.closable_with(line):
-                return self.close_record_with_line(line)
+            elif line.startswith(('[REGIONS]', '[Regions]')):
+                self.start_record(MPRegions({}))
+            
+            elif line.startswith(('[CITIES]', '[Cities]')):
+                self.start_record(MPCities({}))
+
+                
             else:
                 return False
             
