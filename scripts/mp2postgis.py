@@ -173,7 +173,7 @@ def xy_from_text(coords):
 
 def sql_repr(obj):
     if isinstance(obj, str):
-        return "'%s'" % obj
+        return "'%s'" % esc_quotes(obj)
     elif isinstance(obj, bool):
         return str(obj).upper()
     # Handled by default
@@ -185,6 +185,8 @@ def sql_repr(obj):
         return "DATE '%s'" % str(obj)
     elif isinstance(obj, tuple): # that is, a point
         return "ST_GeomFromEWKT('SRID=%d;POINT(%s %s)')" % (SRID, obj[0], obj[1])
+    elif isinstance(obj, list): # that is, a line
+        return "ST_GeomFromEWKT('SRID=%d;LINESTRING(%s)')" % (SRID, ",".join(["%s %s" % (x, y) for (x, y) in obj]))
     elif obj is None:
         return 'NULL'
     else:
@@ -479,6 +481,9 @@ class MPGeometry(MPRecord):
         elif line.startswith('RoadID'):
             roadid = line.split('=')[1].strip()
             self.record['road_id'] = roadid
+        elif line.startswith('EndLevel'):
+            endlevel = line.split('=')[1].strip()
+            self.record['endlevel'] = int(endlevel)
         else:
             return super(MPGeometry, self).handle_line(line)
         return True
@@ -509,6 +514,43 @@ class MPPoi(MPGeometry):
             return super(MPPoi, self).handle_line(line)
         return True
 
+class MPNumbers(MPRecord):
+    table_name = "mp_numbers"
+    columns = MPRecord.columns + (
+        ("id", PKEY),
+        ("mp_line_ogc_fid", "int NOT NULL REFERENCES mp_line(ogc_fid)"),
+        ("definition_idx", "int NOT NULL"),
+        ("point_idx", "int NOT NULL"),
+        ("left_side_style", "character varying(1)"),
+        ("left_side_start", VARCHAR),
+        ("left_side_end", VARCHAR),
+        ("right_side_style", "character varying(1)"),
+        ("right_side_start", VARCHAR),
+        ("right_side_end", VARCHAR),
+        ("left_side_zip", VARCHAR),
+        ("right_side_zip", VARCHAR),
+        ("left_side_city", VARCHAR),
+        ("left_side_region", VARCHAR),
+        ("left_side_country", VARCHAR),
+        ("right_side_city", VARCHAR),
+        ("right_side_region", VARCHAR),
+        ("right_side_country", VARCHAR),
+        )
+
+    insert_columns = tuple([r[0] for r in columns[-16:]])
+
+    def __init__(self, line, *args, **kwargs):
+        self.record = {}
+        parts = line.split('=')
+        self.record['definition_idx'] = int(parts[0].strip("Numbers"))
+        number_info = parts[1].strip().split(',')
+        self.record['point_idx'] = int(number_info[0])
+        for key, res in zip(self.insert_columns[2:], number_info[1:]):
+            if res != '':
+                self.record[key] = res
+
+    def values_sql(self):
+        return "(parent.ogc_fid, " + ", ".join([sql_repr(self.record.get(cname)) for cname in self.insert_columns]) + ")"
         
 class MPLine(MPGeometry):
     table_name = "mp_line"
@@ -537,6 +579,7 @@ class MPLine(MPGeometry):
         )
     
     def __init__(self, initial_info, *args, **kwargs):
+        self.numbers = []
         super(MPLine, self).__init__(initial_info, *args, **kwargs)
 
     def handle_line(self, line):
@@ -560,9 +603,32 @@ class MPLine(MPGeometry):
                 for veh, res in zip(vehicles, rparams[4:]):
                     if res.strip() == '1':
                         self.record['not_for_' + veh] = True
+        elif line.startswith('Data'):
+            payload_ary = line.split('=')[1].strip().strip("()").split("),(")
+            self.record['wkb_geometry'] = [xy_from_text(node) for node in payload_ary]
+        elif line.startswith('Numbers'):
+            self.numbers.append(MPNumbers(line))
         else:
             return super(MPLine, self).handle_line(line)
         return True
+
+    def insert_sql(self):
+        super_insert_sql = super(MPLine, self).insert_sql()
+        if len(self.numbers) > 0:
+            return dedent("""
+                WITH parent AS (
+                %(super_insert_sql)s
+                )
+                INSERT INTO %(numbers_table_name)s (%(insert_columns)s) VALUES %(numbers_values)s;
+            """ % {
+                    "super_insert_sql": super_insert_sql.rstrip('; \n'),
+                    "numbers_table_name": MPNumbers.table_name,
+                    "insert_columns": "mp_line_ogc_fid, " + ", ".join(MPNumbers.insert_columns),
+                    "numbers_values": ",".join([n.values_sql() for n in self.numbers]),
+                    })
+        else:
+            return super_insert_sql
+        
 
 class MPPolygon(MPGeometry):
     table_name = "mp_polygon"
@@ -619,7 +685,7 @@ class MPFile(object):
             
     def write_headers(self):
         self.out.write('SET statement_timeout=60000;\n')
-        for cls in [MPImgData, MPCountries, MPRegions, MPCities, MPPoi, MPLine, MPPolygon, MPRestrict]:
+        for cls in [MPImgData, MPCountries, MPRegions, MPCities, MPPoi, MPLine, MPNumbers, MPPolygon, MPRestrict]:
             self.out.write(cls.table_creation_sql())
         self.out.write('SET statement_timeout=0;\n')
 
@@ -722,12 +788,12 @@ class MPFile(object):
         elif self.parsing_record:
             return self.record.handle_line(line)
 
-        # Makes error output more readable for now! 
-        # elif line.strip() == "":
-        #     pass
+        elif line.strip() == "":
+            pass
 
         else:
             return False
+        
         return True
 
 
