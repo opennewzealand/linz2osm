@@ -18,6 +18,7 @@ from textwrap import dedent
 SRID = 4326
 PKEY = "serial PRIMARY KEY"
 VARCHAR = "character varying(255)"
+FLAG_DEF_FALSE = "boolean NOT NULL DEFAULT FALSE"
 
 # Define the mapping from Garmin type codes to OSM tags
 # Note that single items in parentheses need a trailing comma
@@ -176,20 +177,16 @@ def sql_repr(obj):
         return "'%s'" % esc_quotes(obj)
     elif isinstance(obj, bool):
         return str(obj).upper()
-    # Handled by default
-    # elif isinstance(obj, int):
-    #     return str(obj)
-    # elif isinstance(obj, float):
-    #     return str(obj)
     elif isinstance(obj, datetime.date):
         return "DATE '%s'" % str(obj)
-    elif isinstance(obj, tuple): # that is, a point
+    elif isinstance(obj, tuple): # that is, a point. Maybe FIXME sometime.
         return "ST_GeomFromEWKT('SRID=%d;POINT(%s %s)')" % (SRID, obj[0], obj[1])
-    elif isinstance(obj, list): # that is, a line
+    elif isinstance(obj, list): # that is, a line. Maybe FIXME sometime.
         return "ST_GeomFromEWKT('SRID=%d;LINESTRING(%s)')" % (SRID, ",".join(["%s %s" % (x, y) for (x, y) in obj]))
     elif obj is None:
         return 'NULL'
     else:
+        # this includes Polygon, int and float
         return str(obj)
 
 class MPRecord(object):
@@ -197,14 +194,15 @@ class MPRecord(object):
     closing_tags = ("[END]",)
     columns = ()
     
-    def __init__(self, initial_info, *args, **kwargs):
+    def __init__(self, mp_file, initial_info, *args, **kwargs):
+        self.mp_file = mp_file
         self.record = initial_info.copy()
         super(MPRecord, self).__init__(*args, **kwargs)
 
     @classmethod    
     def table_creation_sql(cls):
         return dedent("""
-            DROP TABLE IF EXISTS %(table_name)s;
+            DROP TABLE IF EXISTS %(table_name)s CASCADE;
             CREATE TABLE %(table_name)s (%(columns_sql)s);
         """) % {
             'table_name': cls.table_name,
@@ -248,9 +246,9 @@ class MPImgData(MPRecord):
         )
     closing_tags = MPRecord.closing_tags + ("[END-IMG ID]",)
     
-    def __init__(self, initial_info, *args, **kwargs):
+    def __init__(self, mp_file, initial_info, *args, **kwargs):
         self.img_items = []
-        super(MPImgData, self).__init__(initial_info, *args, **kwargs)
+        super(MPImgData, self).__init__(mp_file, initial_info, *args, **kwargs)
 
     def handle_line(self, line):
         if line.find("=") >= 0:
@@ -266,7 +264,33 @@ class MPImgData(MPRecord):
                     "key": esc_quotes(key),
                     "val": esc_quotes(val),
                     } for key, val in self.img_items])
-                    
+
+class MPZipCodes(MPRecord):
+    table_name = "mp_zipcode"
+    columns = MPRecord.columns + (
+        ("id", PKEY),
+        ("zip", VARCHAR),
+        )
+    closing_tags = MPRecord.closing_tags + ("[END-ZipCodes]", "[END-ZIPCODES]")
+
+    def __init__(self, mp_file, initial_info, *args, **kwargs):
+        self.zipcodes = []
+        super(MPZipCodes, self).__init__(mp_file, initial_info, *args, **kwargs)
+
+    def handle_line(self, line):
+        if line.startswith('ZipCode'):
+            parts = line.split('=')
+            self.zipcodes.append((int(parts[0].strip(" ZipCode")), parts[1].strip()))
+        else:
+            return super(MPZipCodes, self).handle_line(line)
+        return True
+
+    def insert_sql(self):
+        return "".join(["INSERT INTO %(table_name)s (id, zip) VALUES (%(values_list)s);\n" % {
+            "table_name": self.table_name,
+            "values_list": "%s, '%s'" % zipcode,
+            } for zipcode in self.zipcodes])
+    
 class MPCountries(MPRecord):
     table_name = "mp_country"
     columns = MPRecord.columns + (
@@ -278,9 +302,9 @@ class MPCountries(MPRecord):
 
     country_re = re.compile('^Country(?P<idx>\d+)=(?P<name>[ 0-9A-Za-z\']+)(~\[0x1d\](?P<abbrev>\w+))?$')
 
-    def __init__(self, initial_info, *args, **kwargs):
+    def __init__(self, mp_file, initial_info, *args, **kwargs):
         self.countries = []
-        super(MPCountries, self).__init__(initial_info, *args, **kwargs)
+        super(MPCountries, self).__init__(mp_file, initial_info, *args, **kwargs)
 
     def handle_line(self, line):
         if line.startswith('Country'):
@@ -309,9 +333,9 @@ class MPRegions(MPRecord):
 
     region_re = re.compile('^Region(?P<idx>\d+)=(?P<name>[ 0-9A-Za-z\']+)(~\[0x1d\](?P<abbrev>\w+))?$')
 
-    def __init__(self, initial_info, *args, **kwargs):
+    def __init__(self, mp_file, initial_info, *args, **kwargs):
         self.regions = []
-        super(MPRegions, self).__init__(initial_info, *args, **kwargs)
+        super(MPRegions, self).__init__(mp_file, initial_info, *args, **kwargs)
 
     def handle_line(self, line):
         if line.startswith('Region'):
@@ -343,9 +367,9 @@ class MPCities(MPRecord):
 
     city_re = re.compile('^City(?P<idx>\d+)=(?P<name>.+)$')
 
-    def __init__(self, initial_info, *args, **kwargs):
+    def __init__(self, mp_file, initial_info, *args, **kwargs):
         self.cities = []
-        super(MPCities, self).__init__(initial_info, *args, **kwargs)
+        super(MPCities, self).__init__(mp_file, initial_info, *args, **kwargs)
 
     def handle_line(self, line):
         if line.startswith('City'):
@@ -361,7 +385,7 @@ class MPCities(MPRecord):
         return True
 
     def insert_sql(self):
-        return "".join(["INSERT INTO %(table_name)s (id, abbrev, label, country_id) VALUES (%(values_list)s);\n" % {
+        return "".join(["INSERT INTO %(table_name)s (id, label, region_id) VALUES (%(values_list)s);\n" % {
             "table_name": self.table_name,
             "values_list": ", ".join([sql_repr(v) for v in city]),
             } for city in self.cities])
@@ -372,25 +396,25 @@ class MPRestrict(MPRecord):
     columns = MPRecord.columns + (
         ("id", PKEY),
         ("nod", "integer"),
-        ("node_id_1", "integer"),
-        ("node_id_2", "integer"),
-        ("node_id_3", "integer"),
-        ("node_id_4", "integer"),
+        ("node_id_1", "integer"), # REFERENCES mp_node(id)
+        ("node_id_2", "integer"), # REFERENCES mp_node(id)
+        ("node_id_3", "integer"), # REFERENCES mp_node(id)
+        ("node_id_4", "integer"), # REFERENCES mp_node(id)
         ("road_id_1", "integer"),
         ("road_id_2", "integer"),
         ("road_id_3", "integer"),
-        ("not_for_emergency", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_goods", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_car", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_bus", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_taxi", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_foot", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_bicycle", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_truck", "boolean NOT NULL DEFAULT FALSE"),
+        ("not_for_emergency", FLAG_DEF_FALSE),
+        ("not_for_goods", FLAG_DEF_FALSE),
+        ("not_for_car", FLAG_DEF_FALSE),
+        ("not_for_bus", FLAG_DEF_FALSE),
+        ("not_for_taxi", FLAG_DEF_FALSE),
+        ("not_for_foot", FLAG_DEF_FALSE),
+        ("not_for_bicycle", FLAG_DEF_FALSE),
+        ("not_for_truck", FLAG_DEF_FALSE),
         )
 
-    def __init__(self, initial_info, *args, **kwargs):
-        super(MPRestrict, self).__init__(initial_info, *args, **kwargs)
+    def __init__(self, mp_file, initial_info, *args, **kwargs):
+        super(MPRestrict, self).__init__(mp_file, initial_info, *args, **kwargs)
 
     def handle_line(self, line):
         if line.startswith("TraffPoints"):
@@ -417,7 +441,6 @@ class MPGeometry(MPRecord):
     table_name = "mp_geometry"
     geotype = "GEOMETRY"
     columns = MPRecord.columns + (
-        ("ogc_fid",       PKEY),
         ("type",          "numeric(5,0)"),
         ("marine",        "boolean"),
         ("label",         "text"),
@@ -430,8 +453,8 @@ class MPGeometry(MPRecord):
         ("wkb_geometry",  "geometry"), # Treated specially in columns_sql
         )
     
-    def __init__(self, initial_info, *args, **kwargs):
-        super(MPGeometry, self).__init__(initial_info, *args, **kwargs)
+    def __init__(self, mp_file, initial_info, *args, **kwargs):
+        super(MPGeometry, self).__init__(mp_file, initial_info, *args, **kwargs)
 
     @classmethod    
     def table_creation_sql(cls):
@@ -492,24 +515,22 @@ class MPGeometry(MPRecord):
 class MPPoi(MPGeometry):
     table_name = "mp_poi"
     geotype = 'POINT'
-    columns = MPGeometry.columns + (
-        ("descr", "text"),
-        ("city", "text"),
-        ("region", "text"),
-        ("country", "text"),
-        ("house", "text"),
-        ("phone", "text"),
+    columns = (
+        ("ogc_fid",       PKEY),
+        ) + MPGeometry.columns + (
         ("zip", "text"),
-        ("highway", "text"),
+        ("street_desc", "text"),
         )
     
-    def __init__(self, initial_info, *args, **kwargs):
-        super(MPPoi, self).__init__(initial_info, *args, **kwargs)
+    def __init__(self, mp_file, initial_info, *args, **kwargs):
+        super(MPPoi, self).__init__(mp_file, initial_info, *args, **kwargs)
 
     def handle_line(self, line):
         if line.startswith('Data'):
             coords = line.split('=')[1].strip()
             self.record['wkb_geometry'] = xy_from_text(coords)
+        elif line.startswith('StreetDesc='):
+            self.record['street_desc'] = line.split('=')[1].strip()
         else:
             return super(MPPoi, self).handle_line(line)
         return True
@@ -537,50 +558,58 @@ class MPNumbers(MPRecord):
         ("right_side_country", VARCHAR),
         )
 
-    insert_columns = tuple([r[0] for r in columns[-16:]])
+    varchar_column_names = tuple([r[0] for r in columns[-14:]])
 
-    def __init__(self, line, *args, **kwargs):
+    def __init__(self, line, parent, *args, **kwargs):
         self.record = {}
+        self.record['mp_line_ogc_fid'] = parent.pk
         parts = line.split('=')
         self.record['definition_idx'] = int(parts[0].strip("Numbers"))
         number_info = parts[1].strip().split(',')
         self.record['point_idx'] = int(number_info[0])
-        for key, res in zip(self.insert_columns[2:], number_info[1:]):
+        for key, res in zip(self.varchar_column_names, number_info[1:]):
             if res != '':
                 self.record[key] = res
 
-    def values_sql(self):
-        return "(parent.ogc_fid, " + ", ".join([sql_repr(self.record.get(cname)) for cname in self.insert_columns]) + ")"
-        
+class MPNode(MPRecord):
+    table_name = "mp_node"
+    columns = MPRecord.columns + (
+        ("id", PKEY),
+        ("bound", FLAG_DEF_FALSE),
+        )
+
+    def __init__(self, mp_file, initial_info, *args, **kwargs):
+        super(MPNode, self).__init__(mp_file, initial_info, *args, **kwargs)        
+                
 class MPLine(MPGeometry):
     table_name = "mp_line"
     geotype = 'LINESTRING'
-    columns = MPGeometry.columns + (
-        ("descr", "text"),
-        ("city", "text"),
-        ("region", "text"),
-        ("country", "text"),
-        ("house", "text"),
-        ("phone", "text"),
+    columns = (
+        ("ogc_fid",       PKEY),
+        ) + MPGeometry.columns + (
         ("zip", "text"),
-        ("oneway", "boolean NOT NULL DEFAULT FALSE"),
-        ("toll", "boolean NOT NULL DEFAULT FALSE"),
+        ("oneway", FLAG_DEF_FALSE),
+        ("toll", FLAG_DEF_FALSE),
+        ("dir_indicator", FLAG_DEF_FALSE),
         ("speed", "numeric(2,0)"),
         ("road_class", "numeric(2,0)"),
-        ("road_id", "numeric(2,0)"),
-        ("not_for_emergency", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_goods", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_car", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_bus", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_taxi", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_foot", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_bicycle", "boolean NOT NULL DEFAULT FALSE"),
-        ("not_for_truck", "boolean NOT NULL DEFAULT FALSE"),
+        ("road_id", VARCHAR),
+        ("not_for_emergency", FLAG_DEF_FALSE),
+        ("not_for_goods", FLAG_DEF_FALSE),
+        ("not_for_car", FLAG_DEF_FALSE),
+        ("not_for_bus", FLAG_DEF_FALSE),
+        ("not_for_taxi", FLAG_DEF_FALSE),
+        ("not_for_foot", FLAG_DEF_FALSE),
+        ("not_for_bicycle", FLAG_DEF_FALSE),
+        ("not_for_truck", FLAG_DEF_FALSE),
         )
     
-    def __init__(self, initial_info, *args, **kwargs):
+    def __init__(self, mp_file, initial_info, primary_key, *args, **kwargs):
         self.numbers = []
-        super(MPLine, self).__init__(initial_info, *args, **kwargs)
+        self.nodes = []
+        super(MPLine, self).__init__(mp_file, initial_info, *args, **kwargs)
+        self.pk = primary_key
+        self.record['ogc_fid'] = primary_key
 
     def handle_line(self, line):
         if line.startswith('RouteParam'):
@@ -607,37 +636,128 @@ class MPLine(MPGeometry):
             payload_ary = line.split('=')[1].strip().strip("()").split("),(")
             self.record['wkb_geometry'] = [xy_from_text(node) for node in payload_ary]
         elif line.startswith('Numbers'):
-            self.numbers.append(MPNumbers(line))
+            self.numbers.append(MPNumbers(line, self))
+        elif line.startswith('DirIndicator'):
+            self.record['dir_indicator'] = (line.split('=')[1].strip() == '1')
+        elif line.startswith('Nod'):
+            parts = line.strip().split('=')
+            node_no = int(parts[0].strip("Nod"))
+            point_idx, node_id, bound = parts[1].split(",")
+            point_idx = int(point_idx)
+            node_id = int(node_id)
+            bound = (bound == '1')
+            self.nodes.append({'node_no': node_no, 'point_idx': point_idx, 'node_id': node_id, 'bound': bound})
         else:
             return super(MPLine, self).handle_line(line)
         return True
 
-    def insert_sql(self):
-        super_insert_sql = super(MPLine, self).insert_sql()
-        if len(self.numbers) > 0:
-            return dedent("""
-                WITH parent AS (
-                %(super_insert_sql)s
-                )
-                INSERT INTO %(numbers_table_name)s (%(insert_columns)s) VALUES %(numbers_values)s;
-            """ % {
-                    "super_insert_sql": super_insert_sql.rstrip('; \n'),
-                    "numbers_table_name": MPNumbers.table_name,
-                    "insert_columns": "mp_line_ogc_fid, " + ", ".join(MPNumbers.insert_columns),
-                    "numbers_values": ",".join([n.values_sql() for n in self.numbers]),
-                    })
-        else:
-            return super_insert_sql
+    def generate_segments_and_nodes_sql(self):
+        segments = []
+        new_nodes = []
+        nodes_update_sql = ""
+        final_point_idx = len(self.record['wkb_geometry']) - 1
+        self.nodes.sort(key=lambda node: node['node_id'])
         
+        if len(self.nodes) == 0:
+            segments.append(MPSegment(self, None, None, 0, final_point_idx))
+        else:
+            first_node = self.nodes[0]
+            last_node = self.nodes[-1]
+            if first_node['point_idx'] > 0:
+                segments.append(MPSegment(self, None, first_node['node_id'], 0, first_node['point_idx']))
+            if last_node['point_idx'] < final_point_idx:
+                segments.append(MPSegment(self, last_node['node_id'], None, last_node['point_idx'], final_point_idx))
+            prev = None
+            for node in self.nodes:
+                if node['node_id'] not in self.mp_file.created_nodes:
+                    new_nodes.append(MPNode(self.mp_file, {'id': node['node_id'], 'bound': node['bound']}))
+                    self.mp_file.created_nodes.add(node['node_id'])
+                elif node['bound']:
+                    nodes_update_sql += "UPDATE %s SET bound = TRUE WHERE id = %s;\n" % (MPNode.table_name, node['node_id'])
+                if prev is None:
+                    continue
+                segments.append(MPSegment(self, prev['node_id'], node['node_id'], prev['point_idx'], node['point_idx']))
+                prev = node
 
+        return "".join([node.insert_sql() for node in new_nodes]) + "".join([seg.insert_sql() for seg in segments]) + nodes_update_sql
+    
+    def insert_sql(self):        
+        super_insert_sql = super(MPLine, self).insert_sql()
+        numbers_sql = "".join([n.insert_sql() for n in self.numbers])
+        nodes_sql = self.generate_segments_and_nodes_sql()
+        return super_insert_sql + numbers_sql + nodes_sql
+
+class MPSegment(MPGeometry):
+    table_name = "mp_segment"
+    geotype = 'LINESTRING'
+    columns = (
+        ("linz2osm_id", PKEY),
+        ) + MPGeometry.columns + (
+        ("mp_line_ogc_fid", "int NOT NULL references mp_line(ogc_fid)"),
+        ("node_id_start", "int references mp_node(id)"),
+        ("node_id_end", "int references mp_node(id)"),
+        ("point_idx_start", "int NOT NULL"),
+        ("point_idx_end", "int NOT NULL"),
+        )
+
+    def __init__(self, parent, node_start, node_end, point_start, point_end, *args, **kwargs):
+        copied_records = parent.record.copy()
+        if 'wkb_geometry' in copied_records:
+            geom = copied_records.pop('wkb_geometry')
+        copied_records.pop('ogc_fid', None)
+        
+        super(MPSegment, self).__init__(parent.mp_file, copied_records, *args, **kwargs)
+        
+        self.parent = parent
+        self.record["mp_line_ogc_fid"] = parent.pk
+        self.record["node_id_start"] = node_start
+        self.record["node_id_end"] = node_end
+        self.record["point_idx_start"] = point_start
+        self.record["point_idx_end"] = point_end
+        self.record["wkb_geometry"] = geom[point_start:point_end+1]
+    
 class MPPolygon(MPGeometry):
     table_name = "mp_polygon"
     geotype = 'POLYGON'
-    columns = MPGeometry.columns + ()
+    columns = (
+        ("ogc_fid",       PKEY),
+        ) + MPGeometry.columns + ()
     
-    def __init__(self, initial_info, *args, **kwargs):
-        super(MPPolygon, self).__init__(initial_info, *args, **kwargs)
+    def __init__(self, mp_file, initial_info, *args, **kwargs):
+        super(MPPolygon, self).__init__(mp_file, initial_info, *args, **kwargs)
+        self.rings = []
 
+    def handle_line(self, line):
+        if line.startswith('Data'):
+            parts = line.strip().split('=')
+            data_idx = int(parts[0].strip("Data"))
+            payload_ary = parts[1].strip("()").split("),(")
+            self.rings.append((data_idx, [xy_from_text(node) for node in payload_ary]))
+        else:
+            return super(MPPolygon, self).handle_line(line)
+        return True
+
+    def set_geometry(self):
+        self.rings.sort(key=lambda ring: ring[0])
+        self.record['wkb_geometry'] = Polygon(SRID, self.rings)
+    
+    def insert_sql(self):
+        self.set_geometry()
+        return super(MPPolygon, self).insert_sql()
+
+class Polygon(object):
+    def __init__(self, srid, rings):
+        self.srid = srid
+        self.rings = rings
+
+    def __str__(self):
+        return "ST_GeomFromEWKT('SRID=%d;POLYGON(%s)')" % (self.srid, ",".join([self.format_ring(ring) for ring in self.rings]))
+
+    @classmethod
+    def format_ring(cls, ring):
+        # We append the first point to close the ring
+        return "(" + ",".join(["%s %s" % (x, y) for (x, y) in ring[1] + [ring[1][0]]]) + ")"
+    
 class MPFile(object):
     ymd_re = re.compile('(?P<year>[0-9]{4})(?P<month>[0-9]{2})(?P<day>[0-9]{2})')
     
@@ -655,6 +775,7 @@ class MPFile(object):
         self.parsing_record = False
         self.rNodeToOsmId = {} # map routing node ids to OSM node ids
         self.nodeid = -1
+        self.created_nodes = set()
 
         # temporary records
         self.clear_temp_records()
@@ -685,7 +806,7 @@ class MPFile(object):
             
     def write_headers(self):
         self.out.write('SET statement_timeout=60000;\n')
-        for cls in [MPImgData, MPCountries, MPRegions, MPCities, MPPoi, MPLine, MPNumbers, MPPolygon, MPRestrict]:
+        for cls in [MPImgData, MPCountries, MPRegions, MPCities, MPZipCodes, MPPoi, MPLine, MPNumbers, MPPolygon, MPNode, MPRestrict, MPSegment]:
             self.out.write(cls.table_creation_sql())
         self.out.write('SET statement_timeout=0;\n')
 
@@ -715,20 +836,20 @@ class MPFile(object):
         # Marker for start of sections
         if line.startswith(';'):
             if line.startswith(';sufi'):
-                if line == ';sufi-0' or line == ';sufi=0':
-                    self.sufi = None
-                else:
+                if line.find('=') >= 0:
                     self.sufi = line.split('=')[1].strip()
                     if self.sufi == '0':
                         self.sufi = None
+                else:
+                    self.sufi = None
 
             elif line.startswith(';linzid'):
-                if line == ';linzid-0' or line == ';linzid=0':
-                    self.linzid = None
-                else:
+                if line.find('=') >= 0:
                     self.linzid = line.split('=')[1].strip()
                     if self.linzid == '0':
                         self.linzid = None
+                else:
+                    self.linzid = None
                     
             elif line.startswith(';created='):
                 created_date_text = line.split('=')[1].strip()
@@ -755,32 +876,34 @@ class MPFile(object):
 
             # FIXME: what if we're still parsing the old record?
             elif line.startswith(('[POI]','[RGN10]','[RGN20]')):
-                self.start_record(MPPoi(self.default_info()))
                 self.poi_counter += 1
+                self.start_record(MPPoi(self, self.default_info()))
             
             elif line.startswith(('[POLYLINE]','[RGN40]')):
-                self.start_record(MPLine(self.default_info()))
                 self.polyline_counter += 1
+                self.start_record(MPLine(self, self.default_info(), self.polyline_counter))
             
             elif line.startswith(('[POLYGON]','[RGN80]')):
-                self.start_record(MPPolygon(self.default_info()))
                 self.polygon_counter += 1
+                self.start_record(MPPolygon(self, self.default_info()))
 
             elif line.startswith(('[RESTRICT]', '[Restrict]',)):
-                self.start_record(MPRestrict(self.default_info()))
+                self.start_record(MPRestrict(self, self.default_info()))
 
             elif line.startswith('[IMG ID]'):
-                self.start_record(MPImgData({}))
+                self.start_record(MPImgData(self, {}))
                 
             elif line.startswith(('[COUNTRIES]', '[Countries]')):
-                self.start_record(MPCountries({}))
+                self.start_record(MPCountries(self, {}))
 
             elif line.startswith(('[REGIONS]', '[Regions]')):
-                self.start_record(MPRegions({}))
+                self.start_record(MPRegions(self, {}))
             
             elif line.startswith(('[CITIES]', '[Cities]')):
-                self.start_record(MPCities({}))
-
+                self.start_record(MPCities(self, {}))
+                
+            elif line.startswith(('[ZIPCODES]', '[ZipCodes]')):
+                self.start_record(MPZipCodes(self, {}))
                 
             else:
                 return False
@@ -803,7 +926,7 @@ if len(sys.argv) < 2:
     exit()
 
 # globals
-mp_file = MPFile(open(sys.argv[1]), sys.stdout, open("error.log", "w"))
+mp_file = MPFile(open(sys.argv[1]), sys.stdout, sys.stderr)
 mp_file.translate()
 exit()
 
