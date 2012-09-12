@@ -461,7 +461,7 @@ class MPGeometry(MPRecord):
         return dedent("""
             DROP TABLE IF EXISTS %(table_name)s;
             CREATE TABLE %(table_name)s (%(columns_sql)s);
-            SELECT AddGeometryColumn('%(table_name)s', 'wkb_geometry', %(srid)d, '%(geotype)s', 2);
+            SELECT AddGeometryColumn('%(table_name)s'::varchar, 'wkb_geometry'::varchar, %(srid)d, '%(geotype)s'::varchar, 2);
         """) % {
             'table_name': cls.table_name,
             'columns_sql': cls.columns_sql(),
@@ -591,8 +591,8 @@ class MPLine(MPGeometry):
         ("oneway", FLAG_DEF_FALSE),
         ("toll", FLAG_DEF_FALSE),
         ("dir_indicator", FLAG_DEF_FALSE),
-        ("speed", "numeric(2,0)"),
-        ("road_class", "numeric(2,0)"),
+        ("speed", "numeric(5,0)"),
+        ("road_class", "numeric(5,0)"),
         ("road_id", VARCHAR),
         ("not_for_emergency", FLAG_DEF_FALSE),
         ("not_for_goods", FLAG_DEF_FALSE),
@@ -656,7 +656,7 @@ class MPLine(MPGeometry):
         new_nodes = []
         nodes_update_sql = ""
         final_point_idx = len(self.record['wkb_geometry']) - 1
-        self.nodes.sort(key=lambda node: node['node_id'])
+        self.nodes.sort(key=lambda node: node['point_idx'])
         
         if len(self.nodes) == 0:
             segments.append(MPSegment(self, None, None, 0, final_point_idx))
@@ -675,11 +675,14 @@ class MPLine(MPGeometry):
                 elif node['bound']:
                     nodes_update_sql += "UPDATE %s SET bound = TRUE WHERE id = %s;\n" % (MPNode.table_name, node['node_id'])
                 if prev is None:
+                    prev = node
                     continue
                 segments.append(MPSegment(self, prev['node_id'], node['node_id'], prev['point_idx'], node['point_idx']))
                 prev = node
 
-        return "".join([node.insert_sql() for node in new_nodes]) + "".join([seg.insert_sql() for seg in segments]) + nodes_update_sql
+        return dedent("".join([node.insert_sql() for node in new_nodes]) +
+                      "".join([seg.insert_sql() for seg in segments]) +
+                      nodes_update_sql)
     
     def insert_sql(self):        
         super_insert_sql = super(MPLine, self).insert_sql()
@@ -792,6 +795,8 @@ class MPFile(object):
     def translate(self):
         self.out.write('BEGIN;\n')
         self.write_headers()
+        self.out.write('COMMIT;\n')
+        self.out.write('BEGIN;\n')
         for line in self.file_mp:
             retval = self.handle_line(line)
             if not retval:
