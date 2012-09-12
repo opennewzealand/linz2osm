@@ -5,3 +5,5 @@ media/*
 *.pyo
 .#*
 assets/openlayers/OpenLayers-2.12
+scripts/*.err
+scripts/*.log
