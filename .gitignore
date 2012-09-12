@@ -5,5 +5,5 @@ media/*
 *.pyo
 .#*
 assets/openlayers/OpenLayers-2.12
-output.sql
-error.log
+scripts/*.err
+scripts/*.log
