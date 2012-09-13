@@ -20,11 +20,6 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data_dict.Group'], null=True, blank=True),
                       keep_default=False)
 
-        # Adding field 'Tag.dataset'
-        db.add_column('data_dict_tag', 'dataset',
-                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data_dict.Dataset'], null=True, blank=True),
-                      keep_default=False)
-
         # Adding field 'Tag.group'
         db.add_column('data_dict_tag', 'group',
                       self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data_dict.Group'], null=True, blank=True),
@@ -90,7 +85,6 @@ class Migration(SchemaMigration):
         'data_dict.tag': {
             'Meta': {'unique_together': "(('layer', 'tag'),)", 'object_name': 'Tag'},
             'code': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'dataset': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['data_dict.Dataset']", 'null': 'True', 'blank': 'True'}),
             'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['data_dict.Group']", 'null': 'True', 'blank': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'layer': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'tags'", 'null': 'True', 'to': "orm['data_dict.Layer']"}),

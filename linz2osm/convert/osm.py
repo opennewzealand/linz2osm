@@ -166,12 +166,13 @@ def clean_data(cell):
         return cell
 
 def export(workslice):
-    dataset = workslice.layer_in_dataset.dataset
-    layer = workslice.layer_in_dataset.layer
+    layer_in_dataset = workslice.layer_in_dataset
     feature_ids = [wf.feature_id for wf in workslice.workslicefeature_set.all()]
-    return export_custom(dataset, layer, feature_ids, workslice.id)
+    return export_custom(layer_in_dataset, feature_ids, workslice.id)
     
-def export_custom(dataset, layer, feature_ids = None, workslice_id = None):
+def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
+    dataset = layer_in_dataset.dataset
+    layer = layer_in_dataset.layer
     database_id = dataset.name
     cursor = connections[database_id].cursor()
     db_info = settings.DATABASES[database_id]
@@ -185,7 +186,7 @@ def export_custom(dataset, layer, feature_ids = None, workslice_id = None):
         else:
             data_columns.append(column_name)
     
-    layer_tags = layer.get_all_tags()
+    layer_tags = layer_in_dataset.get_all_tags()
     processors = layer.get_processors()
     
     writer = OSMWriter(id_hash=(database_id, layer.name, feature_ids))
@@ -211,6 +212,7 @@ def export_custom(dataset, layer, feature_ids = None, workslice_id = None):
         row_data = dict(zip(data_columns,[clean_data(c) for c in row[1:] ]))
         row_data['layer_name'] = layer.name
         row_data['dataset_name'] = dataset.name
+        row_data['dataset_version'] = dataset.version
         if workslice_id is not None:
             row_data['workslice_id'] = workslice_id
         

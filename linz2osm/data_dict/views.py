@@ -124,7 +124,8 @@ def preview(request, layer_id=None):
             else:
                 feature_count = 10
             feature_ids = [fid for fid in range(starting_id, starting_id + feature_count)]
-            ctx['preview_data'] = osm.export_custom(form.cleaned_data['dataset'], layer, feature_ids, '111222333444555666777888999')
+            layer_in_dataset = LayerInDataset.objects.get(layer=layer, dataset=form.cleaned_data['dataset'])
+            ctx['preview_data'] = osm.export_custom(layer_in_dataset, feature_ids, '111222333444555666777888999')
     else:
         form = PreviewForm(error_class=BootstrapErrorList, datasets=datasets)
     ctx['form'] = form
@@ -133,11 +134,11 @@ def preview(request, layer_id=None):
 def show_tagging(request, layer_id=None):
     layer_id = re.sub("_5F", "_", layer_id)
     layer = get_object_or_404(Layer, pk=layer_id)
-    all_tags = sorted(layer.get_all_tags())
+    grouped_tags = layer.potential_tags()
     
     ctx = {
         'layer': layer,
-        'all_tags': all_tags,
+        'grouped_tags': grouped_tags,
         }
 
     return render_to_response('data_dict/show_tagging.html', ctx, context_instance=RequestContext(request))

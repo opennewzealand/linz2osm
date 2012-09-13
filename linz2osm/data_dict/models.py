@@ -33,6 +33,9 @@ processor_list_html = '<ul class="help">' + ''.join(['<li><strong>%s</strong>: %
 class Group(models.Model):
     name = models.CharField(max_length=255, unique=True, primary_key=True)
     description = models.TextField()
+
+    def __str__(self):
+        return self.name
     
 class DatasetManager(models.Manager):
     def clear_datasets(self):
@@ -59,6 +62,7 @@ class Dataset(models.Model):
     name = models.CharField(max_length=255, unique=True, primary_key=True)
     database_name = models.CharField(max_length=255)
     description = models.TextField()
+    version = models.TextField(blank=True)
     srid = models.IntegerField()
     group = models.ForeignKey(Group, blank=True, null=True)
 
@@ -122,13 +126,17 @@ class Layer(models.Model):
 
     def layerindatasets_ordered(self):
         return self.layerindataset_set.order_by('dataset__description')
-    
-    def get_all_tags(self):
-        # if we override a default one, use the specific one
-        tags = dict([(t.tag, t) for t in Tag.objects.default()])
-        for t in self.tags.all():
-            tags[t.tag] = t
-        return tags.values()
+
+    def potential_tags(self):        
+        own_tags = self.tags.order_by('tag').all()
+        groups = [lid.dataset.group for lid in self.layerindataset_set.all()] + [self.group]
+        groupset = set([g for g in groups if g is not None])
+        group_tags = [("Tags for group " + group.name, group.tags.order_by('tag').all()) for group in groupset]
+        group_tags.sort(key=lambda group: group[0])
+        default_tags = [t for t in Tag.objects.default() if t not in own_tags]
+        default_tags.sort(key=lambda t: t.tag)
+        
+        return [("Tags specific to this layer", own_tags)] + group_tags + [("Default tags", default_tags)]
     
     def get_statistics(self, dataset_id=None):
         from linz2osm.convert.osm import get_layer_stats
@@ -194,6 +202,20 @@ class LayerInDataset(geomodels.Model):
     def get_absolute_url(self):
         return ('linz2osm.workslices.views.create_workslice', (), {'layer_in_dataset_id': self.id})
 
+    def get_all_tags(self):
+        # if we override a default one, use the specific one
+        tags = dict([(t.tag, t) for t in Tag.objects.default()])
+        if self.dataset.group:
+            for t in self.dataset.group.tags.all():
+                tags[t.tag] = t
+        if self.layer.group:
+            for t in self.layer.group.tags.all():
+                tags[t.tag] = t
+        if self.layer:
+            for t in self.layer.tags.all():
+                tags[t.tag] = t
+        return tags.values()            
+    
     def get_statistics_for(self, field_name):
         return osm.get_field_stats(self.dataset.name, self.layer, field_name)
     
@@ -281,15 +303,14 @@ class TagManager(models.Manager):
             raise en
 
     def default(self):
-        return self.get_query_set().filter(layer__isnull=True)
+        return self.get_query_set().filter(layer__isnull=True, group__isnull=True)
 
 @total_ordering
 class Tag(models.Model):
     objects = TagManager()
     
     layer = models.ForeignKey(Layer, null=True, blank=True, related_name='tags')
-    dataset = models.ForeignKey(Dataset, null=True, blank=True)
-    group = models.ForeignKey(Group, null=True, blank=True)
+    group = models.ForeignKey(Group, null=True, blank=True, related_name='tags')
     tag = models.CharField(max_length=100, help_text="OSM tag name")
     code = models.TextField(blank=True, help_text="Javascript code that sets the 'value' paramter to a non-null value to set the tag. 'fields' is an object with all available attributes for the current record")
     

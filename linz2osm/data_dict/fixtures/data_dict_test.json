@@ -1,11 +1,33 @@
 [
     {
+        "pk": "linz",
+        "model": "data_dict.group",
+        "fields": {
+            "description": "TEST Linz group"
+        }
+    },
+    {
+        "pk": "nzopengps",
+        "model": "data_dict.group",
+        "fields": {
+            "description": "TEST NZOpenGPS roads group"
+        }
+    },
+    {
+        "pk": "pipelines",
+        "model": "data_dict.group",
+        "fields": {
+            "description": "TEST special pipelines group"
+        }
+    },
+    {
         "pk": "mainland",
         "model": "data_dict.dataset",
         "fields": {
             "srid": 2193,
             "database_name": "test_nz_mainland",
-            "description": "Mainland 2012/TEST"
+            "description": "Mainland 2012/TEST",
+            "group": "linz"
         }
     },
     {
@@ -14,7 +36,8 @@
         "fields": {
             "srid": 3791,
             "database_name": "test_kermadec_is_topo25",
-            "description": "Kermadec Islands 2012/TEST"
+            "description": "Kermadec Islands 2012/TEST",
+            "group": "linz"
         }
     },
     {
@@ -23,7 +46,8 @@
         "fields": {
             "srid": 2193,
             "database_name": "test_opengps_roads",
-            "description": "TEST NZOpenGPS roads"
+            "description": "TEST NZOpenGPS roads",
+            "group": "nzopengps"
         }
     },
     {
@@ -43,7 +67,8 @@
             "geometry_type": "LINESTRING",
             "notes": "blah blah Soviet Union blah blah Kidnapped Scientists blah blah",
             "processors": null,
-            "entity": "Transmission line"
+            "entity": "Transmission line",
+            "group": "pipelines"
         }
     },
     {
@@ -174,6 +199,42 @@
             "code": "value = 'cave_pnt_special'",
             "layer": "cave_pnt",
             "tag": "sample"
+        }
+    },
+    {
+        "pk": 9,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = 'pipelines'",
+            "group": "pipelines",
+            "tag": "group_name"
+        }
+    },
+    {
+        "pk": 10,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = 'linz'",
+            "group": "linz",
+            "tag": "group_name"
+        }
+    },
+    {
+        "pk": 11,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = 'nzopengps'",
+            "group": "nzopengps",
+            "tag": "group_name"
+        }
+    },
+    {
+        "pk": 12,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = 'lots'",
+            "group": "linz",
+            "tag": "linzishness"
         }
     }
 ]

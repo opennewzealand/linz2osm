@@ -46,15 +46,23 @@
     <h3>Tags</h3>
   </div>
 </div>
-{% for tag in all_tags %}
+
+{% for group_title, tags in grouped_tags %}
+<div class="row"></div>
+<div class="row">
+  <div class="span12">
+    <h4>{{ group_title }}</h4>
+  </div>
+</div>
+
+{% for tag in tags %}
 <div class="span8 code-content">
   <strong><code>{{tag.tag}}</code></strong>
-  {% if not tag.layer %}
-  <i class="icon-globe" title="This tag is applied to all layers"></i>
-  {% endif %}
   {% if tag.code %}
   {{ tag.code|stylize_no_ln:"js" }}
   {% endif %}
 </div>
+{% endfor %}
+
 {% endfor %}
 {% endblock %}

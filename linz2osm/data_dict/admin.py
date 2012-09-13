@@ -19,14 +19,14 @@ import re
 from django.contrib import admin
 from django.template.loader import render_to_string
 
-from linz2osm.data_dict.models import Layer, Tag, LayerInDataset, Dataset
-
+from linz2osm.data_dict.models import Layer, Tag, LayerInDataset, Dataset, Group
+    
 class DatasetAdmin(admin.ModelAdmin):
-    list_display = ('name', 'database_name', 'description', 'srid',)
-    list_filter = ('srid',)
-    ordering = ('name', 'database_name', 'description', 'srid',)
+    list_display = ('name', 'database_name', 'description', 'version', 'srid', 'group')
+    list_filter = ('srid', 'group', 'version',)
+    ordering = ('name', 'database_name', 'description', 'version', 'srid', 'group')
     readonly_fields = ('name', 'database_name', 'srid',)
-    search_fields = ('name', 'database_name', 'description', 'srid',)
+    search_fields = ('name', 'database_name', 'description', 'version', 'srid', 'group')
 
 class LayerInDatasetInline(admin.StackedInline):
     model = LayerInDataset
@@ -42,6 +42,12 @@ class TagInline(admin.StackedInline):
     verbose_name = 'Tag'
     verbose_name_plural = 'Tags'
 
+class GroupTagInline(TagInline):
+    exclude = ("layer",)
+
+class LayerTagInline(TagInline):
+    exclude = ("group",)
+    
 # TODO: filter by geometry type
 # TODO: custom templates so choices aren't so ugly
 class TaggingApprovedListFilter(admin.SimpleListFilter):
@@ -123,13 +129,13 @@ class CompletedListFilter(admin.SimpleListFilter):
         return queryset
     
 class LayerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'entity', 'geometry_type', 'stats_link', 'tag_count', 'dataset_descriptions', 'notes',)
-    list_filter = (TaggingApprovedListFilter, CompletedListFilter, 'geometry_type', 'datasets', 'entity',)
+    list_display = ('name', 'entity', 'geometry_type', 'group', 'stats_link', 'tag_count', 'dataset_descriptions', 'notes',)
+    list_filter = (TaggingApprovedListFilter, CompletedListFilter, 'geometry_type', 'group', 'datasets', 'entity',)
     inlines = [
         LayerInDatasetInline,
-        TagInline,
+        LayerTagInline,
     ]
-    ordering = ('name',)
+    ordering = ('name', 'group')
     readonly_fields = ('name', 'entity', 'geometry_type')
     search_fields = ('name', 'notes',)
 
@@ -170,7 +176,14 @@ class TagAdmin(admin.ModelAdmin):
         # only tags without layers (default tags)
         return self.model.objects.default()
 
+class GroupAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description')
+    ordering = ('name', 'description')
+    inlines = [
+        GroupTagInline,
+    ]
     
+admin.site.register(Group, GroupAdmin)
 admin.site.register(Layer, LayerAdmin)
 admin.site.register(Tag, TagAdmin)
 admin.site.register(Dataset, DatasetAdmin)
