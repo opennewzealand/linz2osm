@@ -20,143 +20,36 @@ PKEY = "serial PRIMARY KEY"
 VARCHAR = "character varying(255)"
 FLAG_DEF_FALSE = "boolean NOT NULL DEFAULT FALSE"
 
-# Define the mapping from Garmin type codes to OSM tags
-# Note that single items in parentheses need a trailing comma
-poitagmap = {
-     #JR: catCities
-     (0x0100,0x100): {'place': 'city', 'linz:comment': 'size >10M'},        # added by JR.  np
-     (0x0200,0x200): {'place': 'city', 'linz:comment': 'size 5-10M'},      # added by JR.  np
-     (0x0300,0x300): {'place': 'city', 'linz:comment': 'size 2-5M'},       # added by JR.  np
-     (0x0400,0x400): {'place': 'city', 'linz:comment': 'size 1-2M'},       # added by JR - pres
-     (0x0500,0x500): {'place': 'city', 'linz:comment': 'size 0.5-1M'},     # added by JR - pres
-     (0x0600,0x600): {'place': 'city', 'linz:comment': 'size 200-500K'},   # added by JR - pres
-     (0x0700,0x700): {'place': 'city', 'linz:comment': 'size 100-200K'},   # added by JR - pres
-     (0x0800,0x800): {'place': 'city', 'linz:comment': 'size 50-100K'},    # added by JR - pres
-     (0x0900,0x900): {'place': 'city', 'linz:comment': 'size 20-50K'},     # added by JR - pres
-     (0x0a00,0xa00): {'place': 'town', 'linz:comment': 'size 10-20K'},     # added by JR - pres
-     (0x0b00,0xb00): {'place': 'town', 'linz:comment': 'size 5-10K'},       # added by JR - pres
-     (0x0c00,0xc00): {'place': 'town', 'linz:comment': 'size 2-5K'},       # added by JR - pres
-     (0x0d00,0xd00): {'place': 'town', 'linz:comment': 'size 1-2K'},       # added by JR - pres
-     (0x0e00,0xe00): {'place': 'village', 'linz:comment': 'size 500-1K'},  # added by JR - pres
-     (0x0f00,0xf00): {'place': 'village', 'linz:comment': 'size 200-500'}, # added by JR - pres
-     (0x1000,): {'place': 'hamlet', 'linz:comment': 'size 100-200'},  # added by JR - pres
-     (0x1100,): {'place': 'hamlet', 'linz:comment': 'size 100-200'},  # added by JR - pres
-
-     (0x1200,): {'leisure': 'marina' },                               # added by JR - Raglan Wharf.  Spreadsheet suggests hamlet (0-100 size) but not in our dataset
-
-     (0x1612, 0x1c00, 0x6400): {'highway': 'gate'},
-     (0x160f,): {'man_made': 'beacon', 'mark_type': 'white'},         # added by JR - pres
-
-     (0x1c01,): {'man_made': 'ship_wreck'},                           # added by JR - pres
-     (0x1c09,): {'linz:comment': 'FIXMEFIXME  rock, awash, reef'},                   # added by JR - pres - TODO ammend
-
-     (0x1e00,): {'place': 'region'},                                  # added by JR - pres, e.g. Southland    
-     (0x2b00,): {'tourism': 'hotel'},
-     (0x2b01,): {'tourism': 'motel'},
-     (0x2b03,): {'tourism': 'caravan_site'},
-     (0x2c06,): {'leisure': 'park'}, # added by JR
-     (0x2c08,): {'leisure': 'park'}, # added by JR
-     (0x2d05,): {'leisure': 'golf_course'}, # added by JR
-     (0x2d06,): {'sport': 'skiing'}, # added by JR
-     (0x2f04,): {'aeroway': 'aerodrome'}, # added by JR
-     (0x2e02,): {'shop': 'supermarket'},
-     (0x2f08,): {'amenity': 'bus_station'},
-     (0x2f09,): {'waterway': 'boatyard'}, # added by JR
-     (0x3002,): {'amenity': 'hospital'}, # added by JR
-     (0x4400,): {'amenity': 'fuel'},
-     (0x4700,): {'leisure': 'slipway'},
-     (0x4800,): {'tourism': 'campsite'},
-     (0x4900,): {'leisure': 'park'},
-     (0x4a00,): {'tourism': 'picnic_site'},
-     (0x4c00,): {'tourism': 'information'},
-     (0x4d00,): {'amenity': 'parking'},
-     (0x4e00,): {'amenity': 'toilets'},
-     (0x5100,): {'amenity': 'telephone'},
-     (0x5200,): {'tourism': 'viewpoint'},
-     (0x5400,): {'sport': 'swimming'},
-     (0x5500,): {'waterway': 'dam'}, # added by JR
-     (0x5904,): {'aeroway': 'helipad'},
-     (0x5905,): {'aeroway': 'aerodrome'},
-     (0x5904,): {'aeroway': 'helipad'},
-     (0x5a00,): {'distance_marker': 'yes'}, # Not approved
-     (0x6401,): {'bridge': 'yes'}, # Apply to points?
-     (0x6401,): {'building': 'yes'},
-     (0x6402,): {'amenity': 'shelter', 'building': 'yes', 'tourism': 'alpine_hut'}, # added by JR -trekking huts, bivouacs, shelters, cabins
-     (0x6403,): {'amenity': 'grave_yard'}, #added by JR
-     (0x6505,): {'amenity': 'public_building', 'building': 'yes'},  # added by JR, only ex is Pumphouse
-     (0x6406,): {'mountain_pass': 'yes', 'place': 'locality'}, # by JR: was highway=crossing, now mountain_pass=yes (for pass,col,saddle) TODO check
-     (0x640c,): {'man_made': 'mineshaft'},
-     (0x640a,): {'place': 'locality'}, # by JR - seems to apply to a lot of diff features, and is Garmin default for a POI
-     (0x640d,): {'man_made': 'pumping_rig', 'type': 'oil'},
-     (0x6411,): {'man_made': 'tower'},
-     (0x6412,): {'highway': 'track', 'place': 'locality'}, # by JR - start of trek/walk- used to be 'trailhead' which is not even a proposed value
-     (0x6413,): {'natural': 'cave_entrance'}, # by JR - used to be tunnel=yes but appears to caves - TODO check
-     (0x6500, 0x650d): {'natural': 'water'},
-     (0x6501,): {'natural': 'glacier'}, # added by JR - TODO tourism=attraction too?
-     (0x6508,): {'waterway': 'waterfall'},
-     (0x650c,): {'place': 'islet'},  # added by JR - v2
-     (0x6511,): {'natural': 'spring'}, # added by JR - natural spring source
-     (0x6513,): {'natural': 'wetland'}, # added by JR
-     (0x6600,): {'place': 'locality', 'natural': 'hill', 'linz:comment': 'FIXME - hill?'}, # added by JR.. TODO check these, most seem to be in northland
-     (0x6603,): {'landuse':'basin'}, # added by JR - TODO check since this is natural basin poi
-     (0x6605,): {'natural': 'bench'},
-     (0x6607,): {'natural': 'cliff'}, # added by JR - cliffs, bluffs etc
-     (0x660c,): {'place': 'island'}, # added by JR - seems to be small islands as well as large
-     (0x660a,): {'natural': 'wood'}, # added by JR - include bush and wild overgrowth
-     (0x6611,): {'natural': 'mountain_range'}, # added by JR - TODO does not exist as tag
-     (0x6613,): {'natural': 'ridge'}, # added by JR - TODO does not exist as tag
-
-     (0x660d,): {'place': 'locality', 'natural': 'water'}, # added by JR - poi which are lake names
-     (0x6616,): {'natural': 'peak'},
-     (0x6617,): {'place': 'locality', 'natural': 'gully', 'linz:comment': 'FIXME: gorge/gully'}, # added by JR - gully/gorge does not exist, but giving it a placename might work
-    }
-polylinetagmap = {
+SEGMENT_TYPE_MAP = {
      # TODO FIXME all these highway types, and links need to be checked
-     (0x1,): {'highway': 'motorway'},   # added by JR
-     (0x2,): {'highway': 'trunk'},
-     (0x3,): {'highway': 'primary'},
-     (0x4,): {'highway': 'secondary'},
-     (0x5,): {'highway': 'tertiary'},
-     (0x6,): {'highway': 'residential'},
-     (0x7,): {'highway': 'service'}, # added by JR - TODO confirm in other places, example is Auckland airport's Cyril Kay Rd.. cf 0x7 as polygon which is diff.
-     (0x8,): {'highway': 'primary_link'}, # added by JR - TODO FIXME what is a turning point (U-Turn etc) on a big road? this is actually on a tertiary road when i looked
-     (0x9,): {'highway': 'secondary_link'}, # added by JR - TODO FIXME in the LINZ dataset is this actually used to connect secondary roads, or other types?
-     (0xa,): {'highway': 'track', 'surface': 'unpaved'},
-     (0xb,): {'highway': 'trunk_link'}, # added by JR
-     (0xc,): {'junction': 'roundabout'}, # added by JR
-     (0xd,): {'highway': 'cycleway'}, # added by JR
-     (0x14,): {'railway': 'rail'}, # added by JR
-     (0x16,): {'highway': 'footway'}, # added by JR
-     (0x18,): {'waterway': 'stream'},
-     (0x1b,): {'route': 'ferry'}, # added by JR
+     # These are not necessarily OSM types
+     0x1: ('highway', 'motorway'),   # added by JR
+     0x2: ('highway', 'trunk'),
+     0x3: ('highway', 'primary'),
+     0x4: ('highway', 'secondary'),
+     0x5: ('highway', 'tertiary'),
+     0x6: ('highway', 'residential'),
+     0x7: ('highway', 'service'), # added by JR - TODO confirm in other places, example is Auckland airport's Cyril Kay Rd.. cf 0x7 as polygon which is diff.
+     0x8: ('highway', 'primary_link'), # added by JR - TODO FIXME what is a turning point (U-Turn etc) on a big road? this is actually on a tertiary road when i looked
+     0x9: ('highway', 'secondary_link'), # added by JR - TODO FIXME in the LINZ dataset is this actually used to connect secondary roads, or other types?
+     0xa: ('highway', 'track_unpaved'),
+     0xb: ('highway', 'trunk_link'), # added by JR
+     0xc: ('junction', 'roundabout'), # added by JR
+     0xd: ('highway', 'cycleway'), # added by JR
+     
+     0x14: ('railway', 'rail'), # added by JR
+     0x16: ('highway', 'footway'), # added by JR
+     0x18: ('waterway', 'stream'),
+     0x19: ('timezone', 'timezone_boundary'),
+     0x1a: ('route', 'ferry'),
+     0x1b: ('route', 'ferry'), # added by JR
 
      # boundaries http://wiki.openstreetmap.org/wiki/Key:admin_level#10_admin_level_values_for_specific_countries
-     (0x1c,): {'boundary': 'administrative', 'admin_level': '4'}, # added by JR, seems to be e.g. Otago/Canterbury, Auckland/Waikato TODO check this
-     (0x1d,): {'boundary': 'administrative', 'admin_level': '6'}, # added by JR, seems to be e.g. Timaru district council, TODO check this
+     0x1c: ('boundary', 'region'), # added by JR, seems to be e.g. Otago/Canterbury, Auckland/Waikato TODO check this
+     0x1d: ('boundary', 'district'), # added by JR, seems to be e.g. Timaru district council, TODO check this
 
-     (0x1e,): {'landuse': 'forest', 'leisure': 'nature_reserve'}, # added by JR
-     (0x1f,): {'waterway': 'canal'},                              # added by JR, was 'river', but the only ones present are in Chch canals
-     (0x29,): {'power': 'line'}
-    }
-polygontagmap = {
-     (0x2,): {'landuse': 'residential'},     # added by JR - pres
-     (0x20,): {'tourism': 'zoo', 'tourism': 'attraction'}, # added by JR - only Hamilton Zoo
-     (0x5,): {'amenity': 'parking', 'area': 'yes'},
-     (0x7,): {'landuse': 'aeroway'}, # added by JR - to describe outlines of runways and airport areas, cf. polyline
-     (0x8,): {'landuse': 'retail', 'building': 'shops'}, # added by JR, cf. 0x8 polyline which is a ramp
-     (0xd,): {'landuse': 'reservation', 'area': 'yes'}, # reservation is not even a proposed value TODO JR: this looks weird to me
-     (0x13,): {'building': 'yes', 'area': 'yes'}, # added by JR - buildings, including hospitals or other random ones, esp present in Waikato
-     (0x14,0x15): {'natural': 'wood', 'area': 'yes'}, # added by JR - v2
-     (0x17,): {'leisure': 'park', 'area': 'yes'}, # added by JR - city park
-     (0x18,): {'leisure': 'golf_course', 'area': 'yes'},
-     (0x19,): {'leisure': 'sports_centre', 'area': 'yes', 'linz:todo': 'check type'}, # added by JR, TODO (check, sports_centre implies a building, but is at least rendered green). examples found in LINZ include sports parks, race courses, stadiums, cricket 'domains'..
-     (0x1a,): {'landuse': 'cemetery', 'area': 'yes'}, # added by JR, TODO is ok, or should it be amenity=graveyard
-     (0x28,): {'comment': 'JR:ocean'}, # added by JR, TODO work out what this is about, should we using coastlines
-     (0x3c, 0x3e, 0x40, 0x41): {'natural': 'water', 'area': 'yes'}, # 0x3e added by JR
-     (0x47, 0x48, 0x49): {'waterway': 'riverbank', 'area': 'yes'}, # 0x47 added by JR
-     (0x4c,): {'waterway': 'intermittent', 'area': 'yes'},
-     (0x50,): {'natural': 'wood', 'area': 'yes'}, # added by JR, seems to be for nature reserves too
-     (0x51,): {'natural': 'wetland', 'area': 'yes'} # added by JR, was marsh
+     0x1f: ('waterway', 'canal'), # added by JR, was 'river', but the only ones present are in Chch canals
+     0x29: ('power', 'line'),
     }
 
 def esc_quotes(text):
@@ -208,6 +101,10 @@ class MPRecord(object):
             'table_name': cls.table_name,
             'columns_sql': cls.columns_sql(),
             }
+    
+    @classmethod
+    def post_processing_sql(cls):
+        return ""
 
     @classmethod
     def columns_sql(cls):
@@ -459,7 +356,7 @@ class MPGeometry(MPRecord):
     @classmethod    
     def table_creation_sql(cls):
         return dedent("""
-            DROP TABLE IF EXISTS %(table_name)s;
+            DROP TABLE IF EXISTS %(table_name)s CASCADE;
             CREATE TABLE %(table_name)s (%(columns_sql)s);
             SELECT AddGeometryColumn('%(table_name)s'::varchar, 'wkb_geometry'::varchar, %(srid)d, '%(geotype)s'::varchar, 2);
         """) % {
@@ -695,6 +592,7 @@ class MPSegment(MPGeometry):
     geotype = 'LINESTRING'
     columns = (
         ("linz2osm_id", PKEY),
+        ("subtype", VARCHAR),
         ) + MPGeometry.columns + (
         ("mp_line_ogc_fid", "int NOT NULL references mp_line(ogc_fid)"),
         ("node_id_start", "int references mp_node(id)"),
@@ -718,6 +616,26 @@ class MPSegment(MPGeometry):
         self.record["point_idx_start"] = point_start
         self.record["point_idx_end"] = point_end
         self.record["wkb_geometry"] = geom[point_start:point_end+1]
+
+    @classmethod    
+    def table_creation_sql(cls):
+        return super(MPSegment, cls).table_creation_sql() + "".join([
+                "CREATE TABLE %(table_name)s_%(type_name)s (LIKE %(table_name)s);\n" % {
+                    'table_name': cls.table_name,
+                    'type_name': type_name,
+                    } for type_name in list(set([tm[0] for tm in SEGMENT_TYPE_MAP.values()]))])
+
+    @classmethod
+    def post_processing_sql(cls):
+        return "".join([dedent("""
+            INSERT INTO %(table_name)s_%(type_name)s SELECT * FROM %(table_name)s WHERE type = %(type_code)d;
+            UPDATE %(table_name)s_%(type_name)s SET subtype = '%(subtype_name)s' WHERE type = %(type_code)d;
+        """ % {
+                    'table_name': cls.table_name,
+                    'type_name': tm[0],
+                    'type_code': type_code,
+                    'subtype_name': tm[1],
+                    }) for type_code, tm in SEGMENT_TYPE_MAP.iteritems()])
     
 class MPPolygon(MPGeometry):
     table_name = "mp_polygon"
@@ -760,6 +678,8 @@ class Polygon(object):
     def format_ring(cls, ring):
         # We append the first point to close the ring
         return "(" + ",".join(["%s %s" % (x, y) for (x, y) in ring[1] + [ring[1][0]]]) + ")"
+
+TABLE_CLASSES = [MPImgData, MPCountries, MPRegions, MPCities, MPZipCodes, MPPoi, MPLine, MPNumbers, MPPolygon, MPNode, MPRestrict, MPSegment]
     
 class MPFile(object):
     ymd_re = re.compile('(?P<year>[0-9]{4})(?P<month>[0-9]{2})(?P<day>[0-9]{2})')
@@ -805,13 +725,17 @@ class MPFile(object):
                 else:
                     self.err.write("-- Did not parse line::: %s" % line)
         self.out.write('COMMIT;\n')
+        self.out.write('BEGIN;\n')
+        for cls in TABLE_CLASSES:
+            self.out.write(cls.post_processing_sql())
+        self.out.write('COMMIT;\n')
         self.err.write("-- Points:    %d\n" % self.poi_counter)
         self.err.write("-- Lines:     %d\n" % self.polyline_counter)
         self.err.write("-- Polygons:  %d\n" % self.polygon_counter)
             
     def write_headers(self):
         self.out.write('SET statement_timeout=60000;\n')
-        for cls in [MPImgData, MPCountries, MPRegions, MPCities, MPZipCodes, MPPoi, MPLine, MPNumbers, MPPolygon, MPNode, MPRestrict, MPSegment]:
+        for cls in TABLE_CLASSES:
             self.out.write(cls.table_creation_sql())
         self.out.write('SET statement_timeout=0;\n')
 

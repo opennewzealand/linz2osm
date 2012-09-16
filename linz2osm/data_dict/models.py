@@ -86,6 +86,11 @@ class Layer(models.Model):
         ('LINESTRING', 'Linestring'),
         ('POLYGON', 'Polygon'),
         ]
+    PKEY_CHOICES = [
+        ('ogc_fid', 'ogc_fid'),
+        ('linz2osm_id', 'linz2osm_id'),
+        ('id', 'id')
+        ]
     
     name = models.CharField(max_length=100, primary_key=True)
     entity = models.CharField(max_length=200, blank=True, db_index=True)
@@ -94,6 +99,7 @@ class Layer(models.Model):
     datasets = models.ManyToManyField(Dataset, through='LayerInDataset')
     geometry_type = models.CharField(max_length=255, blank=True, choices=GEOTYPE_CHOICES)
     group = models.ForeignKey(Group, blank=True, null=True)
+    pkey_name = models.CharField(max_length=255, default='ogc_fid', choices=PKEY_CHOICES)
     
     def __unicode__(self):
         return unicode(self.name)

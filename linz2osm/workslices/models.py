@@ -193,12 +193,12 @@ class WorksliceFeatureManager(models.Manager):
             WorksliceFeature(
                 workslice=workslice,
                 layer_in_dataset=layer_in_dataset,
-                feature_id=ogc_fid
-                ) for ogc_fid
+                feature_id=fid
+                ) for fid
             in covered_fids
             if not self.filter(
                 layer_in_dataset=layer_in_dataset,
-                feature_id=ogc_fid
+                feature_id=fid
                 ).exists()
             ]
         if len(ws_feats) > layer_in_dataset.layer.feature_limit:

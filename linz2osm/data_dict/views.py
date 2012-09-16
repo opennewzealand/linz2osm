@@ -26,7 +26,7 @@ from django.utils import simplejson
 from django.template import RequestContext
 from django import forms
 
-from linz2osm.data_dict.models import Layer, Tag, Dataset, LayerInDataset
+from linz2osm.data_dict.models import *
 from linz2osm.utils.forms import BootstrapErrorList
 from linz2osm.convert import osm
 
@@ -157,6 +157,7 @@ def export_data_dict(request):
     response = HttpResponse(
         serializers.serialize(
             "xml", chain(
+                Group.objects.order_by('name').all(),
                 Layer.objects.order_by('name').all(),
                 Tag.objects.order_by('layer', 'tag').all()),
             indent=4,

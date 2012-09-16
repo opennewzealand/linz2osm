@@ -43,7 +43,7 @@ def get_layer_geometry_type(database_id, layer):
 def get_layer_feature_ids(layer_in_dataset, extent=None, feature_limit=None):
     cursor = connections[layer_in_dataset.dataset.name].cursor()
 
-    sql = 'SELECT ogc_fid FROM %s'
+    sql = 'SELECT %(pkey_name)s FROM %(layer_name)s'
     params = []
     
     if extent:
@@ -52,11 +52,11 @@ def get_layer_feature_ids(layer_in_dataset, extent=None, feature_limit=None):
         sql += ' WHERE (wkb_geometry && ST_Transform(%%s, %%s)) AND ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s, %%s))'
         params += [extent_trans, srid, extent_trans, srid]
 
-    sql += ' ORDER BY ogc_fid'
+    sql += ' ORDER BY %(pkey_name)s'
     if feature_limit:
         sql += ' LIMIT %d' % (feature_limit + 1)
 
-    cursor.execute(sql % layer_in_dataset.layer.name, params)
+    cursor.execute(sql % {'pkey_name': layer_in_dataset.layer.pkey_name, 'layer_name': layer_in_dataset.layer.name}, params)
     if (feature_limit is not None) and cursor.rowcount > feature_limit:
         return None # FIXME: use exceptions - should have checked feature count before approving workslice
     return [r[0] for r in cursor.fetchall()]
@@ -81,12 +81,15 @@ def get_layer_feature_count(database_id, layer, intersect_geom=None):
 class NoSuchFieldNameError(Exception):
     pass
 
+NO_STATS_FIELDS = ['ogc_fid', 'wkb_geometry']
+LIMITED_STATS_FIELDS = NO_STATS_FIELDS + ['macronated', 'grp_macron']
+
 def get_field_stats(database_id, layer, field_name):
     geom_type, srid = get_layer_geometry_type(database_id, layer)
     cursor = connections[database_id].cursor()
     if not re.match("\w+", field_name):
         raise NoSuchFieldNameError
-    if field_name == 'ogc_fid' or field_name == 'wkb_geometry':
+    if field_name in NO_STATS_FIELDS or field_name == layer.pkey_name:
         raise NoSuchFieldNameError
     cursor.execute("SELECT data_type FROM information_schema.columns WHERE table_name=%s AND column_name=%s;", [layer.name, field_name])
     col_type_row = cursor.fetchone()
@@ -118,11 +121,11 @@ def get_layer_stats(database_id, layer):
         'feature_count': get_layer_feature_count(database_id, layer),
         'extent': extent,
         'extent_link': "http://www.openstreetmap.org/index.html?minlon=%f&minlat=%f&maxlon=%f&maxlat=%f&box=yes" % et,
-        'primary_key': 'ogc_fid', # FIXME: feature-IDs
+        'primary_key': layer.pkey_name,
         'fields': {}
     }
     
-    cursor.execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s AND column_name NOT IN ('ogc_fid', 'wkb_geometry', 'macronated', 'grp_macron');", [layer.name])
+    cursor.execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s AND column_name NOT IN (%s, %s);", [layer.pkey_name, layer.name, ", ".join(LIMITED_STATS_FIELDS)])
     for col_name,col_type in cursor.fetchall():
         sql = 'SELECT count(*) FROM %(t)s WHERE %(c)s IS NOT NULL'
         if col_type in ('character varying',):
@@ -196,9 +199,9 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
 
     if feature_ids is not None:
         if len(feature_ids) > 0:
-            sql_base += ' WHERE ogc_fid IN (%s)' % (",".join([str(fid) for fid in feature_ids]))
+            sql_base += ' WHERE %s IN (%s)' % (layer.pkey_name, ",".join([str(fid) for fid in feature_ids]))
         else:
-            sql_base += ' WHERE ogc_fid IS NULL'
+            sql_base += ' WHERE %s IS NULL' % layer.pkey_name
 
     cursor.execute(sql_base)
     
