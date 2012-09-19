@@ -318,6 +318,7 @@ APPLY_TO_CHOICES = [
     (2, 'Relations only'),
     (3, 'First node only'),
     (4, 'Last node only'),
+    (5, 'First and last nodes'),
 ]
 
 @total_ordering
@@ -343,9 +344,9 @@ class Tag(models.Model):
 
     def apply_for(self, cand):
         if cand == "first":
-            return self.apply_to == 3
+            return self.apply_to in [3, 5]
         elif cand == "last":
-            return self.apply_to == 4
+            return self.apply_to in [4, 5]
         elif cand == "geometry":
             return self.apply_to in [0, 1]
         elif cand == "relation":
