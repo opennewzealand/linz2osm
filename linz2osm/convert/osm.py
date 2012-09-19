@@ -352,7 +352,7 @@ class OSMWriter(object):
             # node
             # indepenent nodes are mapped (ie. POINTs)
             # repeated nodes within a MULTIPOINT/GEOMETRYCOLLECTION are mapped
-            return self.build_node(geom, tags, map=inner)
+            return self.build_node(geom, tags, inner)
         
         elif isinstance(geom, geos.LineString):
             # way
