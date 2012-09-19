@@ -162,7 +162,7 @@ class LayerAdmin(admin.ModelAdmin):
     stats_link.allow_tags = True
 
 class TagAdmin(admin.ModelAdmin):
-    list_display = ('tag',)
+    list_display = ('tag', 'apply_to')
     ordering = ('tag',)
     exclude = ('layer',)
     

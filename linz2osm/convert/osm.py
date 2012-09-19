@@ -82,7 +82,6 @@ class NoSuchFieldNameError(Exception):
     pass
 
 NO_STATS_FIELDS = ['ogc_fid', 'wkb_geometry']
-LIMITED_STATS_FIELDS = NO_STATS_FIELDS + ['macronated', 'grp_macron']
 
 def get_field_stats(database_id, layer, field_name):
     geom_type, srid = get_layer_geometry_type(database_id, layer)
@@ -100,8 +99,6 @@ def get_field_stats(database_id, layer, field_name):
     sql = "SELECT %(c)s, count(*) FROM %(t)s WHERE %(c)s IS NOT NULL "
     if col_type in ('character varying',):
         sql += " AND %(c)s <> '' "
-    elif col_type in ('double precision', 'integer',):
-        sql += " AND %(c)s <> 0 "
     sql += "GROUP BY %(c)s ORDER BY count(*) DESC, %(c)s ASC; "
     
     cursor.execute(sql % {'t': layer.name, 'c': field_name}) 
@@ -125,13 +122,11 @@ def get_layer_stats(database_id, layer):
         'fields': {}
     }
     
-    cursor.execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s AND column_name NOT IN (%s, %s);", [layer.pkey_name, layer.name, ", ".join(LIMITED_STATS_FIELDS)])
+    cursor.execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s AND column_name NOT IN (%s, 'ogc_fid', 'linz2osm_id', 'id', 'wkb_geometry', 'macronated', 'grp_macron', 'mp_line_ogc_fid');", [layer.name, layer.pkey_name])
     for col_name,col_type in cursor.fetchall():
         sql = 'SELECT count(*) FROM %(t)s WHERE %(c)s IS NOT NULL'
         if col_type in ('character varying',):
             sql += " AND %(c)s <> ''"
-        elif col_type in ('double precision', 'integer',):
-            sql += " AND %(c)s <> 0"
         cursor.execute(sql % {'t': layer.name, 'c': col_name})
         row = cursor.fetchone()
         r['fields'][col_name] = {
@@ -219,7 +214,7 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
         if workslice_id is not None:
             row_data['workslice_id'] = workslice_id
         
-        row_tags = {}
+        row_tags = []
         for tag in layer_tags:
             try:
                 v = tag.eval(row_data)
@@ -229,7 +224,7 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
                 emsg += str(e)
                 raise Error(emsg)
             if (v is not None) and (v != ""):
-                row_tags[tag.tag] = v
+                row_tags.append((tag.tag, v, tag,))
 
         # apply geometry processing
         for p in processors:
@@ -278,7 +273,7 @@ class OSMWriter(object):
         if root is None: 
             r = ElementTree.Element('relation', id=self.next_id)
             ElementTree.SubElement(r, 'tag', k='type', v='multipolygon')
-            self.build_tags(r, tags)
+            self.build_tags(r, tags, "relation")
         else:
             r = root
         
@@ -297,20 +292,26 @@ class OSMWriter(object):
             self.n_create.append(r)
         return [r.get('id')]
             
-    def build_way(self, coords, tags):
+    def build_way(self, coords, tags, tag_nodes_at_ends=False):
         ids = []
         rem_coords = coords[:]
         node_map = {}
+        special_node_type = "first" if tag_nodes_at_ends else None
         while True:
             w = ElementTree.Element('way', id=self.next_id)
             
             cur_coords = rem_coords[:self.WAY_SPLIT_SIZE]
             rem_coords = rem_coords[self.WAY_SPLIT_SIZE-1:]
-                        
+
+            cur_coords_last_idx = len(cur_coords) - 1
             for i,c in enumerate(cur_coords):
-                n_id = self._node(c, None)
+                if tag_nodes_at_ends and not rem_coords:
+                    if i == cur_coords_last_idx:
+                        special_node_type = "last"
+                n_id = self._node(c, tags if tag_nodes_at_ends and special_node_type else None, True, special_node_type)
+                special_node_type = None
                 ElementTree.SubElement(w, 'nd', ref=n_id)
-            self.build_tags(w, tags)
+            self.build_tags(w, tags, "geometry")
             self.n_create.append(w)
             ids.append(w.get('id'))
             
@@ -319,18 +320,18 @@ class OSMWriter(object):
         
         return ids
 
-    def _node(self, coords, tags, map=True):
+    def _node(self, coords, tags, map_node=True, special_node_type=None):
         k = (str(coords[0]), str(coords[1]), id(tags) if tags else None)
         n = self._nodes.get(k)
-        if (not map) or (n is None):
+        if (not map_node) or (n is None):
             n = ElementTree.SubElement(self.n_create, 'node', id=self.next_id, lat=str(coords[1]), lon=str(coords[0]))
-            self.build_tags(n, tags)
-            if map:
+            self.build_tags(n, tags, special_node_type)
+            if map_node:
                 self._nodes[k] = n
         return n.get('id')
 
-    def build_node(self, geom, tags, map=True):
-        return [self._node((geom.x, geom.y), tags, map)]
+    def build_node(self, geom, tags, map_node=True):
+        return [self._node((geom.x, geom.y), tags, map_node, "geometry")]
     
     def build_geom(self, geom, tags, inner=False):
         if isinstance(geom, geos.Polygon) and (len(geom) == 1) and (len(geom[0]) <= self.WAY_SPLIT_SIZE):
@@ -355,17 +356,21 @@ class OSMWriter(object):
         
         elif isinstance(geom, geos.LineString):
             # way
-            return self.build_way(geom.tuple, tags)
+            return self.build_way(geom.tuple, tags, True)
     
-    def build_tags(self, parent_node, tags):
+    def build_tags(self, parent_node, tags, object_type):
         if tags:
-            for tn,tv in tags.items():
-                if len(tn) > 255:
-                    raise Error(u'Tag key too long (max. 255 chars): %s' % tn)
-                tv = unicode(tv)
-                if len(tv) > 255:
-                    raise Error(u'Tag value too long (max. 255 chars): %s' % tv)
-                ElementTree.SubElement(parent_node, 'tag', k=tn, v=tv)
+            applied_tags = set()
+            for tn, tv, tag_obj in tags:
+                if tag_obj.apply_for(object_type):
+                    if tn not in applied_tags:
+                        applied_tags.add(tn)
+                        if len(tn) > 255:
+                            raise Error(u'Tag key too long (max. 255 chars): %s' % tn)
+                        tv = unicode(tv)
+                        if len(tv) > 255:
+                            raise Error(u'Tag value too long (max. 255 chars): %s' % tv)
+                        ElementTree.SubElement(parent_node, 'tag', k=tn, v=tv)
     
     def _etree_indent(self, elem, level=0):
         i = "\n" + level*"  "

@@ -210,16 +210,17 @@ class LayerInDataset(geomodels.Model):
 
     def get_all_tags(self):
         # if we override a default one, use the specific one
-        tags = dict([(t.tag, t) for t in Tag.objects.default()])
+        # count tags with different apply_to values separately
+        tags = dict([((t.tag, t.apply_to), t) for t in Tag.objects.default()])
         if self.dataset.group:
             for t in self.dataset.group.tags.all():
-                tags[t.tag] = t
+                tags[(t.tag, t.apply_to)] = t
         if self.layer.group:
             for t in self.layer.group.tags.all():
-                tags[t.tag] = t
+                tags[(t.tag, t.apply_to)] = t
         if self.layer:
             for t in self.layer.tags.all():
-                tags[t.tag] = t
+                tags[(t.tag, t.apply_to)] = t
         return tags.values()            
     
     def get_statistics_for(self, field_name):
@@ -311,6 +312,14 @@ class TagManager(models.Manager):
     def default(self):
         return self.get_query_set().filter(layer__isnull=True, group__isnull=True)
 
+APPLY_TO_CHOICES = [
+    (0, 'Geometries and relations'),
+    (1, 'Geometries only'),
+    (2, 'Relations only'),
+    (3, 'First node only'),
+    (4, 'Last node only'),
+]
+
 @total_ordering
 class Tag(models.Model):
     objects = TagManager()
@@ -319,9 +328,10 @@ class Tag(models.Model):
     group = models.ForeignKey(Group, null=True, blank=True, related_name='tags')
     tag = models.CharField(max_length=100, help_text="OSM tag name")
     code = models.TextField(blank=True, help_text="Javascript code that sets the 'value' paramter to a non-null value to set the tag. 'fields' is an object with all available attributes for the current record")
+    apply_to = models.IntegerField(default=0, choices=APPLY_TO_CHOICES)
     
     class Meta:
-        unique_together = ('layer', 'tag',)
+        unique_together = ('layer', 'apply_to', 'tag',)
         verbose_name = 'Default Tag'
         verbose_name_plural = 'Default Tags'
     
@@ -330,6 +340,18 @@ class Tag(models.Model):
     
     def __unicode__(self):
         return self.tag
+
+    def apply_for(self, cand):
+        if cand == "first":
+            return self.apply_to == 3
+        elif cand == "last":
+            return self.apply_to == 4
+        elif cand == "geometry":
+            return self.apply_to in [0, 1]
+        elif cand == "relation":
+            return self.apply_to in [0, 2]
+        else:
+            return True
     
     def eval(self, fields):
         return Tag.objects.eval(self.code, fields)
