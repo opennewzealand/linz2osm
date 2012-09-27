@@ -17,7 +17,10 @@ Requirements
  * Celery 3 or later and django-celery
  * GDAL 1.5 or later
  * BeautifulSoup (only if generating layers from LINZ data dictionary with dd_load)
+ * Requests v0.14.0 or later
 
+ (you can install most of these through pip: use the requirements.txt file)
+ 
 Installing Pydermonkey
 ----------------------
 

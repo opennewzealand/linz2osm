@@ -16,21 +16,24 @@
 
 import decimal
 import re
+
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from fractions import Fraction
+from textwrap import dedent
 
 from django.core.urlresolvers import reverse
-from django.db import transaction
+from django.db import transaction, connections
 from django.conf import settings
 from django.utils import text
 from django.contrib import auth
-from django.contrib import gis
+from django.contrib.gis import geos
 from django.contrib.gis.db import models
 
 from linz2osm.data_dict.models import Layer, Dataset, LayerInDataset
 from linz2osm.workslices import tasks
-from linz2osm.convert import osm
+from linz2osm.convert import osm, overpass
+from linz2osm.convert.osm import Error
 
 CELL_RE = re.compile(r'\AX(?P<x>[0-9-]+)Y(?P<y>[0-9-]+)C(?P<cpd>[0-9]+)\Z')
 
@@ -42,7 +45,7 @@ class Cell(object):
         self.size = 1.0 / float(self.cpd)
 
     def as_polygon(self):
-        return gis.geos.Polygon.from_bbox((self.lon, self.lat, self.lon + self.size, self.lat + self.size))
+        return geos.Polygon.from_bbox((self.lon, self.lat, self.lon + self.size, self.lat + self.size))
 
     def __unicode__(self):
         return "X: %f, Y: %f, CPD: %d" % (self.lon, self.lat, self.cpd)
@@ -55,9 +58,9 @@ class WorksliceManager(models.GeoManager):
                 # print extent.ewkt
                 
                 # Get extent to use to get features (no clipping)
-                allocation_extent = extent or gis.geos.MultiPolygon(layer_in_dataset.extent)
+                allocation_extent = extent or geos.MultiPolygon(layer_in_dataset.extent)
                 if allocation_extent.geom_type == 'Polygon':
-                    allocation_extent = gis.geos.MultiPolygon(allocation_extent)
+                    allocation_extent = geos.MultiPolygon(allocation_extent)
                 allocation_extent.srid = 4326
                     
                 # Get extent to show on map    
@@ -67,10 +70,10 @@ class WorksliceManager(models.GeoManager):
                     display_extent = display_extent.difference(existing_checkouts)
                 display_extent = display_extent.intersection(layer_in_dataset.extent)
                 if display_extent.geom_type == 'Polygon':
-                    display_extent = gis.geos.MultiPolygon(display_extent)
+                    display_extent = geos.MultiPolygon(display_extent)
                 elif display_extent.geom_type != 'MultiPolygon':
                     # make a tiny circular checkout at the centroid of the checkout
-                    display_extent = gis.geos.MultiPolygon(extent.centroid.buffer(0.0000000012345))
+                    display_extent = geos.MultiPolygon(extent.centroid.buffer(0.0000000012345))
                     
                 display_extent.srid = 4326
 
@@ -208,10 +211,70 @@ class WorksliceFeatureManager(models.Manager):
         self.bulk_create(ws_feats)
         workslice.feature_count = len(ws_feats)
         workslice.save()
-    
+
+OVERPASS_PROXIMITY = 0.001
+        
 class WorksliceFeature(models.Model):
     objects = WorksliceFeatureManager()
     
     workslice = models.ForeignKey(Workslice)
     feature_id = models.IntegerField()
     layer_in_dataset = models.ForeignKey(LayerInDataset)
+
+    def wgs_geom(self, expression = "ST_Transform(wkb_geometry, 4326)"):
+        cursor = connections[self.layer_in_dataset.dataset.name].cursor()
+        layer = self.layer_in_dataset.layer
+        cursor.execute("SELECT ST_AsHexEWKB(%s) FROM %s WHERE %s = %d" % (
+                expression,
+                layer.name,
+                layer.pkey_name,
+                self.feature_id,))
+        return geos.GEOSGeometry(cursor.fetchone()[0])
+
+    def wgs_bounds(self):
+        return self.wgs_geom("ST_Envelope(ST_Transform(wkb_geometry, 4326))")
+
+    def osm_conflicts_query_ql(self, query_data):
+        geotype = self.layer_in_dataset.layer.geometry_type
+        if geotype == "POINT":
+            query = dedent("""
+                node
+                %(tags)s
+                %(bounds)s;
+                """)
+        elif geotype == "LINESTRING":
+            query = dedent("""
+                (
+                way
+                %(tags)s
+                %(bounds)s;
+                >;
+                );""")
+        elif geotype == "POLYGON":
+            query = dedent("""
+                (
+                rel
+                ["type"="multipolygon"]
+                %(tags)s
+                %(bounds)s;
+                way
+                %(tags)s
+                %(bounds)s;
+                >;
+                );""")
+        else:
+            raise Error("Unsupported geometry type %s" % geotype)
+
+        geobounds = self.wgs_bounds().extent
+        str_bounds = "(%f,%f,%f,%f)" % (
+            geobounds[1] - OVERPASS_PROXIMITY,
+            geobounds[0] - OVERPASS_PROXIMITY,
+            geobounds[3] + OVERPASS_PROXIMITY,
+            geobounds[2] + OVERPASS_PROXIMITY,
+            )
+        
+        return query % {
+            'tags': "\n".join(["[\"%s\"=\"%s\"]" % (k, v) for k, v in query_data.iteritems()]),
+            'bounds': str_bounds,
+            }
+

@@ -21,6 +21,10 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
     this.map = null;
     var wgs84 = new OpenLayers.Projection("EPSG:4326");
     var smp = new OpenLayers.Projection("EPSG:3857");
+    var geojson_format = new OpenLayers.Format.GeoJSON({
+        internalProjection: smp,
+        externalProjection: wgs84
+    });
 
     function loadMap(bounds_ary) {
         var osm = new OpenLayers.Layer.OSM("Mapnik");
@@ -153,10 +157,6 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
             featureRules = CHECKOUT_COLOURING_RULES;
         }
         
-        var geojson_format = new OpenLayers.Format.GeoJSON({
-            internalProjection: smp,
-            externalProjection: wgs84
-        });
         var style = new OpenLayers.Style(
             {
                 strokeOpacity: 0.8,
@@ -283,14 +283,32 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
             redrawAfterBulkContentsUpdate();
         };
 
-        this.updateFeatureCount = function() {
+        this.clearFeatureInformation = function() {
+            $("#feature-selection-information").html('');
+            $("#feature-conflict-information").html('');
+        };
+
+        this.clearFeatureLayers = function() {
+            osm_conflict_layer.destroyFeatures();
+            dataset_feature_layer.destroyFeatures();
+        };
+        
+        this.updateFeatureInformation = function() {
             if(contents.length > 0) {
                 $("#feature-selection-ajax-indicator").show();
                 $.post(
                     $("#feature-count-form").attr('action'),
                     $("#grab-some-data-form").serialize(),
                     function(data, textStatus, jqXHR) {
+                        self.clearFeatureLayers();
+                        if(data.osm_conflict_geometry) {
+                            osm_conflict_layer.addFeatures(geojson_format.read(data.osm_conflict_geometry));
+                        }
+                        if(data.feature_selection_geometry) {
+                            dataset_feature_layer.addFeatures(geojson_format.read(data.feature_selection_geometry));
+                        }
                         $("#feature-selection-information").html(data.info);
+                        $("#feature-conflict-information").html(data.osm_conflict_info);
                         $("#feature-selection-ajax-indicator").hide();
                     },
                     'json'
@@ -312,7 +330,7 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
                 msg = contents.length + " cells selected. No more cells can be added. ";
             }
             $("#cell-selection-information").html(msg);
-            $("#feature-selection-information").html('');
+            self.clearFeatureInformation();
         }
         
         /* FIXME: speed up adding cell */
@@ -340,7 +358,7 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
             }
             updateCellSelectionInformation();
             $("input#id_cells").val(cells.toString());
-            self.updateFeatureCount();
+            self.updateFeatureInformation();
             return retval;
         };
 
@@ -449,6 +467,29 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
     });
     this.map.addLayer(hover_layer);
 
+    osm_conflict_layer = new OpenLayers.Layer.Vector('Conflicting features', {
+        style: {
+            strokeOpacity: 0.75,
+            strokeWidth: 2,
+            strokeColor: '#ff0000',
+            fillOpacity: 0.5,
+            fillColor: '#ff0000'
+        }
+    });
+    this.map.addLayer(osm_conflict_layer);
+
+    dataset_feature_layer = new OpenLayers.Layer.Vector('Features in selection', {
+        style: {
+            strokeOpacity: 0.75,
+            strokeWidth: 2,
+            strokeColor: '#00ff00',
+            fillOpacity: 0.5,
+            fillColor: '#00ff00'
+        }
+    });
+    this.map.addLayer(dataset_feature_layer);
+
+    
     this.map.events.register('zoomend', self, function() {
         if(selecting_cells) {
             updateCellDensityAndSelection();
@@ -533,6 +574,16 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
         $("#grab-some-data-select-mode").hide();
         $("#grab-some-data-view-mode").show();
     };
+
+    $("#id_show_features_in_selection").change(function(event) {
+        cells.clearFeatureInformation();
+        cells.updateFeatureInformation();
+    });
+    
+    $("#id_show_conflicting_features").change(function(event) {
+        cells.clearFeatureInformation();
+        cells.updateFeatureInformation();
+    });
         
     $("#grab-some-data-start").click(function(event) {
         event.preventDefault();
@@ -547,6 +598,8 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
     $("#grab-some-data-reset").click(function(event) {
         event.preventDefault();
         cells.clear();
+        cells.clearFeatureLayers();
+        cells.clearFeatureInformation();
     });
     generateOSMLink();
 }

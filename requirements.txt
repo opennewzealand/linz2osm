@@ -11,3 +11,4 @@ oauth>=1.0.1
 pydermonkey>=0.0.6
 simplejson>=2.3.2
 virtualenv>=1.7.1.2
+requests>=0.14.0

@@ -31,9 +31,9 @@ from django.contrib.gis.geos import MultiPolygon, Polygon
 from django.contrib.auth.models import User
 from django import forms
 
-from linz2osm.data_dict.models import Layer, Dataset, LayerInDataset
-from linz2osm.workslices.models import Workslice, Cell, WorksliceTooFeaturefulError, WorksliceInsufficientlyFeaturefulError
-from linz2osm.convert import osm
+from linz2osm.data_dict.models import *
+from linz2osm.workslices.models import *
+from linz2osm.convert import osm, overpass
 from linz2osm.utils.forms import BootstrapErrorList
 
 def show_workslice(request, workslice_id=None):
@@ -155,6 +155,16 @@ def list_workslices(request, username=None):
 
 class WorksliceForm(forms.Form):
     cells = forms.CharField(widget=forms.HiddenInput(), required=False)
+    show_features_in_selection = forms.ChoiceField(choices=(
+            ('no', 'No, count only'),
+            ('yes', 'Yes'),
+            ('centroids', 'Centroids'),
+            ), initial='centroids')
+    show_conflicting_features = forms.ChoiceField(choices=(
+            ('no', 'No'),
+            ('yes', 'Yes'),
+            ('count', "Count but don't show"),
+            ), initial='no')
     
     def clean(self):
         cleaned_data = super(WorksliceForm, self).clean()
@@ -219,16 +229,62 @@ def workslice_info(request, layer_in_dataset_id):
         feature_count = osm.get_layer_feature_count(dataset.name, layer, form.extent)
         if feature_count > layer.feature_limit:
             ctx['info'] = "Too many features (over %d): please reduce selection." % layer.feature_limit
-        elif feature_count > 1:
-            ctx['info'] = "%d features in selection." % feature_count
-        elif feature_count > 0:
-            ctx['info'] = "1 feature in selection."
-        elif feature_count == 0:
-            ctx['info'] = "No features in selection."
+            ctx['osm_conflict_info'] = ""
         else:
-            ctx['info'] = "Serious error calculating features."
+            if feature_count > 1:
+                ctx['info'] = "%d features in selection." % feature_count
+            elif feature_count == 1:
+                ctx['info'] = "1 feature in selection."
+            elif feature_count == 0:
+                ctx['info'] = "No features in selection."
+            else:
+                ctx['info'] = "Serious error calculating features."
+                
+            if form.cleaned_data['show_conflicting_features'] in ['yes', 'count']:
+                feature_ids = osm.get_layer_feature_ids(layer_in_dataset, form.extent)
+                workslice_features = [WorksliceFeature(feature_id=feat_id, layer_in_dataset=layer_in_dataset) for feat_id in feature_ids]
+                osm_conflicts = overpass.osm_conflicts_json(workslice_features, {'bridge': 'yes'})['elements'] # FIXME: tagging
+                
+                nodes = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'node'])
+                ways = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'way'])
+                rels = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'rel'])
+
+                print "NODES"
+                print nodes
+                print "WAYS"
+                print ways
+                print "RELS"
+                print rels
+                
+                if layer.geometry_type == 'POINT':
+                    conflict_count = len(nodes)
+                    if form.cleaned_data['show_conflicting_features'] == 'yes':
+                        ctx['osm_conflict_geometry'] = overpass.osm_geojson(nodes.values())
+                elif layer.geometry_type == 'LINESTRING':
+                    conflict_count = len(ways)
+                    if form.cleaned_data['show_conflicting_features'] == 'yes':
+                        ctx['osm_conflict_geometry'] = overpass.osm_geojson(ways.values(), nodes)
+                elif layer.geometry_type == 'POLYGON':
+                    conflict_count = len(ways) # FIXME: count rels too.
+                    if form.cleaned_data['show_conflicting_features'] == 'yes':
+                        ctx['osm_conflict_geometry'] = overpass.osm_geojson(rels.values(), nodes, ways)
+                    
+                if conflict_count > 1:
+                    ctx['osm_conflict_info'] = "%d nearby features of this type in OSM." % conflict_count
+                elif conflict_count == 1:
+                    ctx['osm_conflict_info'] = "1 nearby feature of this type in OSM."
+                elif conflict_count == 0:
+                    ctx['osm_conflict_info'] = "No nearby features of this type in OSM."
+                else:
+                    ctx['osm_conflict_info'] = "Error querying OSM."
+            else:
+                ctx['osm_conflict_info'] = ""
+
+            if form.cleaned_data['show_features_in_selection'] in ['yes', 'centroids']:
+                pass
+
     else:
         ctx['info'] = " ".join(form.errors['__all__'])
-    ctx['queries'] = django.db.connections[layer_in_dataset.dataset.name].queries
+    # ctx['queries'] = django.db.connections[layer_in_dataset.dataset.name].queries
 
     return HttpResponse(json.dumps(ctx), content_type='application/json')

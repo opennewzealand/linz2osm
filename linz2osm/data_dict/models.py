@@ -14,6 +14,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import datetime
 import decimal
 import pydermonkey
 
@@ -281,6 +282,8 @@ class TagManager(models.Manager):
         for fk,fv in fields.items():
             if isinstance(fv, decimal.Decimal):
                 fv = float(fv)
+            elif isinstance(fv, datetime.date):
+                fv = str(fv)
             eval_fields[fk] = fv
         
         js = pydermonkey.Runtime().new_context()
@@ -302,7 +305,7 @@ class TagManager(models.Manager):
             if value is pydermonkey.undefined:
                 value = None
             return value
-        except pydermonkey.error, e:
+        except (pydermonkey.ScriptError,), e:
             e_msg = js.get_property(e.args[0], 'message')
             e_lineno = js.get_property(e.args[0], 'lineNumber')
             en = Tag.ScriptError("%s (line %d)" % (e_msg, e_lineno))
