@@ -280,6 +280,7 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
         this.clear = function() {
             contents = new Array();
             selection_layer.destroyFeatures();
+            self.clearFeatureLayers();
             redrawAfterBulkContentsUpdate();
         };
 
@@ -598,7 +599,6 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
     $("#grab-some-data-reset").click(function(event) {
         event.preventDefault();
         cells.clear();
-        cells.clearFeatureLayers();
         cells.clearFeatureInformation();
     });
     generateOSMLink();

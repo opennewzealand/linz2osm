@@ -46,8 +46,6 @@ def osm_geojson(osm_features, nodes={}, ways={}):
         """ % ",".join(filter(None, [osm_feature_geojson(of, nodes, ways) for of in osm_features])))
 
 def osm_feature_geojson(osm_feature, nodes={}, ways={}):
-    print "OSM FEATURE"
-    print osm_feature
     geom = geometry_for_osm_feature(osm_feature, nodes, ways)
     if not geom:
         return None
@@ -77,9 +75,7 @@ def geometry_for_osm_feature(osm_feature, nodes={}, ways={}):
         return None
 
 def node_point(node_id, nodes):
-    print "NODE POINT"
     n = nodes.get(node_id)
-    print n
     if n:
         return Point(n['lon'], n['lat'])
     else:

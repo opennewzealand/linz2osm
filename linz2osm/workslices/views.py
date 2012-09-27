@@ -249,13 +249,6 @@ def workslice_info(request, layer_in_dataset_id):
                 ways = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'way'])
                 rels = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'rel'])
 
-                print "NODES"
-                print nodes
-                print "WAYS"
-                print ways
-                print "RELS"
-                print rels
-                
                 if layer.geometry_type == 'POINT':
                     conflict_count = len(nodes)
                     if form.cleaned_data['show_conflicting_features'] == 'yes':
