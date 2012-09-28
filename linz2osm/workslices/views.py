@@ -239,11 +239,16 @@ def workslice_info(request, layer_in_dataset_id):
                 ctx['info'] = "No features in selection."
             else:
                 ctx['info'] = "Serious error calculating features."
-                
-            if form.cleaned_data['show_conflicting_features'] in ['yes', 'count']:
+
+            if form.cleaned_data['show_conflicting_features'] in ['yes', 'count'] or form.cleaned_data['show_features_in_selection'] in ['yes', 'centroids']:
                 feature_ids = osm.get_layer_feature_ids(layer_in_dataset, form.extent)
                 workslice_features = [WorksliceFeature(feature_id=feat_id, layer_in_dataset=layer_in_dataset) for feat_id in feature_ids]
-                osm_conflicts = overpass.osm_conflicts_json(workslice_features, {'bridge': 'yes'})['elements'] # FIXME: tagging
+
+            if form.cleaned_data['show_conflicting_features'] in ['yes', 'count']:
+                if layer.tags_ql:
+                    osm_conflicts = overpass.osm_conflicts_json(workslice_features, layer.tags_ql)['elements'] # FIXME: tagging
+                else:
+                    osm_conflicts = []
                 
                 nodes = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'node'])
                 ways = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'way'])
@@ -273,8 +278,10 @@ def workslice_info(request, layer_in_dataset_id):
             else:
                 ctx['osm_conflict_info'] = ""
 
-            if form.cleaned_data['show_features_in_selection'] in ['yes', 'centroids']:
-                pass
+            if form.cleaned_data['show_features_in_selection'] == 'yes':
+                ctx['feature_selection_geometry'] = osm.feature_selection_geojson(workslice_features)
+            elif form.cleaned_data['show_features_in_selection'] == 'centroids':
+                ctx['feature_selection_geometry'] = osm.feature_selection_geojson(workslice_features, True)
 
     else:
         ctx['info'] = " ".join(form.errors['__all__'])

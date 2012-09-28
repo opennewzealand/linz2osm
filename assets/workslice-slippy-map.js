@@ -468,28 +468,29 @@ function WorksliceSlippyMap(map_id, bounds_ary, checkouts_geojson, highlight_id)
     });
     this.map.addLayer(hover_layer);
 
-    osm_conflict_layer = new OpenLayers.Layer.Vector('Conflicting features', {
-        style: {
-            strokeOpacity: 0.75,
-            strokeWidth: 2,
-            strokeColor: '#ff0000',
-            fillOpacity: 0.5,
-            fillColor: '#ff0000'
-        }
-    });
-    this.map.addLayer(osm_conflict_layer);
-
     dataset_feature_layer = new OpenLayers.Layer.Vector('Features in selection', {
         style: {
             strokeOpacity: 0.75,
             strokeWidth: 2,
             strokeColor: '#00ff00',
-            fillOpacity: 0.5,
-            fillColor: '#00ff00'
+            fillOpacity: 0.75,
+            fillColor: '#00ff00',
+            pointRadius: 3.0
         }
     });
     this.map.addLayer(dataset_feature_layer);
 
+    osm_conflict_layer = new OpenLayers.Layer.Vector('Conflicting features', {
+        style: {
+            strokeOpacity: 0.75,
+            strokeWidth: 2,
+            strokeColor: '#ff0000',
+            fillOpacity: 0.75,
+            fillColor: '#ff0000',
+            pointRadius: 3.0
+        }
+    });
+    this.map.addLayer(osm_conflict_layer);
     
     this.map.events.register('zoomend', self, function() {
         if(selecting_cells) {

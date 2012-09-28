@@ -21,14 +21,14 @@ from linz2osm.workslices.models import *
 
 OVERPASS_API_URL = "http://overpass.osm.rambler.ru/cgi/interpreter?data="
 
-def osm_conflicts_query(workslice_features, query_data):
+def osm_conflicts_query(workslice_features, tags_ql):
     return "".join(("[out:json];\n(\n",
-                    "\n".join([wf.osm_conflicts_query_ql(query_data) for wf in workslice_features]),
+                    "\n".join([wf.osm_conflicts_query_ql(tags_ql) for wf in workslice_features]),
                     "\n);\nout;\n",))
     
-def osm_conflicts_json(workslice_features, query_data):
+def osm_conflicts_json(workslice_features, tags_ql):
     r = requests.post(OVERPASS_API_URL, data={
-            'data': osm_conflicts_query(workslice_features, query_data)
+            'data': osm_conflicts_query(workslice_features, tags_ql)
             })
     return r.json
 

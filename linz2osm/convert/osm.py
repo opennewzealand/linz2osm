@@ -14,16 +14,17 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from xml.etree import ElementTree
-import hashlib
 from cStringIO import StringIO
-import re
-
-from django.db import connection, connections
 from django.conf import settings
 from django.contrib.gis import geos
-from django.utils import simplejson
 from django.core.cache import cache
+from django.db import connection, connections
+from django.utils import simplejson
+from textwrap import dedent
+from xml.etree import ElementTree
+
+import hashlib
+import re
 
 class Error(Exception):
     pass
@@ -60,7 +61,19 @@ def get_layer_feature_ids(layer_in_dataset, extent=None, feature_limit=None):
     if (feature_limit is not None) and cursor.rowcount > feature_limit:
         return None # FIXME: use exceptions - should have checked feature count before approving workslice
     return [r[0] for r in cursor.fetchall()]
-        
+
+def feature_selection_geojson(workslice_features, centroids_only=False):
+    return dedent("""
+            { "type": "FeatureCollection",
+              "features": [%s],
+              "crs": {
+                  "type" : "name",
+                  "properties" : {
+                      "name" : "EPSG:4326"
+                  }
+              }
+            }
+        """ % ",".join(filter(None, [wf.wgs_geojson(centroids_only) for wf in workslice_features])))
 
 def get_layer_feature_count(database_id, layer, intersect_geom=None):
     cursor = connections[database_id].cursor()

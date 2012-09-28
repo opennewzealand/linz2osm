@@ -234,7 +234,20 @@ class WorksliceFeature(models.Model):
     def wgs_bounds(self):
         return self.wgs_geom("ST_Envelope(ST_Transform(wkb_geometry, 4326))")
 
-    def osm_conflicts_query_ql(self, query_data):
+    def wgs_geojson(self, centroid_only=False):
+        geom = self.wgs_geom()
+        if centroid_only:
+            geom = geom.centroid
+        
+        return """ {
+            "geometry": %s,
+            "type": "Feature",
+            "properties": {
+                "model": "LayerInDataset"
+            }
+        } """ % geom.geojson
+
+    def osm_conflicts_query_ql(self, tags_ql):
         geotype = self.layer_in_dataset.layer.geometry_type
         if geotype == "POINT":
             query = dedent("""
@@ -274,7 +287,7 @@ class WorksliceFeature(models.Model):
             )
         
         return query % {
-            'tags': "\n".join(["[\"%s\"=\"%s\"]" % (k, v) for k, v in query_data.iteritems()]),
+            'tags': tags_ql,
             'bounds': str_bounds,
             }
 
