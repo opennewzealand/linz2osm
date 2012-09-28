@@ -27,6 +27,7 @@ class DatasetAdmin(admin.ModelAdmin):
     ordering = ('name', 'database_name', 'description', 'version', 'srid', 'group')
     readonly_fields = ('name', 'database_name', 'srid',)
     search_fields = ('name', 'database_name', 'description', 'version', 'srid', 'group')
+    save_on_top = True
 
 class LayerInDatasetInline(admin.StackedInline):
     model = LayerInDataset
@@ -138,6 +139,7 @@ class LayerAdmin(admin.ModelAdmin):
     ordering = ('name', 'group')
     readonly_fields = ('name', 'entity', 'geometry_type')
     search_fields = ('name', 'notes',)
+    save_on_top = True
 
     class Media:
         css = {
@@ -165,6 +167,7 @@ class TagAdmin(admin.ModelAdmin):
     list_display = ('tag', 'apply_to')
     ordering = ('tag',)
     exclude = ('layer',)
+    save_on_top = True
     
     class Media:
         css = {
@@ -182,6 +185,7 @@ class GroupAdmin(admin.ModelAdmin):
     inlines = [
         GroupTagInline,
     ]
+    save_on_top = True
     
 admin.site.register(Group, GroupAdmin)
 admin.site.register(Layer, LayerAdmin)
