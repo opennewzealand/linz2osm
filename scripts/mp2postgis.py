@@ -599,6 +599,23 @@ class MPSegment(MPGeometry):
         ("node_id_end", "int references mp_node(id)"),
         ("point_idx_start", "int NOT NULL"),
         ("point_idx_end", "int NOT NULL"),
+
+        # MPLine columns
+        ("zip", "text"),
+        ("oneway", FLAG_DEF_FALSE),
+        ("toll", FLAG_DEF_FALSE),
+        ("dir_indicator", FLAG_DEF_FALSE),
+        ("speed", "numeric(5,0)"),
+        ("road_class", "numeric(5,0)"),
+        ("road_id", VARCHAR),
+        ("not_for_emergency", FLAG_DEF_FALSE),
+        ("not_for_goods", FLAG_DEF_FALSE),
+        ("not_for_car", FLAG_DEF_FALSE),
+        ("not_for_bus", FLAG_DEF_FALSE),
+        ("not_for_taxi", FLAG_DEF_FALSE),
+        ("not_for_foot", FLAG_DEF_FALSE),
+        ("not_for_bicycle", FLAG_DEF_FALSE),
+        ("not_for_truck", FLAG_DEF_FALSE),
         )
 
     def __init__(self, parent, node_start, node_end, point_start, point_end, *args, **kwargs):
