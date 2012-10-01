@@ -122,8 +122,12 @@ def get_layer_stats(database_id, layer):
     geom_type, srid = get_layer_geometry_type(database_id, layer)
     cursor = connections[database_id].cursor()
 
-    # Expand bounds by 1,001 metres
-    cursor.execute("SELECT ST_AsHexEWKB(ST_Transform(ST_SetSRID(ST_Envelope(ST_Buffer(ST_Extent(wkb_geometry), 1001.0)), %d), 4326)) FROM %s;" % (srid, layer.name))
+    # Expand bounds by 1,001 metres (or, if using WGS84, by 0.01 degree)
+    if str(srid) == '4326':
+        expansion = "0.01"
+    else:
+        expansion = "1001.0"
+    cursor.execute("SELECT ST_AsHexEWKB(ST_Transform(ST_SetSRID(ST_Envelope(ST_Buffer(ST_Extent(wkb_geometry), %s)), %d), 4326)) FROM %s;" % (expansion, srid, layer.name))
     extent = geos.GEOSGeometry(cursor.fetchone()[0])
     et = extent.extent
     
