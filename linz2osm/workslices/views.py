@@ -247,34 +247,34 @@ def workslice_info(request, layer_in_dataset_id):
             if form.cleaned_data['show_conflicting_features'] in ['yes', 'count']:
                 if layer.tags_ql:
                     osm_conflicts = overpass.osm_conflicts_json(workslice_features, layer.tags_ql)['elements'] # FIXME: tagging
-                else:
-                    osm_conflicts = []
                 
-                nodes = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'node'])
-                ways = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'way'])
-                rels = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'rel'])
+                    nodes = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'node'])
+                    ways = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'way'])
+                    rels = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'rel'])
 
-                if layer.geometry_type == 'POINT':
-                    conflict_count = len(nodes)
-                    if form.cleaned_data['show_conflicting_features'] == 'yes':
-                        ctx['osm_conflict_geometry'] = overpass.osm_geojson(nodes.values())
-                elif layer.geometry_type == 'LINESTRING':
-                    conflict_count = len(ways)
-                    if form.cleaned_data['show_conflicting_features'] == 'yes':
-                        ctx['osm_conflict_geometry'] = overpass.osm_geojson(ways.values(), nodes)
-                elif layer.geometry_type == 'POLYGON':
-                    conflict_count = len(ways) # FIXME: count rels too.
-                    if form.cleaned_data['show_conflicting_features'] == 'yes':
-                        ctx['osm_conflict_geometry'] = overpass.osm_geojson(rels.values(), nodes, ways)
+                    if layer.geometry_type == 'POINT':
+                        conflict_count = len(nodes)
+                        if form.cleaned_data['show_conflicting_features'] == 'yes':
+                            ctx['osm_conflict_geometry'] = overpass.osm_geojson(nodes.values())
+                    elif layer.geometry_type == 'LINESTRING':
+                        conflict_count = len(ways)
+                        if form.cleaned_data['show_conflicting_features'] == 'yes':
+                            ctx['osm_conflict_geometry'] = overpass.osm_geojson(ways.values(), nodes)
+                    elif layer.geometry_type == 'POLYGON':
+                        conflict_count = len(ways) # FIXME: count rels too.
+                        if form.cleaned_data['show_conflicting_features'] == 'yes':
+                            ctx['osm_conflict_geometry'] = overpass.osm_geojson(rels.values(), nodes, ways)
                     
-                if conflict_count > 1:
-                    ctx['osm_conflict_info'] = "%d nearby features of this type in OSM." % conflict_count
-                elif conflict_count == 1:
-                    ctx['osm_conflict_info'] = "1 nearby feature of this type in OSM."
-                elif conflict_count == 0:
-                    ctx['osm_conflict_info'] = "No nearby features of this type in OSM."
+                    if conflict_count > 1:
+                        ctx['osm_conflict_info'] = "%d nearby features of this type in OSM." % conflict_count
+                    elif conflict_count == 1:
+                        ctx['osm_conflict_info'] = "1 nearby feature of this type in OSM."
+                    elif conflict_count == 0:
+                        ctx['osm_conflict_info'] = "No nearby features of this type in OSM."
+                    else:
+                        ctx['osm_conflict_info'] = "Error querying OSM."
                 else:
-                    ctx['osm_conflict_info'] = "Error querying OSM."
+                    ctx["osm_conflict_info"] = "Could not check for conflicting features - no OSM query set for this layer."
             else:
                 ctx['osm_conflict_info'] = ""
 
