@@ -637,7 +637,26 @@ class MPSegment(MPGeometry):
     @classmethod    
     def table_creation_sql(cls):
         return super(MPSegment, cls).table_creation_sql() + "".join([
-                "CREATE TABLE %(table_name)s_%(type_name)s (LIKE %(table_name)s);\n" % {
+                dedent("""
+                    CREATE TABLE %(table_name)s_%(type_name)s (LIKE %(table_name)s);
+                    INSERT INTO geometry_columns (
+                        f_table_catalog,
+                        f_table_schema,
+                        f_table_name,
+                        f_geometry_column,
+                        coord_dimension,
+                        srid,
+                        type
+                    ) VALUES (
+                        '',
+                        'public',
+                        '%(table_name)s_%(type_name)s',
+                        'wkb_geometry',
+                        2,
+                        4326,
+                        'LINESTRING'
+                    );
+                    """) % {
                     'table_name': cls.table_name,
                     'type_name': type_name,
                     } for type_name in list(set([tm[0] for tm in SEGMENT_TYPE_MAP.values()]))])
