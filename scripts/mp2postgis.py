@@ -34,7 +34,7 @@ SEGMENT_TYPE_MAP = {
      0x9: ('highway', 'secondary_link'), # added by JR - TODO FIXME in the LINZ dataset is this actually used to connect secondary roads, or other types?
      0xa: ('highway', 'track_unpaved'),
      0xb: ('highway', 'trunk_link'), # added by JR
-     0xc: ('junction', 'roundabout'), # added by JR
+     0xc: ('highway', 'roundabout'), # added by JR - was junction: roundabout
      0xd: ('highway', 'cycleway'), # added by JR
      
      0x14: ('railway', 'rail'), # added by JR
