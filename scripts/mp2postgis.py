@@ -14,6 +14,7 @@ import datetime
 import re
 
 from textwrap import dedent
+from unmangle import interpret_label
 
 SRID = 4326
 PKEY = "serial PRIMARY KEY"
@@ -82,6 +83,7 @@ def sql_repr(obj):
         # this includes Polygon, int and float
         return str(obj)
 
+
 class MPRecord(object):
     table_name = "mp_record"
     closing_tags = ("[END]",)
@@ -103,7 +105,7 @@ class MPRecord(object):
             }
     
     @classmethod
-    def post_processing_sql(cls):
+    def post_processing_sql(cls, mp_file):
         return ""
 
     @classmethod
@@ -379,17 +381,6 @@ class MPGeometry(MPRecord):
         elif line.startswith('Type'):
             typecode = int(line.split('=')[1].strip(), 16)
             self.record['type'] = typecode
-            # FIXME
-            # for codes, taglist in elementtagmap.iteritems():
-            #     if typecode in codes:
-            #         found=True
-            #         for key, value in taglist.iteritems():
-            #             tag = ET.Element('tag', k=key, v=value)
-            #             tag.tail = '\n    '
-            #             node.append(tag)
-            # if found==False :
-            #     print 'ptang missing 0x%x poi:%s line:%s poly:%s sufi:%s' % (typecode, poi, polyline, polygon, sufi)
-            #     found=False;
         elif line.startswith('Marine'):
             marine = line.split('=')[1].strip()
             if marine == 'Y' or marine =='1':
@@ -577,6 +568,7 @@ class MPLine(MPGeometry):
                 segments.append(MPSegment(self, prev['node_id'], node['node_id'], prev['point_idx'], node['point_idx']))
                 prev = node
 
+        self.mp_file.segments_db.extend(segments)        
         return dedent("".join([node.insert_sql() for node in new_nodes]) +
                       "".join([seg.insert_sql() for seg in segments]) +
                       nodes_update_sql)
@@ -616,7 +608,13 @@ class MPSegment(MPGeometry):
         ("not_for_foot", FLAG_DEF_FALSE),
         ("not_for_bicycle", FLAG_DEF_FALSE),
         ("not_for_truck", FLAG_DEF_FALSE),
+        ("label_unmangled", "text"),
+        ("exit_ref", "text"),
+        ("exit_name", "text"),
+        ("calculated_subtype", "text"),
         )
+
+    LINK_RE = re.compile(r"^(?P<prefix>.*)_link$")
 
     def __init__(self, parent, node_start, node_end, point_start, point_end, *args, **kwargs):
         copied_records = parent.record.copy()
@@ -633,6 +631,20 @@ class MPSegment(MPGeometry):
         self.record["point_idx_start"] = point_start
         self.record["point_idx_end"] = point_end
         self.record["wkb_geometry"] = geom[point_start:point_end+1]
+        self.record["subtype"] = SEGMENT_TYPE_MAP.get(self.record["type"])[1]
+
+        ip = interpret_label(self.record.get("label"))
+        self.record["label_unmangled"] = ip.get('label')
+        self.record["exit_ref"] = ip.get('exit_ref')
+        self.record["exit_name"] = ip.get('exit_name')
+        
+        self.record["calculated_subtype"] = self.record["subtype"]
+
+    def is_link(self):
+        return bool(self.LINK_RE.search(self.record["subtype"]))
+
+    def __str__(self):
+        return "Segment %d/%d : %d -> %d" % (self.record["mp_line_ogc_fid"], self.record["point_idx_start"], self.record["node_id_start"], self.record["node_id_end"])
 
     @classmethod    
     def table_creation_sql(cls):
@@ -662,16 +674,91 @@ class MPSegment(MPGeometry):
                     } for type_name in list(set([tm[0] for tm in SEGMENT_TYPE_MAP.values()]))])
 
     @classmethod
-    def post_processing_sql(cls):
+    def post_processing_sql(cls, mp_file):
+        return cls.segments_link_types_sql(mp_file) + cls.segments_type_specific_tables_sql(mp_file)
+
+    @classmethod
+    def segments_type_specific_tables_sql(cls, mp_file):
         return "".join([dedent("""
             INSERT INTO %(table_name)s_%(type_name)s SELECT * FROM %(table_name)s WHERE type = %(type_code)d;
-            UPDATE %(table_name)s_%(type_name)s SET subtype = '%(subtype_name)s' WHERE type = %(type_code)d;
         """ % {
                     'table_name': cls.table_name,
                     'type_name': tm[0],
                     'type_code': type_code,
-                    'subtype_name': tm[1],
                     }) for type_code, tm in SEGMENT_TYPE_MAP.iteritems()])
+    
+    @classmethod
+    def segments_link_types_sql(cls, mp_file):
+        seg_db = mp_file.segments_db
+        segs_for_node = dict([(node_id, []) for node_id in mp_file.created_nodes])
+        for segment in seg_db:
+            try:
+                for record_part in ["node_id_start", "node_id_end"]:
+                    if segment.record[record_part]:
+                        segs_for_node[segment.record[record_part]].append(segment)
+            except KeyError:
+                mp_file.err.write(repr(segs_for_node.keys()))
+                mp_file.err.write("\n=====================================================\n")
+                mp_file.err.write(repr(segment.record))
+                raise
+
+        links = [seg for seg in seg_db if seg.is_link()]
+        mp_file.err.write("There are %d nodes and %d segments of which %d are links\n" % (len(segs_for_node), len(seg_db), len(links)))
+        while True:
+            any_mods = False
+            for segment in links:
+                new_type = cls.upgraded_type(segs_for_node, segment)
+                if new_type != segment.record["calculated_subtype"]:
+                    mp_file.err.write("-- Changing %s from %s to %s (originally %s)\n" % (segment.record["label_unmangled"], segment.record["calculated_subtype"], new_type, segment.record["subtype"]))
+                    segment.record["calculated_subtype"] = new_type
+                    any_mods = True
+            if not any_mods:
+                break
+
+        output_sql = []
+            
+        for segment in seg_db:
+            if segment.record["calculated_subtype"] != segment.record["subtype"]:
+                output_sql.append("UPDATE %s SET calculated_subtype = '%s' WHERE mp_line_ogc_fid = %d AND point_idx_start = %d;" % (cls.table_name, segment.record["calculated_subtype"], segment.record["mp_line_ogc_fid"], segment.record["point_idx_start"]))
+        return "\n".join(output_sql)
+
+    @classmethod
+    def upgraded_type(cls, segs_for_node, seg):
+        best_at_start = cls.best_type_at_node(segs_for_node, seg, seg.record["node_id_start"])
+        best_at_end = cls.best_type_at_node(segs_for_node, seg, seg.record["node_id_end"])
+        return cls.higher_type(best_at_start, best_at_end) + "_link"
+
+    TYPES_HEIRARCHY = [
+        "motorway",
+        "trunk",
+        "primary",
+        "secondary",
+        "tertiary",
+        "motorway_link",
+        "trunk_link",
+        "primary_link",
+        "secondary_link",
+        "tertiary_link",
+        ]
+
+    @classmethod
+    def higher_type(cls, type_a, type_b):
+        if cls.TYPES_HEIRARCHY.index(type_a) < cls.TYPES_HEIRARCHY.index(type_b):
+            return type_a
+        else:
+            return type_b
+    
+    @classmethod
+    def best_type_at_node(cls, segs_for_node, seg, node_id):
+        seg_types_at_this_node = [s.record["calculated_subtype"] for s in segs_for_node[node_id] if s != seg]
+        current_best = "tertiary_link"
+        for st in seg_types_at_this_node:
+            if st in cls.TYPES_HEIRARCHY:
+                current_best = cls.higher_type(st, current_best)
+            else:
+                current_best = cls.higher_type("tertiary", current_best)
+
+        return current_best.replace("_link", "")
     
 class MPPolygon(MPGeometry):
     table_name = "mp_polygon"
@@ -732,10 +819,9 @@ class MPFile(object):
         
         # flags and global variable
         self.parsing_record = False
-        self.rNodeToOsmId = {} # map routing node ids to OSM node ids
-        self.nodeid = -1
         self.created_nodes = set()
-
+        self.segments_db = []
+        
         # temporary records
         self.clear_temp_records()
 
@@ -763,7 +849,7 @@ class MPFile(object):
         self.out.write('COMMIT;\n')
         self.out.write('BEGIN;\n')
         for cls in TABLE_CLASSES:
-            self.out.write(cls.post_processing_sql())
+            self.out.write(cls.post_processing_sql(mp_file))
         self.out.write('COMMIT;\n')
         self.err.write("-- Points:    %d\n" % self.poi_counter)
         self.err.write("-- Lines:     %d\n" % self.polyline_counter)
@@ -786,7 +872,6 @@ class MPFile(object):
     def start_record(self, record):
         self.parsing_record = True
         self.record = record
-        self.nodeid -= 1
 
     def close_record_with_line(self, line):
         retval = self.record.close_with_line(line)
@@ -894,68 +979,4 @@ if len(sys.argv) < 2:
 mp_file = MPFile(open(sys.argv[1]), sys.stdout, sys.stderr)
 mp_file.translate()
 exit()
-
-############################################################
-############################################################
-############################################################
-
-for line in file_mp:
-     
-    # parsing data
-    if poi or polyline or polygon:
-       
-
-        # Get nodes from all zoom levels (ie. Data0, Data1, etc)
-        # TODO: Only grab the lowest-numbered data line (highest-resolution) and ignore the rest
-        if line.startswith('Data'):
-            if polyline or polygon:
-                # Just grab the line and parse it later when the [END] element is encountered
-                coords = line.split('=')[1].strip() + ','
-                # TODO: parse out "holes" in a polygon by reading multiple Data0 lines and
-                # constructing a multipolygon relation
-        if line.startswith('Nod'):
-            if polyline:
-                # Store the point index and routing node id for later use
-                nod = line.split('=')[1].strip().split(',', 2)
-                rnodes[nod[0]] = nod[1]
-        if line.startswith('[END]'):
-            if polyline or polygon:
-                # Have to write out nodes as they are parsed
-                nodidx = 0
-                nodIds = []
-                reused = False
-                while coords != '':
-                    coords = coords.split(',', 2)
-                    if str(nodidx) in rnodes:
-                        if rnodes[str(nodidx)] in rNodeToOsmId:
-                            curId = rNodeToOsmId[str(rnodes[str(nodidx)])]
-                            reused = True
-                        else:
-                            curId = nodeid
-                            nodeid -= 1
-                            rNodeToOsmId[str(rnodes[str(nodidx)])] = curId
-                    else:
-                        curId = nodeid
-                        nodeid -= 1
-                    nodIds.append(curId)
-                    # Don't write another node element if we reused an existing one
-                    if not reused:
-                        nodes = ET.Element('node', visible='true', version=str(xmlversion), timestamp=str(timestamp), id=str(curId), lat=str(float(coords[0][1:])), lon=str(float(coords[1][:-1])))
-                        nodes.text = '\n    '
-                        nodes.tail = '\n  '
-#                        osm.append(nodes)
-                        f.write(ET.tostring(nodes))
-
-                    coords = coords[2]
-                    reused = False
-                    nodidx += 1
-                nodidx = 0
-                for ndid in nodIds:
-                    nd = ET.Element('nd', ref=str(ndid))
-                    nd.tail = '\n    '
-                    node.append(nd)
-            if polygon:
-                nd = ET.Element('nd', ref=str(nodIds[0]))
-                nd.tail = '\n    '
-                node.append(nd)
 
