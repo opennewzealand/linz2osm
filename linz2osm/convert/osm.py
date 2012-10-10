@@ -239,24 +239,14 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
     if layer.special_node_reuse_logic:
         node_match_json = overpass.osm_node_match_json(layer_in_dataset, data_table)['elements']
         for node in node_match_json:
-            osm_nodes[node['tags'].get(layer.special_node_tag_name)] = node['id']
+            osm_nodes[node['tags'].get(layer.special_node_tag_name)] = str(node['id'])
         
-        print "**************************************************"
-        print "::: OSM NODES :::"
-        print node_match_json
-        print "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-        print osm_nodes
-
     writer = OSMWriter(id_hash=(database_id, layer.name, feature_ids),
                        osm_nodes=osm_nodes,
                        special_start_node_field_name=layer.special_start_node_field_name,
                        special_end_node_field_name=layer.special_end_node_field_name
                        )
     for i, (row_data, row_geom) in enumerate(data_table):
-        print
-        print "-----"
-        print "%d ROW_DATA: %s" % (i, row_data)
-        print "-----"
         row_tags = []
         for tag in layer_tags:
             try:
@@ -274,8 +264,8 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
             row_geom = p.process(row_geom, fields=row_data, tags=row_tags, id=i)
 
         if layer.special_node_reuse_logic:
-            first_node_ref = int_or_none(row_data.get(layer.special_start_node_field_name))
-            last_node_ref = int_or_none(row_data.get(layer.special_end_node_field_name))
+            first_node_ref = str(row_data.get(layer.special_start_node_field_name))
+            last_node_ref = str(row_data.get(layer.special_end_node_field_name))
         else:
             first_node_ref, last_node_ref = None, None
             
@@ -284,7 +274,7 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
     return writer.xml()
 
 def int_or_none(obj):
-    if isinstance(obj, str) or isinstance(obj, int):
+    if isinstance(obj, (str, int, unicode)):
         return int(obj)
     else:
         return None
@@ -351,7 +341,6 @@ class OSMWriter(object):
         return [r.get('id')]
             
     def build_way(self, coords, tags, tag_nodes_at_ends=False, first_node_ref=None, last_node_ref=None):
-        print "Building way: refs %s -> %s, coords: %s" % (str(first_node_ref), str(last_node_ref), coords)
         ids = []
         rem_coords = coords[:]
         node_map = {}
@@ -377,12 +366,9 @@ class OSMWriter(object):
 
                     if node_ref:
                         n_id = self._osm_nodes.get(node_ref)
-                        if n_id:
-                            print "Reusing OSM node %s for ref %d" % (str(n_id), node_ref)
-                        else:
+                        if not n_id:
                             n_id = self._node(c, tags, True, special_node_type)
                             self._osm_nodes[node_ref] = n_id
-                            print "No node to reuse for ref %d so created node %s" % (node_ref, str(n_id))
                             
                 else:
                     n_id = self._node(c, None, True)
@@ -395,8 +381,6 @@ class OSMWriter(object):
             if len(rem_coords) < 2:
                 break
 
-        print "-----"
-        print
         return ids
         
 
@@ -409,9 +393,6 @@ class OSMWriter(object):
             self.build_tags(n, tags, special_node_type)
             if map_node:
                 self._nodes[k] = n
-            print "Generated node %s" % str(n.get('id'))
-        else:
-            print "Reusing cached node %s (from key %s, %s)" % (str(n.get('id')), k, coords)
         return n.get('id')
 
     def build_node(self, geom, tags, map_node=True):

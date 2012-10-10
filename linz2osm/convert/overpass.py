@@ -31,7 +31,7 @@ def str_bounds_for(geobounds):
         )
 
 def osm_node_match_query(layer_in_dataset, data_table):
-    return "[out:json];\n" + "\n".join([osm_node_match_query_ql(layer_in_dataset, row_data) for row_data, row_geom in data_table]) + "\nout;\n"
+    return "[out:json];\n(\n" + "\n".join([osm_node_match_query_ql(layer_in_dataset, row_data) for row_data, row_geom in data_table]) + "\n);\nout;\n"
 
 def osm_node_match_json(layer_in_dataset, data_table):
     query = osm_node_match_query(layer_in_dataset, data_table)
