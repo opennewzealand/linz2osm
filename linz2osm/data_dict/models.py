@@ -103,12 +103,12 @@ class Layer(models.Model):
     pkey_name = models.CharField(max_length=255, default='ogc_fid', choices=PKEY_CHOICES)
     tags_ql = models.TextField(blank=True, null=True, help_text=('What tags to include in the OSM search. Separated with whitespace. In OSM Overpass API format ["name"="value"] ["name"~"valueish"] ["name"="this|that"] ["name"!="not-this"] etc.'), verbose_name='tags for overpass QL')
     # FIXME: do this with a flag on the relevant tags?
-    special_node_reuse_logic = models.BooleanField(default=False)
-    special_start_node_field_name = models.CharField(max_length=255, blank=True)
-    special_end_node_field_name = models.CharField(max_length=255, blank=True)
-    special_node_tag_name = models.CharField(max_length=255, blank=True)
-    special_dataset_name_tag = models.CharField(max_length=255, blank=True)
-    special_dataset_version_tag = models.CharField(max_length=255, blank=True)
+    special_node_reuse_logic = models.BooleanField(default=False, editable=False)
+    special_start_node_field_name = models.CharField(max_length=255, blank=True, editable=False)
+    special_end_node_field_name = models.CharField(max_length=255, blank=True, editable=False)
+    special_node_tag_name = models.CharField(max_length=255, blank=True, editable=False)
+    special_dataset_name_tag = models.CharField(max_length=255, blank=True, editable=False)
+    special_dataset_version_tag = models.CharField(max_length=255, blank=True, editable=False)
     
     def __unicode__(self):
         return unicode(self.name)
