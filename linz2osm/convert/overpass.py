@@ -20,6 +20,57 @@ from django.contrib.gis.geos import GEOSGeometry, Point, LineString
 from linz2osm.workslices.models import *
 
 OVERPASS_API_URL = "http://overpass.osm.rambler.ru/cgi/interpreter?data="
+OVERPASS_PROXIMITY = 0.001
+
+def str_bounds_for(geobounds):
+    return "(%f,%f,%f,%f)" % (
+        geobounds[1] - OVERPASS_PROXIMITY,
+        geobounds[0] - OVERPASS_PROXIMITY,
+        geobounds[3] + OVERPASS_PROXIMITY,
+        geobounds[2] + OVERPASS_PROXIMITY,
+        )
+
+def osm_node_match_query(layer_in_dataset, data_table):
+    return "[out:json];\n" + "\n".join([osm_node_match_query_ql(layer_in_dataset, row_data) for row_data, row_geom in data_table]) + "\nout;\n"
+
+def osm_node_match_json(layer_in_dataset, data_table):
+    query = osm_node_match_query(layer_in_dataset, data_table)
+    print "-----=====+++ < ( [ { XXX OVERPASS QUERY XXX } ] ) > +++=====-----"
+    print query
+    r = requests.post(OVERPASS_API_URL, data={
+            'data': query
+            })
+    return r.json
+
+def osm_node_match_query_ql(layer_in_dataset, row_data):
+    layer = layer_in_dataset.layer
+    geotype = layer.geometry_type
+    if geotype != "LINESTRING":
+        raise Error("Cannot do node matching for %s" % geotype)
+    
+    return "\n".join([osm_node_match_query_ql_for_field(layer_in_dataset, layer.special_node_tag_name, v, row_data['dataset_name'], row_data['dataset_version'], ) for v in [
+                row_data[layer.special_start_node_field_name],
+                row_data[layer.special_end_node_field_name],
+                ]])
+
+def osm_node_match_query_ql_for_field(layer_in_dataset, field_tag_name, field_value, dataset_name, dataset_version):
+    layer = layer_in_dataset.layer
+    return dedent("""
+            node
+            ["%(node_tag)s"="%(node_value)s"]
+            ["%(dataset_name_tag)s"="%(dataset_name_value)s"]
+            %(str_bounds)s
+            ;
+            """ % {
+            # ["%(dataset_version_tag)s"="%(dataset_version_value)s"];
+            'node_tag': field_tag_name,
+            'node_value': field_value,
+            'dataset_name_tag': layer.special_dataset_name_tag,
+            'dataset_name_value': dataset_name,
+            'dataset_version_tag': layer.special_dataset_version_tag,
+            'dataset_version_value': dataset_version,
+            'str_bounds': str_bounds_for(layer_in_dataset.extent.extent),
+            })
 
 def osm_conflicts_query(workslice_features, tags_ql):
     return "".join(("[out:json];\n(\n",

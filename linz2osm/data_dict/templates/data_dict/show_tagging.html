@@ -57,7 +57,7 @@
 
 {% for tag in tags %}
 <div class="span8 code-content">
-  <strong><code>{{tag.tag}}</code></strong>
+  <strong><code>{{tag.tag}}</code></strong> &mdash; {{tag.get_apply_to_display }}
   {% if tag.code %}
   {{ tag.code|stylize_no_ln:"js" }}
   {% endif %}

@@ -26,6 +26,8 @@ from xml.etree import ElementTree
 import hashlib
 import re
 
+from linz2osm.convert import overpass
+
 class Error(Exception):
     pass
 
@@ -73,7 +75,7 @@ def feature_selection_geojson(workslice_features, centroids_only=False):
                   }
               }
             }
-        """ % ",".join(filter(None, [wf.wgs_geojson(centroids_only) for wf in workslice_features])))
+            """ % ",".join(filter(None, [wf.wgs_geojson(centroids_only) for wf in workslice_features])))
 
 def get_layer_feature_count(database_id, layer, intersect_geom=None):
     cursor = connections[database_id].cursor()
@@ -179,7 +181,7 @@ def clean_data(cell):
         return cell.strip()
     else:
         return cell
-
+    
 def export(workslice):
     layer_in_dataset = workslice.layer_in_dataset
     feature_ids = [wf.feature_id for wf in workslice.workslicefeature_set.all()]
@@ -203,9 +205,7 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
     
     layer_tags = layer_in_dataset.get_all_tags()
     processors = layer.get_processors()
-    
-    writer = OSMWriter(id_hash=(database_id, layer.name, feature_ids))
-    
+        
     columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, dataset.srid)] + ['"%s"' % c for c in data_columns]
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
 
@@ -216,6 +216,8 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
             sql_base += ' WHERE %s IS NULL' % layer.pkey_name
 
     cursor.execute(sql_base)
+
+    data_table = []
     
     for i,row in enumerate(cursor):
         if row[0] is None:
@@ -230,7 +232,31 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
         row_data['dataset_version'] = dataset.version
         if workslice_id is not None:
             row_data['workslice_id'] = workslice_id
+
+        data_table.append((row_data, row_geom))
+
+    osm_nodes = {}
+    if layer.special_node_reuse_logic:
+        node_match_json = overpass.osm_node_match_json(layer_in_dataset, data_table)['elements']
+        for node in node_match_json:
+            osm_nodes[node['tags'].get(layer.special_node_tag_name)] = node['id']
         
+        print "**************************************************"
+        print "::: OSM NODES :::"
+        print node_match_json
+        print "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+        print osm_nodes
+
+    writer = OSMWriter(id_hash=(database_id, layer.name, feature_ids),
+                       osm_nodes=osm_nodes,
+                       special_start_node_field_name=layer.special_start_node_field_name,
+                       special_end_node_field_name=layer.special_end_node_field_name
+                       )
+    for i, (row_data, row_geom) in enumerate(data_table):
+        print
+        print "-----"
+        print "%d ROW_DATA: %s" % (i, row_data)
+        print "-----"
         row_tags = []
         for tag in layer_tags:
             try:
@@ -247,18 +273,33 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
         for p in processors:
             row_geom = p.process(row_geom, fields=row_data, tags=row_tags, id=i)
 
-        writer.add_feature(row_geom, row_tags)
+        if layer.special_node_reuse_logic:
+            first_node_ref = int_or_none(row_data.get(layer.special_start_node_field_name))
+            last_node_ref = int_or_none(row_data.get(layer.special_end_node_field_name))
+        else:
+            first_node_ref, last_node_ref = None, None
+            
+        writer.add_feature(row_geom, row_tags, first_node_ref, last_node_ref)
 
     return writer.xml()
+
+def int_or_none(obj):
+    if isinstance(obj, str) or isinstance(obj, int):
+        return int(obj)
+    else:
+        return None
 
 class OSMWriter(object):
     WAY_SPLIT_SIZE = 495
     
-    def __init__(self, id_hash=None, processors=None):
+    def __init__(self, id_hash=None, processors=None, osm_nodes={}, special_start_node_field_name=None, special_end_node_field_name=None):
         self.n_root = ElementTree.Element('osmChange', version="0.6", generator="linz2osm")
         self.n_create = ElementTree.SubElement(self.n_root, 'create', version="0.6", generator="linz2osm")
         self.tree = ElementTree.ElementTree(self.n_root)
         self._nodes = {}
+        self._osm_nodes = osm_nodes
+        self.first_node_field = special_start_node_field_name
+        self.last_node_field = special_end_node_field_name
 
         if id_hash is None:
             self._id = 0
@@ -268,8 +309,8 @@ class OSMWriter(object):
     
         self.processors = processors or []
     
-    def add_feature(self, geom, tags=None):
-        self.build_geom(geom, tags)
+    def add_feature(self, geom, tags=None, first_node_ref=None, last_node_ref=None):
+        self.build_geom(geom, tags, first_node_ref, last_node_ref)
     
     def xml(self):
         # prettify - ok to call more than once
@@ -309,7 +350,8 @@ class OSMWriter(object):
             self.n_create.append(r)
         return [r.get('id')]
             
-    def build_way(self, coords, tags, tag_nodes_at_ends=False):
+    def build_way(self, coords, tags, tag_nodes_at_ends=False, first_node_ref=None, last_node_ref=None):
+        print "Building way: refs %s -> %s, coords: %s" % (str(first_node_ref), str(last_node_ref), coords)
         ids = []
         rem_coords = coords[:]
         node_map = {}
@@ -325,7 +367,25 @@ class OSMWriter(object):
                 if tag_nodes_at_ends and not rem_coords:
                     if i == cur_coords_last_idx:
                         special_node_type = "last"
-                n_id = self._node(c, tags if tag_nodes_at_ends and special_node_type else None, True, special_node_type)
+
+                n_id = None
+                if tag_nodes_at_ends and special_node_type:
+                    if special_node_type == "first":
+                        node_ref = first_node_ref
+                    elif special_node_type == "last":
+                        node_ref = last_node_ref
+
+                    if node_ref:
+                        n_id = self._osm_nodes.get(node_ref)
+                        if n_id:
+                            print "Reusing OSM node %s for ref %d" % (str(n_id), node_ref)
+                        else:
+                            n_id = self._node(c, tags, True, special_node_type)
+                            self._osm_nodes[node_ref] = n_id
+                            print "No node to reuse for ref %d so created node %s" % (node_ref, str(n_id))
+                            
+                else:
+                    n_id = self._node(c, None, True)
                 special_node_type = None
                 ElementTree.SubElement(w, 'nd', ref=n_id)
             self.build_tags(w, tags, "geometry")
@@ -334,23 +394,30 @@ class OSMWriter(object):
             
             if len(rem_coords) < 2:
                 break
-        
-        return ids
 
-    def _node(self, coords, tags, map_node=True, special_node_type=None):
+        print "-----"
+        print
+        return ids
+        
+
+    def _node(self, coords, tags, map_node=True, special_node_type=None, osm_node=None):
         k = (str(coords[0]), str(coords[1]), id(tags) if tags else None)
         n = self._nodes.get(k)
+
         if (not map_node) or (n is None):
             n = ElementTree.SubElement(self.n_create, 'node', id=self.next_id, lat=str(coords[1]), lon=str(coords[0]))
             self.build_tags(n, tags, special_node_type)
             if map_node:
                 self._nodes[k] = n
+            print "Generated node %s" % str(n.get('id'))
+        else:
+            print "Reusing cached node %s (from key %s, %s)" % (str(n.get('id')), k, coords)
         return n.get('id')
 
     def build_node(self, geom, tags, map_node=True):
         return [self._node((geom.x, geom.y), tags, map_node, "geometry")]
     
-    def build_geom(self, geom, tags, inner=False):
+    def build_geom(self, geom, tags, first_node_ref, last_node_ref, inner=False):
         if isinstance(geom, geos.Polygon) and (len(geom) == 1) and (len(geom[0]) <= self.WAY_SPLIT_SIZE):
             # short single-ring polygons are built as ways
             return self.build_way(geom[0].tuple, tags)
@@ -362,7 +429,7 @@ class OSMWriter(object):
             # FIXME: Link together as a relation?
             ids = []
             for g in geom:
-                ids += self.build_geom(g, tags, inner=True)
+                ids += self.build_geom(g, tags, first_node_ref, last_node_ref, inner=True)
             return ids
         
         elif isinstance(geom, geos.Point):
@@ -373,7 +440,7 @@ class OSMWriter(object):
         
         elif isinstance(geom, geos.LineString):
             # way
-            return self.build_way(geom.tuple, tags, True)
+            return self.build_way(geom.tuple, tags, True, first_node_ref, last_node_ref)
     
     def build_tags(self, parent_node, tags, object_type):
         if tags:

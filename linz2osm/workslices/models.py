@@ -212,8 +212,6 @@ class WorksliceFeatureManager(models.Manager):
         workslice.feature_count = len(ws_feats)
         workslice.save()
 
-OVERPASS_PROXIMITY = 0.001
-        
 class WorksliceFeature(models.Model):
     objects = WorksliceFeatureManager()
     
@@ -279,12 +277,7 @@ class WorksliceFeature(models.Model):
             raise Error("Unsupported geometry type %s" % geotype)
 
         geobounds = self.wgs_bounds().extent
-        str_bounds = "(%f,%f,%f,%f)" % (
-            geobounds[1] - OVERPASS_PROXIMITY,
-            geobounds[0] - OVERPASS_PROXIMITY,
-            geobounds[3] + OVERPASS_PROXIMITY,
-            geobounds[2] + OVERPASS_PROXIMITY,
-            )
+        str_bounds = overpass.str_bounds_for(geobounds)
         
         return query % {
             'tags': tags_ql,
