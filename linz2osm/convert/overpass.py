@@ -17,6 +17,7 @@
 import urllib
 import requests
 from django.contrib.gis.geos import GEOSGeometry, Point, LineString
+from textwrap import dedent
 
 OVERPASS_API_URL = "http://overpass.osm.rambler.ru/cgi/interpreter?data="
 OVERPASS_PROXIMITY = 0.001

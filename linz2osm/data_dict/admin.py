@@ -137,7 +137,7 @@ class LayerAdmin(admin.ModelAdmin):
         LayerTagInline,
     ]
     ordering = ('name', 'group')
-    readonly_fields = ('name', 'entity', 'geometry_type')
+    readonly_fields = ('name', 'entity', 'geometry_type', 'special_node_reuse_logic')
     search_fields = ('name', 'notes',)
     save_on_top = True
 
