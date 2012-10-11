@@ -30,22 +30,24 @@ AuthenticatedCommentForm.base_fields.pop('name')
 CHANGESET_RE = re.compile("^(.*/)?(?P<changeset_id>[0-9]*)$")
 
 class WorksliceCommentForm(AuthenticatedCommentForm):
-    changeset = forms.CharField(label=('Changeset'), required=False)
+    changesets = forms.CharField(label='Changeset(s)', widget=forms.Textarea, required=False)
 
-    def clean_changeset(self):
-        changeset = self.cleaned_data['changeset']
-        if changeset:
-            m = CHANGESET_RE.match(changeset)
-            if m:
-                changeset = m.group('changeset_id')
-            else:
-                raise forms.ValidationError("Changeset must be a number or URL of OpenStreetMap page")
-        return changeset
+    def clean_changesets(self):
+        changeset_ary = self.cleaned_data['changesets'].split()
+        changeset_out = []
+        for changeset in changeset_ary:
+            if changeset:
+                m = CHANGESET_RE.match(changeset)
+                if m:
+                    changeset_out.append(m.group('changeset_id'))
+                else:
+                    raise forms.ValidationError("Changesets must be a number or URL of OpenStreetMap page")
+        return "\n".join(changeset_out)
     
     def get_comment_model(self):
         return WorksliceComment
 
     def get_comment_create_data(self):
         data = super(WorksliceCommentForm, self).get_comment_create_data()
-        data['changeset'] = self.cleaned_data['changeset']
+        data['changesets'] = self.cleaned_data['changesets']
         return data

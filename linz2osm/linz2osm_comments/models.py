@@ -6,11 +6,8 @@ class AuthenticatedComment(Comment):
         return ("#%s" % self.object_pk)
 
 class WorksliceComment(AuthenticatedComment):
-    changeset = models.TextField(blank=True)
+    changesets = models.TextField(blank=True)
 
-    def changeset_link(self):
-        if self.changeset:
-            return "http://www.openstreetmap.org/browse/changeset/%s" % self.changeset
-        return ""
-
+    def changeset_list(self):
+        return self.changesets.split()
 

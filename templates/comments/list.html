@@ -2,8 +2,13 @@
   {% for comment in comment_list %}
     <dt id="c{{ comment.id }}">
         {{ comment.submit_date }} - {{ comment.name }}
-        {% if comment.changeset %}
-            - changeset <a target="_blank" href="{{ comment.changeset_link }}">{{ comment.changeset }}</a>
+        {% if comment.changesets %}
+            - changesets
+            <ul>
+            {% for changeset in comment.changeset_list %}
+            <li><a target="_blank" href="http://www.openstreetmap.org/browse/changeset/{{ changeset }}">{{ changeset }}</a></li>
+            {% endfor %}
+            </ul>
         {% endif %}
     </dt>
     <dd>
