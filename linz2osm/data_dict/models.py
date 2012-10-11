@@ -313,7 +313,7 @@ class TagManager(models.Manager):
             if value is pydermonkey.undefined:
                 value = None
             return value
-        except (pydermonkey.ScriptError,), e:
+        except (Exception,), e:
             e_msg = js.get_property(e.args[0], 'message')
             e_lineno = js.get_property(e.args[0], 'lineNumber')
             en = Tag.ScriptError("%s (line %d)" % (e_msg, e_lineno))
