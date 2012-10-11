@@ -366,10 +366,9 @@ class OSMWriter(object):
 
                     if node_ref:
                         n_id = self._osm_nodes.get(node_ref)
-                        if not n_id:
-                            n_id = self._node(c, tags, True, special_node_type)
-                            self._osm_nodes[node_ref] = n_id
-                            
+                    if not n_id:
+                        n_id = self._node(c, tags, True, special_node_type)
+                        self._osm_nodes[node_ref] = n_id
                 else:
                     n_id = self._node(c, None, True)
                 special_node_type = None
