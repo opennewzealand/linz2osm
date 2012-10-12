@@ -125,7 +125,11 @@ def preview(request, layer_id=None):
                 feature_count = 10
             feature_ids = [fid for fid in range(starting_id, starting_id + feature_count)]
             layer_in_dataset = LayerInDataset.objects.get(layer=layer, dataset=form.cleaned_data['dataset'])
-            ctx['preview_data'] = osm.export_custom(layer_in_dataset, feature_ids, '111222333444555666777888999')
+
+            try:
+                ctx['preview_data'] = osm.export_custom(layer_in_dataset, feature_ids, '123_sample_workslice_id_123')
+            except osm.Error, e:
+                form._errors["__all__"] = form.error_class([unicode(e)])
     else:
         form = PreviewForm(error_class=BootstrapErrorList, datasets=datasets)
     ctx['form'] = form

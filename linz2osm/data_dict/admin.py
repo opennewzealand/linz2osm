@@ -18,6 +18,8 @@ import re
 
 from django.contrib import admin
 from django.template.loader import render_to_string
+from django import forms
+import pydermonkey
 
 from linz2osm.data_dict.models import Layer, Tag, LayerInDataset, Dataset, Group
     
@@ -37,11 +39,32 @@ class LayerInDatasetInline(admin.StackedInline):
     exclude=('extent',)
     can_delete = False
 
+class TagInlineForm(forms.ModelForm):
+    class Meta:
+        model = Tag
+
+    def __init__(self, *args, **kwargs):
+        super(TagInlineForm, self).__init__(*args, **kwargs)
+
+    def clean_code(self):
+        code_text = self.cleaned_data['code']
+
+        js = pydermonkey.Runtime().new_context()
+        try:
+            js.compile_script(code_text, '<Tag Code>', 1)
+        except (Exception,), e:
+            e_msg = js.get_property(e.args[0], 'message')
+            e_lineno = js.get_property(e.args[0], 'lineNumber')
+
+            raise forms.ValidationError("Error: %s (line %d)" % (e_msg, e_lineno))
+        return code_text
+    
 class TagInline(admin.StackedInline):
     model = Tag
     extra = 2
     verbose_name = 'Tag'
     verbose_name_plural = 'Tags'
+    form = TagInlineForm
 
 class GroupTagInline(TagInline):
     exclude = ("layer",)
