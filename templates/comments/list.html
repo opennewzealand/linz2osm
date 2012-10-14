@@ -1,7 +1,7 @@
 <dl id="comments">
   {% for comment in comment_list %}
     <dt id="c{{ comment.id }}">
-        {{ comment.submit_date }} - {{ comment.name }}
+        {{ comment.submit_date }} - {{ comment.display_name }}
         {% if comment.changesets %}
             - changesets
             <ul>
