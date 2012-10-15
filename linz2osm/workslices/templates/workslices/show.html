@@ -64,6 +64,8 @@
     </form>
     {% endfor %}
     {% endif %}
+    {% include "workslices/legend-show.html" %}
+
   </div>
   <div class="span8">
     <!-- map_canvas is a magic name for Bootstrap to not mangle images with max-width -->
@@ -78,12 +80,12 @@
   </div>
 </div>
 <div class="row">
-  <div class="span4">
+  <div class="span6">
     {% if user.is_authenticated %}
     {% render_comment_form for workslice %}
     {% endif %}
   </div>
-  <div class="span8">
+  <div class="span6">
     {% render_comment_list for workslice %}
   </div>
 </div>

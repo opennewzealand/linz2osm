@@ -68,6 +68,8 @@
     </div>
     {% endif %}
 
+    {% include "workslices/legend-create.html" %}
+    
     <div>
       <h2>Current checkouts</h2>
       <table class="table table-condensed">
@@ -90,12 +92,8 @@
         {% endfor %}
       </table>
     </div>
-
-    <div class="layer-notes">
-      <h2>Notes</h2>
-      {{ layer_in_dataset.layer.notes|linebreaks }}
-    </div>
   </div>
+
   <div class="span8">
     <!-- map_canvas is a magic name for Bootstrap to not mangle images with max-width -->
     <div id="map_canvas">
@@ -104,6 +102,16 @@
       <a href="#" id="osm-link" class="btn btn-info">View this area on OpenStreetMap</a>
     </div>
   </div>
+
+  <hr>
+  
+  <div class="span4">
+    <div class="layer-notes">
+      <h2>Notes</h2>
+      {{ layer_in_dataset.layer.notes|linebreaks }}
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 

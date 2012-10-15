@@ -30,7 +30,7 @@ AuthenticatedCommentForm.base_fields.pop('name')
 CHANGESET_RE = re.compile("^(.*/)?(?P<changeset_id>[0-9]*)$")
 
 class WorksliceCommentForm(AuthenticatedCommentForm):
-    changesets = forms.CharField(label='Changeset(s)', widget=forms.Textarea, required=False)
+    changesets = forms.CharField(label='Changeset(s)', widget=forms.Textarea, required=False, help_text='You may enter changeset numbers or URLs, separated with whitespace')
 
     def clean_changesets(self):
         changeset_ary = self.cleaned_data['changesets'].split()
