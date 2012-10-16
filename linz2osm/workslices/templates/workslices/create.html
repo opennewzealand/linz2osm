@@ -18,7 +18,7 @@
 {% block content %}
 <div class="row">
   <div class="span4">
-    <div>
+    <div id="workslice-stats">
       <h2>Stats</h2>
       <ul>
         <li>{{ layer_in_dataset.features_total|intcomma }} total features.</li>
@@ -68,30 +68,7 @@
     </div>
     {% endif %}
 
-    {% include "workslices/legend-create.html" %}
-    
-    <div>
-      <h2>Current checkouts</h2>
-      <table class="table table-condensed">
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Features</th>
-            <th>Status</th>
-            <th>Checked Out</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for ws in workslices %}
-          <tr>
-            <td>{{ ws.user.username }}</td>
-            <td>{{ ws.feature_count|intcomma }}</td>
-            <td>{{ ws.friendly_status }}</td>
-            <td><a href="{{ ws.get_absolute_url }}">{{ ws.checked_out_at }}</a></td>
-          </tr>
-        {% endfor %}
-      </table>
-    </div>
+    {% include "workslices/legend-create.html" %}    
   </div>
 
   <div class="span8">
@@ -102,15 +79,41 @@
       <a href="#" id="osm-link" class="btn btn-info">View this area on OpenStreetMap</a>
     </div>
   </div>
-  
-  <div class="span4">
+</div>
+<hr>
+<div class="row">
+  <div class="span12">
     <div class="layer-notes">
       <h2>Notes</h2>
       {{ layer_in_dataset.layer.notes|linebreaks }}
     </div>
   </div>
-
 </div>
+<div class="row">
+  <div class="span12">
+    <h2>Current checkouts</h2>
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Features</th>
+          <th>Status</th>
+          <th>Checked Out</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ws in workslices %}
+        <tr>
+          <td>{{ ws.user.username }}</td>
+          <td>{{ ws.feature_count|intcomma }}</td>
+          <td>{{ ws.friendly_status }}</td>
+          <td><a href="{{ ws.get_absolute_url }}">{{ ws.checked_out_at }}</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extrascripts %}
