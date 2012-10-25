@@ -17,7 +17,7 @@
 import re
 
 from itertools import chain
-from datetime import datetime
+from datetime import datetime as dt
 
 from django.core import serializers
 from django.shortcuts import get_object_or_404, render_to_response
@@ -167,7 +167,7 @@ def export_data_dict(request):
             indent=4,
             content_type='application/xml'))
     response['Content-Type'] = "application/xml"
-    response['Content-Disposition'] = "attachment; filename=linz2osm-data_dict-export-%s.xml" % (datetime.strftime(datetime.now(), "%F-%H-%M-%S"),)
+    response['Content-Disposition'] = "attachment; filename=linz2osm-data_dict-export-%s.xml" % (dt.strftime(dt.now(), "%F-%H-%M-%S"),)
     return response
 
 def list_layers(request):
