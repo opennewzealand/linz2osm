@@ -22,12 +22,12 @@ from textwrap import dedent
 OVERPASS_API_URL = "http://overpass.osm.rambler.ru/cgi/interpreter?data="
 OVERPASS_PROXIMITY = 0.001
 
-def str_bounds_for(geobounds):
+def str_bounds_for(geobounds, proximity = OVERPASS_PROXIMITY):
     return "(%f,%f,%f,%f)" % (
-        geobounds[1] - OVERPASS_PROXIMITY,
-        geobounds[0] - OVERPASS_PROXIMITY,
-        geobounds[3] + OVERPASS_PROXIMITY,
-        geobounds[2] + OVERPASS_PROXIMITY,
+        geobounds[1] - proximity,
+        geobounds[0] - proximity,
+        geobounds[3] + proximity,
+        geobounds[2] + proximity,
         )
 
 def osm_node_match_query(layer_in_dataset, data_table):
@@ -35,8 +35,8 @@ def osm_node_match_query(layer_in_dataset, data_table):
 
 def osm_node_match_json(layer_in_dataset, data_table):
     query = osm_node_match_query(layer_in_dataset, data_table)
-    print "-----=====+++ < ( [ { XXX OVERPASS QUERY XXX } ] ) > +++=====-----"
-    print query
+    # print "-----=====+++ < ( [ { XXX OVERPASS QUERY XXX } ] ) > +++=====-----"
+    # print query
     r = requests.post(OVERPASS_API_URL, data={
             'data': query
             })
@@ -80,6 +80,17 @@ def osm_conflicts_query(workslice_features, tags_ql):
 def osm_conflicts_json(workslice_features, tags_ql):
     r = requests.post(OVERPASS_API_URL, data={
             'data': osm_conflicts_query(workslice_features, tags_ql)
+            })
+    return r.json
+
+def osm_individual_conflicts_query(layer_in_dataset, workslice_feature, query_data):
+    return "".join(("[out:json];\n(\n",
+                    workslice_feature.osm_individual_conflict_query_ql(query_data),
+                    "\n);\nout;\n"))
+
+def osm_individual_conflicts_json(requests_manager, layer_in_dataset, workslice_feature, query_data):
+    r = requests_manager.post(OVERPASS_API_URL, data={
+            'data': osm_individual_conflicts_query(layer_in_dataset, workslice_feature, query_data)
             })
     return r.json
 
@@ -132,5 +143,34 @@ def node_point(node_id, nodes):
     else:
         return None
 
+def featureset_conflicts_for_data(layer_in_dataset, workslice_features, data_table):
+    workslice_feature_db = dict([(wf.feature_id, wf) for wf in workslice_features])
+    conflict_tags = layer_in_dataset.get_conflict_tags()
+    # FIXME: use apply_to when searching
 
+    session = requests.session()
+    conflicts = []
+    for i, (row_data, row_geom) in enumerate(data_table):
+        query_tags = []
+        for tag in conflict_tags:
+            try:
+                v = tag.eval_for_conflict_filter(row_data)
+            except tag.ScriptError, e:
+                emsg = "Error evaluating '%s' tag against record:\n" % tag
+                emsg += simplejson.dumps(e.data, indent=2) + "\n"
+                emsg += str(e)
+                raise Error(emsg)
+            if (v is not None) and (v != ""):
+                query_tags.append(v)
+        feature_id = row_data[layer_in_dataset.layer.pkey_name]
+        wf = workslice_feature_db[feature_id]
+        if wf:
+            query_text = "\n".join(query_tags)
+            
+            conflicts_json = osm_individual_conflicts_json(session, layer_in_dataset, wf, query_text)
+            conflicts.append((wf, conflicts_json,))            
+        else:
+            print "WORKSLICE FEATURE NOT FOUND"
+    session.close()
+    return conflicts
                   

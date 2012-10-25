@@ -165,6 +165,10 @@ class WorksliceForm(forms.Form):
             ('yes', 'Yes'),
             ('count', "Count but don't show"),
             ), initial='no')
+    feature_filter = forms.ChoiceField(choices=(
+            ('all', 'All'),
+            ('noconflicts', 'No OSM conflicts'),
+            ), initial='all')
     
     def clean(self):
         cleaned_data = super(WorksliceForm, self).clean()
@@ -198,8 +202,7 @@ def create_workslice(request, layer_in_dataset_id):
         form = WorksliceForm(request.POST, error_class=BootstrapErrorList)
         if form.is_valid():
             try:
-                workslice = Workslice.objects.create_workslice(layer_in_dataset, request.user, form.extent)
-                print django.db.connections[dataset.name].queries
+                workslice = Workslice.objects.create_workslice(layer_in_dataset, request.user, form.extent, form.cleaned_data['feature_filter'])
             except osm.Error, e:
                 ctx['error'] = str(e)
             except WorksliceTooFeaturefulError, e:

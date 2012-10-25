@@ -49,9 +49,31 @@ class Cell(object):
 
     def __unicode__(self):
         return "X: %f, Y: %f, CPD: %d" % (self.lon, self.lat, self.cpd)
+
+class WorksliceFeatureFilter(object):
+    def __init__(self, layer_in_dataset):
+        self.layer_in_dataset = layer_in_dataset
+    
+class AllFilter(WorksliceFeatureFilter):
+    def apply(self, workslice_features):
+        return workslice_features
+    
+class NoConflictFilter(WorksliceFeatureFilter):
+    def apply(self, workslice_features):
+        osm_conflicts = osm.featureset_conflicts(self.layer_in_dataset, workslice_features)
+        passed = []
+        for (wf, conflicts_json) in osm_conflicts:
+            if not conflicts_json['elements']:
+                passed.append(wf)
+        return passed
     
 class WorksliceManager(models.GeoManager):
-    def create_workslice(self, layer_in_dataset, user, extent=None):
+    def create_workslice(self, layer_in_dataset, user, extent=None, filter_name=None):
+        if filter_name == 'noconflicts':
+            feature_filter = NoConflictFilter(layer_in_dataset)
+        else:
+            feature_filter = AllFilter(layer_in_dataset)
+        
         try:
             with transaction.commit_on_success():
                 # print "original extent"
@@ -92,7 +114,7 @@ class WorksliceManager(models.GeoManager):
                                         followup_deadline = datetime.now() + relativedelta(months = +2),
                                         )
                 workslice.save()
-                WorksliceFeature.objects.allocate_workslice_features(workslice, allocation_extent)
+                WorksliceFeature.objects.allocate_workslice_features(workslice, allocation_extent, feature_filter)
         except WorksliceTooFeaturefulError, e:
             raise e
         except WorksliceInsufficientlyFeaturefulError, e:
@@ -158,7 +180,7 @@ class Workslice(models.Model):
                 "id": "%d"
             }
         } """ %  (self.checkout_extent.geojson, self.state, self.id)
-        
+
     @property
     def type_description(self):
         return "Workslice"
@@ -184,7 +206,7 @@ class WorksliceInsufficientlyFeaturefulError(Exception):
     pass
     
 class WorksliceFeatureManager(models.Manager):
-    def allocate_workslice_features(self, workslice, extent):
+    def allocate_workslice_features(self, workslice, extent, feature_filter):
         layer_in_dataset = workslice.layer_in_dataset
         covered_fids = osm.get_layer_feature_ids(layer_in_dataset, extent)
         if covered_fids is None:
@@ -208,10 +230,13 @@ class WorksliceFeatureManager(models.Manager):
             raise WorksliceTooFeaturefulError
         if len(ws_feats) == 0:
             raise WorksliceInsufficientlyFeaturefulError
+        ws_feats = feature_filter.apply(ws_feats)
         self.bulk_create(ws_feats)
         workslice.feature_count = len(ws_feats)
         workslice.save()
 
+INDIV_CONFLICT_PROXIMITY = 0.0001
+        
 class WorksliceFeature(models.Model):
     objects = WorksliceFeatureManager()
     
@@ -245,7 +270,10 @@ class WorksliceFeature(models.Model):
             }
         } """ % geom.geojson
 
-    def osm_conflicts_query_ql(self, tags_ql):
+    def osm_individual_conflict_query_ql(self, query_data):
+        return self.osm_conflicts_query_ql(query_data, INDIV_CONFLICT_PROXIMITY)
+    
+    def osm_conflicts_query_ql(self, tags_ql, proximity = overpass.OVERPASS_PROXIMITY):
         geotype = self.layer_in_dataset.layer.geometry_type
         if geotype == "POINT":
             query = dedent("""
@@ -277,7 +305,7 @@ class WorksliceFeature(models.Model):
             raise Error("Unsupported geometry type %s" % geotype)
 
         geobounds = self.wgs_bounds().extent
-        str_bounds = overpass.str_bounds_for(geobounds)
+        str_bounds = overpass.str_bounds_for(geobounds, proximity)
         
         return query % {
             'tags': tags_ql,

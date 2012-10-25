@@ -181,15 +181,20 @@ def clean_data(cell):
         return cell.strip()
     else:
         return cell
+
+def featureset_conflicts(layer_in_dataset, workslice_features):
+    data_table = get_data_table(layer_in_dataset, [wf.feature_id for wf in workslice_features])
+    return overpass.featureset_conflicts_for_data(layer_in_dataset, workslice_features, data_table)
     
 def export(workslice):
     layer_in_dataset = workslice.layer_in_dataset
     feature_ids = [wf.feature_id for wf in workslice.workslicefeature_set.all()]
     return export_custom(layer_in_dataset, feature_ids, workslice.id)
-    
-def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
+
+def get_data_table(layer_in_dataset, feature_ids = None, workslice_id = None):
     dataset = layer_in_dataset.dataset
     layer = layer_in_dataset.layer
+
     database_id = dataset.name
     cursor = connections[database_id].cursor()
     db_info = settings.DATABASES[database_id]
@@ -202,10 +207,7 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
             geom_column = column_name
         else:
             data_columns.append(column_name)
-    
-    layer_tags = layer_in_dataset.get_all_tags()
-    processors = layer.get_processors()
-        
+
     columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, dataset.srid)] + ['"%s"' % c for c in data_columns]
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
 
@@ -216,7 +218,7 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
             sql_base += ' WHERE %s IS NULL' % layer.pkey_name
 
     cursor.execute(sql_base)
-
+            
     data_table = []
     
     for i,row in enumerate(cursor):
@@ -235,13 +237,24 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
 
         data_table.append((row_data, row_geom))
 
+    return data_table
+
+def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
+    dataset = layer_in_dataset.dataset
+    layer = layer_in_dataset.layer    
+    
+    layer_tags = layer_in_dataset.get_all_tags()
+    processors = layer.get_processors()
+
+    data_table = get_data_table(layer_in_dataset, feature_ids, workslice_id)
+    
     osm_nodes = {}
     if layer.special_node_reuse_logic:
         node_match_json = overpass.osm_node_match_json(layer_in_dataset, data_table)['elements']
         for node in node_match_json:
             osm_nodes[node['tags'].get(layer.special_node_tag_name)] = str(node['id'])
         
-    writer = OSMWriter(id_hash=(database_id, layer.name, feature_ids),
+    writer = OSMWriter(id_hash=(dataset.name, layer.name, feature_ids),
                        osm_nodes=osm_nodes,
                        special_start_node_field_name=layer.special_start_node_field_name,
                        special_end_node_field_name=layer.special_end_node_field_name

@@ -217,6 +217,9 @@ class LayerInDataset(geomodels.Model):
     def get_absolute_url(self):
         return ('linz2osm.workslices.views.create_workslice', (), {'layer_in_dataset_id': self.id})
 
+    def get_conflict_tags(self):
+        return [t for t in self.get_all_tags() if t.is_conflict_search_tag]
+    
     def get_all_tags(self):
         # if we override a default one, use the specific one
         # count tags with different apply_to values separately
@@ -332,6 +335,13 @@ APPLY_TO_CHOICES = [
     (5, 'First and last nodes'),
 ]
 
+CONFLICT_SEARCH_CHOICES = [
+    (0, 'No'),
+    (1, 'Filter exact matches'),
+    (2, 'Filter partial match'),
+    (3, 'Filter tag name only'),
+]
+
 @total_ordering
 class Tag(models.Model):
     objects = TagManager()
@@ -341,6 +351,7 @@ class Tag(models.Model):
     tag = models.CharField(max_length=100, help_text="OSM tag name")
     code = models.TextField(blank=True, help_text="Javascript code that sets the 'value' paramter to a non-null value to set the tag. 'fields' is an object with all available attributes for the current record")
     apply_to = models.IntegerField(default=0, choices=APPLY_TO_CHOICES)
+    conflict_search_tag = models.IntegerField(default=0, choices=CONFLICT_SEARCH_CHOICES, verbose_name='Use this tag to search for conflicts in OSM')
     
     class Meta:
         unique_together = ('layer', 'apply_to', 'tag',)
@@ -368,6 +379,23 @@ class Tag(models.Model):
     def eval(self, fields):
         return Tag.objects.eval(self.code, fields)
 
+    def eval_for_conflict_filter(self, fields):
+        if self.conflict_search_tag == 0:
+            return None
+        elif self.conflict_search_tag == 3:
+            return '["%s"]' % self.tag
+        else:
+            v = Tag.objects.eval(self.code, fields)
+            if self.conflict_search_tag == 1:
+                return '["%s"="%s"]' % (self.tag, v)
+            elif self.conflict_search_tag == 2:
+                return '["%s"~"%s"]' % (self.tag, v)
+            else:
+                return None
+
+    def is_conflict_search_tag(self):
+        return self.conflict_search_tag != 0
+        
     def __lt__(self, other):
         if other.layer_id:
             if not self.layer_id:
