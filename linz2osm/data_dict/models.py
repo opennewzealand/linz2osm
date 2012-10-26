@@ -212,6 +212,13 @@ class LayerInDataset(geomodels.Model):
             return ""
         else:
             return "error"
+
+    @property
+    def hide_filters(self):
+        for tag in self.layer.tags.all():
+            if tag.is_conflict_search_tag:
+                return False
+        return True
     
     @models.permalink
     def get_absolute_url(self):
@@ -393,6 +400,7 @@ class Tag(models.Model):
             else:
                 return None
 
+    @property
     def is_conflict_search_tag(self):
         return self.conflict_search_tag != 0
         

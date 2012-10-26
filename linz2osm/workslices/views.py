@@ -169,6 +169,12 @@ class WorksliceForm(forms.Form):
             ('all', 'All'),
             ('noconflicts', 'No OSM conflicts'),
             ), initial='all')
+
+    def __init__(self, *args, **kwargs):
+        hide_filters = kwargs.pop('hide_filters', None)
+        super(WorksliceForm, self).__init__(*args, **kwargs)
+        if hide_filters:
+            self.fields['feature_filter'].widget = forms.HiddenInput()
     
     def clean(self):
         cleaned_data = super(WorksliceForm, self).clean()
@@ -199,7 +205,7 @@ def create_workslice(request, layer_in_dataset_id):
     if request.method == 'POST':
         if not request.user.is_authenticated():
             return HttpResponseRedirect('/login/')
-        form = WorksliceForm(request.POST, error_class=BootstrapErrorList)
+        form = WorksliceForm(request.POST, error_class=BootstrapErrorList, hide_filters=layer_in_dataset.hide_filters)
         if form.is_valid():
             try:
                 workslice = Workslice.objects.create_workslice(layer_in_dataset, request.user, form.extent, form.cleaned_data['feature_filter'])
@@ -216,7 +222,7 @@ def create_workslice(request, layer_in_dataset_id):
                 return response
             pass
     else:
-        form = WorksliceForm(error_class=BootstrapErrorList)
+        form = WorksliceForm(error_class=BootstrapErrorList, hide_filters=layer_in_dataset.hide_filters)
     ctx['form'] = form
     return render_to_response('workslices/create.html', ctx, context_instance=RequestContext(request))
 
@@ -227,7 +233,7 @@ def workslice_info(request, layer_in_dataset_id):
     
     ctx = {}
     
-    form = WorksliceForm(request.POST, error_class=BootstrapErrorList)
+    form = WorksliceForm(request.POST, error_class=BootstrapErrorList, hide_filters=layer_in_dataset.hide_filters)
     if form.is_valid():
         feature_count = osm.get_layer_feature_count(dataset.name, layer, form.extent)
         if feature_count > layer.feature_limit:
