@@ -159,10 +159,16 @@ class LayerAdmin(admin.ModelAdmin):
         LayerInDatasetInline,
         LayerTagInline,
     ]
-    ordering = ('name', 'group')
-    readonly_fields = ('name', 'entity', 'geometry_type', 'special_node_reuse_logic')
+    ordering = ('name', 'group',)
+    readonly_fields = ('special_node_reuse_logic',)
     search_fields = ('name', 'notes',)
     save_on_top = True
+
+    # http://stackoverflow.com/questions/4343535/django-admin-make-a-field-read-only-when-modifying-obj-but-required-when-adding
+    def get_readonly_fields(self, request, obj=None):
+        if obj: # editing an existing object
+            return self.readonly_fields + ('name', 'entity', 'geometry_type')
+        return self.readonly_fields
 
     class Media:
         css = {

@@ -219,6 +219,10 @@ class LayerInDataset(geomodels.Model):
             if tag.is_conflict_search_tag:
                 return False
         return True
+
+    @property
+    def filter_tag_names(self):
+        return [tag.tag for tag in self.layer.tags.all() if tag.is_conflict_search_tag]
     
     @models.permalink
     def get_absolute_url(self):
