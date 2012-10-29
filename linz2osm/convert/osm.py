@@ -96,7 +96,7 @@ def get_layer_feature_count(database_id, layer, intersect_geom=None):
 class NoSuchFieldNameError(Exception):
     pass
 
-NO_STATS_FIELDS = ['ogc_fid', 'wkb_geometry']
+NO_STATS_FIELDS = ['id', 'ogc_fid', 'linz2osm_id', 'wkb_geometry']
 
 def get_field_stats(database_id, layer, field_name):
     geom_type, srid = get_layer_geometry_type(database_id, layer)

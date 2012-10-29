@@ -52,7 +52,8 @@ class DatasetManager(models.Manager):
                     dataset = self.create(name = name,
                                           database_name = details['NAME'],
                                           description = details['_description'],
-                                          srid = int(details['_srid']))
+                                          srid = int(details['_srid']),
+                                          version = details['_version'])
                     
                 for layer in Layer.objects.all():
                     if dataset.has_layer_in_schema(layer.name):
