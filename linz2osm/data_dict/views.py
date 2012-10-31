@@ -123,8 +123,9 @@ def preview(request, layer_id=None):
                 feature_count = 100
             else:
                 feature_count = 10
-            feature_ids = [fid for fid in range(starting_id, starting_id + feature_count)]
+                
             layer_in_dataset = LayerInDataset.objects.get(layer=layer, dataset=form.cleaned_data['dataset'])
+            feature_ids = osm.get_base_and_limit_feature_ids(layer_in_dataset, starting_id, feature_count)
 
             try:
                 ctx['preview_data'] = osm.export_custom(layer_in_dataset, feature_ids, '123_sample_workslice_id_123')

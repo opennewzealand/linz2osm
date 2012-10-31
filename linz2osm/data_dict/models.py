@@ -101,7 +101,7 @@ class Layer(models.Model):
     datasets = models.ManyToManyField(Dataset, through='LayerInDataset')
     geometry_type = models.CharField(max_length=255, blank=True, choices=GEOTYPE_CHOICES)
     group = models.ForeignKey(Group, blank=True, null=True)
-    pkey_name = models.CharField(max_length=255, default='ogc_fid', choices=PKEY_CHOICES)
+    pkey_name = models.CharField(max_length=255, default='ogc_fid', choices=PKEY_CHOICES, help_text='Changing this on an existing dataset requires an update to existing workslice features in database')
     tags_ql = models.TextField(blank=True, null=True, help_text=('What tags to include in the OSM search. Separated with whitespace. In OSM Overpass API format ["name"="value"] ["name"~"valueish"] ["name"="this|that"] ["name"!="not-this"] etc.'), verbose_name='tags for overpass QL')
     # FIXME: do this with a flag on the relevant tags?
     special_node_reuse_logic = models.BooleanField(default=False)

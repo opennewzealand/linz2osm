@@ -167,7 +167,7 @@ class LayerAdmin(admin.ModelAdmin):
     # http://stackoverflow.com/questions/4343535/django-admin-make-a-field-read-only-when-modifying-obj-but-required-when-adding
     def get_readonly_fields(self, request, obj=None):
         if obj: # editing an existing object
-            return self.readonly_fields + ('name', 'entity', 'geometry_type')
+            return self.readonly_fields + ('name', 'entity', 'geometry_type', 'pkey_name')
         return self.readonly_fields
 
     class Media:

@@ -32,7 +32,7 @@ if [ "${4}" ]
 fi
 srs="EPSG:4326"
 
-table_name=wfs_`echo ${layer_name} | sed -e 's/\(.\)/\L\1/g' -e 's/\([^a-z0-9]\)/_/g'`
+table_name=`echo ${layer_name} | sed -e 's/\(.\)/\L\1/g' -e 's/\([^a-z0-9]\)/_/g'`
 echo "Using server ${wfs_server}"
 echo "Loading layer: ${layer_name} into ${table_name} in ${dataset_db}"
 # dropdb ${dataset_db}

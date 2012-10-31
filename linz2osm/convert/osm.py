@@ -43,6 +43,28 @@ def get_layer_geometry_type(database_id, layer):
     r = cursor.fetchone()
     return tuple(r[:2])
 
+def get_base_and_limit_feature_ids(layer_in_dataset, base_id=None, feature_limit=None):
+    cursor = connections[layer_in_dataset.dataset.name].cursor()
+
+    sql = 'SELECT %(pkey_name)s FROM %(layer_name)s'
+    params = {
+        'pkey_name': layer_in_dataset.layer.pkey_name,
+        'layer_name': layer_in_dataset.layer.name,
+        'base_id': int(base_id),
+        'feature_limit': int(feature_limit),
+        }
+
+    if base_id:
+        sql += ' WHERE %(pkey_name)s >= %(base_id)d'
+
+    sql += ' ORDER BY %(pkey_name)s ASC'
+        
+    if feature_limit:
+        sql += ' LIMIT %(feature_limit)d'
+
+    cursor.execute(sql % params)
+    return [r[0] for r in cursor.fetchall()]
+
 def get_layer_feature_ids(layer_in_dataset, extent=None, feature_limit=None):
     cursor = connections[layer_in_dataset.dataset.name].cursor()
 
@@ -96,7 +118,7 @@ def get_layer_feature_count(database_id, layer, intersect_geom=None):
 class NoSuchFieldNameError(Exception):
     pass
 
-NO_STATS_FIELDS = ['id', 'ogc_fid', 'linz2osm_id', 'wkb_geometry']
+NO_STATS_FIELDS = ['wkb_geometry']
 
 def get_field_stats(database_id, layer, field_name):
     geom_type, srid = get_layer_geometry_type(database_id, layer)
@@ -111,10 +133,10 @@ def get_field_stats(database_id, layer, field_name):
         raise NoSuchFieldNameError
     col_type = col_type_row[0]
     
-    sql = "SELECT %(c)s, count(*) FROM %(t)s WHERE %(c)s IS NOT NULL "
+    sql = "SELECT \"%(c)s\", count(*) FROM \"%(t)s\" WHERE \"%(c)s\" IS NOT NULL "
     if col_type in ('character varying',):
-        sql += " AND %(c)s <> '' "
-    sql += "GROUP BY %(c)s ORDER BY count(*) DESC, %(c)s ASC; "
+        sql += " AND \"%(c)s\" <> '' "
+    sql += "GROUP BY \"%(c)s\" ORDER BY count(*) DESC, \"%(c)s\" ASC; "
     
     cursor.execute(sql % {'t': layer.name, 'c': field_name}) 
     return cursor.fetchall()
@@ -141,22 +163,22 @@ def get_layer_stats(database_id, layer):
         'fields': {}
     }
     
-    cursor.execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s AND column_name NOT IN (%s, 'ogc_fid', 'linz2osm_id', 'id', 'wkb_geometry', 'macronated', 'grp_macron', 'mp_line_ogc_fid');", [layer.name, layer.pkey_name])
+    cursor.execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s AND column_name NOT IN (%s, 'wkb_geometry', 'macronated', 'grp_macron', 'mp_line_ogc_fid');", [layer.name, layer.pkey_name])
     for col_name,col_type in cursor.fetchall():
-        sql = 'SELECT count(*) FROM %(t)s WHERE %(c)s IS NOT NULL'
+        sql = 'SELECT count(*) FROM "%(t)s" WHERE "%(c)s" IS NOT NULL'
         if col_type in ('character varying',):
-            sql += " AND %(c)s <> ''"
+            sql += " AND \"%(c)s\" <> ''"
         cursor.execute(sql % {'t': layer.name, 'c': col_name})
         row = cursor.fetchone()
         r['fields'][col_name] = {
             'non_empty_cnt': row[0],
             'non_empty_pc' : row[0] / float(r['feature_count']) * 100.0,
             'col_type': col_type,
-            'show_distinct_values': (row[0] > 0 and (col_name not in ('name', 'name_id', 'road_name_id', 'elevation') or r['feature_count'] <= 1000)),
+            'show_distinct_values': (row[0] > 0 and (col_name not in ('id', 'linz2osm_id', 'ogc_fid', 'name', 'name_id', 'road_name_id', 'elevation') or r['feature_count'] <= 1000)),
         }
     
     if geom_type in ('LINESTRING', 'POLYGON'):
-        cursor.execute("SELECT avg(ST_NPoints(wkb_geometry)), max(ST_NPoints(wkb_geometry)) FROM %s;" % layer.name)
+        cursor.execute("SELECT avg(ST_NPoints(wkb_geometry)), max(ST_NPoints(wkb_geometry)) FROM \"%s\";" % layer.name)
         s = cursor.fetchone();
         r.update({
             'points_avg': s[0],
@@ -164,7 +186,7 @@ def get_layer_stats(database_id, layer):
         })        
     
     if geom_type == 'POLYGON':
-        cursor.execute("SELECT avg(ST_NRings(wkb_geometry)), max(ST_NRings(wkb_geometry)), avg(ST_NPoints(ST_ExteriorRing(wkb_geometry))), max(ST_NPoints(ST_ExteriorRing(wkb_geometry))) FROM %s;" % layer.name)
+        cursor.execute("SELECT avg(ST_NRings(wkb_geometry)), max(ST_NRings(wkb_geometry)), avg(ST_NPoints(ST_ExteriorRing(wkb_geometry))), max(ST_NPoints(ST_ExteriorRing(wkb_geometry))) FROM \"%s\";" % layer.name)
         s = cursor.fetchone();
         r.update({
             'rings_avg': s[0],
@@ -217,6 +239,7 @@ def get_data_table(layer_in_dataset, feature_ids = None, workslice_id = None):
         else:
             sql_base += ' WHERE %s IS NULL' % layer.pkey_name
 
+    sql_base += ' ORDER BY %s ASC' % layer.pkey_name
     cursor.execute(sql_base)
             
     data_table = []
