@@ -16,9 +16,9 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-if [ $# -lt 3 ]
+if [ $# -lt 4 ]
 then
-    echo "Usage: load_lds_dataset.sh {update|overwrite} <database> <layer_id> <layer_name> [<viewparams> [<filter>]]"
+    echo "Usage: load_lds_dataset.sh {initial|update} <database> <layer_id> <layer_name> [<viewparams> [<filter>]]"
     exit 1
 fi
 
@@ -44,13 +44,7 @@ if [ "${6}" ]
     wfs_cmd="${wfs_cmd}&CQL_FILTER=${6}"
 fi
 
-
-# Add -lco OVERWRITE=yes if doing overwrite
-lcopts="-lco LAUNDER=yes"
-if [ "${1}" == "overwrite" ]
-    then
-    lcopts="${lcopts} -lco OVERWRITE=yes"
-fi
+lcopts="-lco LAUNDER=yes -lco OVERWRITE=yes"
 
 #srs="EPSG:4326"
 #srs_options="-a_srs ${srs} -s_srs ${srs}"
@@ -66,7 +60,12 @@ echo
 # createdb ${dataset_db} -T template_postgis
 
 # FIXME: update, not overwrite
-echo "ogr2ogr -${1} -f PostgreSQL PG:dbname=${dataset_db} ${lcopts} \"WFS:${wfs_cmd}\" ${srs_options} -nln ${table_name} "
+echo "ogr2ogr -overwrite -f PostgreSQL PG:dbname=${dataset_db} ${lcopts} \"WFS:${wfs_cmd}\" ${srs_options} -nln ${table_name} "
 echo "++++++++++++++++++++++++++++++++++++++++++++++++++"
 echo 
-ogr2ogr -${1} -f PostgreSQL PG:dbname=${dataset_db} ${lcopts} "WFS:${wfs_cmd}" ${srs_options} -nln ${table_name} 
+ogr2ogr -overwrite -f PostgreSQL PG:dbname=${dataset_db} ${lcopts} "WFS:${wfs_cmd}" ${srs_options} -nln ${table_name} 
+
+if [ "${1}" == "update" ]
+    then
+    psql ${dataset_db} -c 'ALTER TABLE ${table_name} DROP COLUMN "__change__";'
+fi
