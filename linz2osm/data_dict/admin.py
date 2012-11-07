@@ -23,14 +23,6 @@ import pydermonkey
 
 from linz2osm.data_dict.models import Layer, Tag, LayerInDataset, Dataset, Group
     
-class DatasetAdmin(admin.ModelAdmin):
-    list_display = ('name', 'database_name', 'description', 'version', 'srid', 'group')
-    list_filter = ('srid', 'group', 'version',)
-    ordering = ('name', 'database_name', 'description', 'version', 'srid', 'group')
-    readonly_fields = ('name', 'database_name', 'srid',)
-    search_fields = ('name', 'database_name', 'description', 'version', 'srid', 'group')
-    save_on_top = True
-
 class LayerInDatasetInline(admin.StackedInline):
     model = LayerInDataset
     max_num = 1
@@ -39,6 +31,32 @@ class LayerInDatasetInline(admin.StackedInline):
     exclude=('extent',)
     can_delete = False
 
+class DatasetAdmin(admin.ModelAdmin):
+    inlines = [
+        LayerInDatasetInline,
+    ]
+    list_display = ('name', 'database_name', 'description', 'version', 'srid', 'group')
+    list_filter = ('srid', 'group', 'version',)
+    ordering = ('name', 'database_name', 'description', 'version', 'srid', 'group')
+    readonly_fields = ('name', 'database_name', 'srid', 'update_link')
+    search_fields = ('name', 'database_name', 'description', 'version', 'srid', 'group')
+    save_on_top = True
+
+    def update_link(self, obj):
+        if obj.update_method == "manual":
+            return "Manual updates only"
+        else:
+            return "<a href='/data_dict/dataset/%s/update'>Update with %s</a>" % (obj.name, obj.get_update_method_display())
+    update_link.short_description = 'Update'
+    update_link.allow_tags = True
+    
+    # http://stackoverflow.com/questions/4343535/django-admin-make-a-field-read-only-when-modifying-obj-but-required-when-adding
+    def get_readonly_fields(self, request, obj=None):
+        if obj: # editing an existing object
+            return self.readonly_fields + ('version',)
+        return self.readonly_fields
+
+    
 class TagInlineForm(forms.ModelForm):
     class Meta:
         model = Tag
@@ -167,7 +185,7 @@ class LayerAdmin(admin.ModelAdmin):
     # http://stackoverflow.com/questions/4343535/django-admin-make-a-field-read-only-when-modifying-obj-but-required-when-adding
     def get_readonly_fields(self, request, obj=None):
         if obj: # editing an existing object
-            return self.readonly_fields + ('name', 'entity', 'geometry_type', 'pkey_name')
+            return self.readonly_fields + ('name', 'entity', 'geometry_type', 'pkey_name', 'wfs_type_name', 'wfs_cql_filter')
         return self.readonly_fields
 
     class Media:

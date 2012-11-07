@@ -19,6 +19,7 @@
 if [ $# -lt 4 ]
 then
     echo "Usage: load_lds_dataset.sh {initial|update} <database> <layer_id> <layer_name> [<viewparams> [<filter>]]"
+    echo "Args were $0 $1 $2 $3 $4 $5 $6 $7 $8 $9"
     exit 1
 fi
 
@@ -65,7 +66,7 @@ echo "++++++++++++++++++++++++++++++++++++++++++++++++++"
 echo 
 ogr2ogr -overwrite -f PostgreSQL PG:dbname=${dataset_db} ${lcopts} "WFS:${wfs_cmd}" ${srs_options} -nln ${table_name} 
 
-if [ "${1}" == "update" ]
+if [ "${1}" == "initial" ]
     then
-    psql ${dataset_db} -c 'ALTER TABLE ${table_name} DROP COLUMN "__change__";'
+    psql ${dataset_db} -c "ALTER TABLE ${table_name} DROP COLUMN \"__change__\";"
 fi

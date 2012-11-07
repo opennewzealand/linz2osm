@@ -17,6 +17,8 @@
 import datetime
 import decimal
 import pydermonkey
+import subprocess
+import urllib
 
 from functools import total_ordering
 
@@ -25,6 +27,7 @@ from django.db.models import Sum
 from django.utils import text
 from django.conf import settings
 from django.contrib.gis.db import models as geomodels
+from django.contrib.auth.models import User
 
 from linz2osm.utils.db_fields import JSONField
 from linz2osm.convert import processing, osm
@@ -61,13 +64,20 @@ class DatasetManager(models.Manager):
 
 
 class Dataset(models.Model):
+    UPDATE_METHOD_CHOICES = [
+        ('manual', 'Manual'),
+        ('lds', 'LINZ Data Service'),
+        # ('wfs', 'WFS'),
+        ]
+    
     name = models.CharField(max_length=255, unique=True, primary_key=True)
     database_name = models.CharField(max_length=255)
     description = models.TextField()
     version = models.TextField(blank=True)
     srid = models.IntegerField()
     group = models.ForeignKey(Group, blank=True, null=True)
-
+    update_method = models.CharField(max_length=255, choices=UPDATE_METHOD_CHOICES, default='manual')
+    
     def has_layer_in_schema(self, layer_name):
         cursor = connections[self.name].cursor()
         cursor.execute("SELECT true FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename=%s;", [layer_name])
@@ -79,8 +89,43 @@ class Dataset(models.Model):
     @models.permalink
     def get_absolute_url(self):
         return ('linz2osm.data_dict.views.show_dataset', (), {'dataset_id': self.name})
+
+    def get_max_update_version(self):
+        yesterday = datetime.datetime.utcnow().date() - datetime.timedelta(1)
+        return yesterday.strftime("%Y-%m-%d")
+
+    def get_last_update_seq_no(self):
+        return (self.datasetupdate_set.all().aggregate(models.Max('seq'))['seq__max'] or 0)
     
     objects = DatasetManager()
+
+class DatasetUpdateError(Exception):
+    pass
+    
+class DatasetUpdate(models.Model):
+    dataset = models.ForeignKey(Dataset)
+    from_version = models.CharField(max_length=255, blank=True)
+    to_version = models.CharField(max_length=255)
+    seq = models.IntegerField()
+    owner = models.ForeignKey(User)
+    complete = models.BooleanField(default=False)
+
+    def run(self):
+        for lid in self.dataset.layerindataset_set.all():
+            layer = lid.layer
+            import_proc = subprocess.Popen([
+                    'scripts/load_lds_dataset.sh',
+                    'update',
+                    self.dataset.database_name,
+                    layer.wfs_type_name,
+                    "%s_update_%s" % (layer.name, self.to_version.replace("-", "_")),
+                    'from:%s;to:%s' % (self.from_version, self.to_version),
+                    urllib.quote(layer.wfs_cql_filter)
+                    ], stdout=subprocess.PIPE)
+            import_proc.wait()
+            print import_proc.stdout.read()
+        
+        raise DatasetUpdateError("Computer says no")
     
 class Layer(models.Model):
     GEOTYPE_CHOICES = [
@@ -110,6 +155,8 @@ class Layer(models.Model):
     special_node_tag_name = models.CharField(max_length=255, blank=True, editable=False)
     special_dataset_name_tag = models.CharField(max_length=255, blank=True, editable=False)
     special_dataset_version_tag = models.CharField(max_length=255, blank=True, editable=False)
+    wfs_type_name = models.CharField(max_length=255, blank=True, verbose_name='WFS typeName', help_text='Used for LDS or WFS updates')
+    wfs_cql_filter = models.TextField(max_length=255, blank=True, verbose_name='WFS cql_filter', help_text='Used for LDS or WFS updates')
     
     def __unicode__(self):
         return unicode(self.name)

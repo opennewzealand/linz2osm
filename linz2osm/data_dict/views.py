@@ -15,16 +15,19 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
+import sys
 
 from itertools import chain
 from datetime import datetime as dt
 
+from django.db import transaction
 from django.core import serializers
 from django.shortcuts import get_object_or_404, render_to_response
 from django.http import HttpResponse
 from django.utils import simplejson
 from django.template import RequestContext
 from django import forms
+from django.contrib.auth.decorators import login_required, user_passes_test
 
 from linz2osm.data_dict.models import *
 from linz2osm.utils.forms import BootstrapErrorList
@@ -83,7 +86,6 @@ def field_stats(request, dataset_id=None, layer_id=None, field_name=None):
         }
     return render_to_response('data_dict/field_stats.html', ctx, context_instance=RequestContext(request))
 
-    
 def show_dataset(request, dataset_id=None):
     dataset = get_object_or_404(Dataset, name=dataset_id)
     ctx = {
@@ -92,6 +94,64 @@ def show_dataset(request, dataset_id=None):
         'title': dataset.description,
         }
     return render_to_response('data_dict/show_dataset.html', ctx, context_instance=RequestContext(request))
+
+
+class UpdateForm(forms.Form):
+    update_version = forms.DateField(input_formats=['%Y-%m-%d'])
+
+    def __init__(self, *args, **kwargs):
+        self.dataset = kwargs.pop('dataset')
+        self.max_update_version = self.dataset.get_max_update_version()
+        super(UpdateForm, self).__init__(*args, **kwargs)
+
+    def clean_update_version(self):
+        cleaned_update_version_str = self.cleaned_data['update_version'].strftime("%Y-%m-%d")
+
+        if cleaned_update_version_str > self.max_update_version:
+            raise forms.ValidationError("Update version cannot be after %s" % self.max_update_version)
+        return cleaned_update_version_str
+    
+@login_required
+@user_passes_test(lambda u: u.has_perm(u'data_dict.change_dataset'))
+def update_dataset(request, dataset_id=None):
+    dataset = get_object_or_404(Dataset, name=dataset_id)
+    max_update_version = dataset.get_max_update_version()
+    
+    if request.method == 'POST':
+        form = UpdateForm(request.POST, error_class=BootstrapErrorList, dataset=dataset)
+        if form.is_valid():
+            update_version = form.cleaned_data['update_version']
+            with transaction.commit_manually():
+                dataset_update = DatasetUpdate(
+                    dataset=dataset,
+                    from_version=dataset.version,
+                    to_version=update_version,
+                    seq=dataset.get_last_update_seq_no() + 1,
+                    owner=request.user,
+                    complete=False)
+                try:
+                    dataset_update.run()
+                except DatasetUpdateError, e:
+                    form._errors["__all__"] = form.error_class([unicode(e)])
+                    transaction.rollback()
+                except:
+                    transaction.rollback()
+                    print "Unexpected other exception:", sys.exc_info()[0]
+                    raise
+                else:
+                    transaction.commit()
+    else:
+        form = UpdateForm(error_class=BootstrapErrorList, dataset=dataset, initial={'update_version': max_update_version})
+        
+    ctx = {
+        'dataset': dataset,
+        'layers_in_dataset': dataset.layerindataset_set.order_by('layer__name').all(),
+        'title': dataset.description,
+        'update_version': max_update_version,
+        }
+    ctx['form'] = form
+    
+    return render_to_response('data_dict/update_dataset.html', ctx, context_instance=RequestContext(request))        
 
 class PreviewForm(forms.Form):
     # From http://stackoverflow.com/a/4880869/186777
