@@ -19,15 +19,18 @@ import decimal
 import pydermonkey
 import subprocess
 import urllib
+import sys
 
 from functools import total_ordering
 
-from django.db import models, connections
+from django.db import models, connections, transaction
 from django.db.models import Sum
 from django.utils import text
 from django.conf import settings
 from django.contrib.gis.db import models as geomodels
 from django.contrib.auth.models import User
+
+from linz2osm_root import LINZ2OSM_ROOT_DIR
 
 from linz2osm.utils.db_fields import JSONField
 from linz2osm.convert import processing, osm
@@ -96,6 +99,13 @@ class Dataset(models.Model):
 
     def get_last_update_seq_no(self):
         return (self.datasetupdate_set.all().aggregate(models.Max('seq'))['seq__max'] or 0)
+
+    def get_last_update(self):
+        latest = self.datasetupdate_set.order_by('-seq')[:1]
+        if latest:
+            return latest[0]
+        else:
+            return None
     
     objects = DatasetManager()
 
@@ -109,24 +119,48 @@ class DatasetUpdate(models.Model):
     seq = models.IntegerField()
     owner = models.ForeignKey(User)
     complete = models.BooleanField(default=False)
-
-    def run(self):
-        for lid in self.dataset.layerindataset_set.all():
-            layer = lid.layer
-            import_proc = subprocess.Popen([
-                    'scripts/load_lds_dataset.sh',
-                    'update',
-                    self.dataset.database_name,
-                    layer.wfs_type_name,
-                    "%s_update_%s" % (layer.name, self.to_version.replace("-", "_")),
-                    'from:%s;to:%s' % (self.from_version, self.to_version),
-                    urllib.quote(layer.wfs_cql_filter)
-                    ], stdout=subprocess.PIPE)
-            import_proc.wait()
-            print import_proc.stdout.read()
-        
-        raise DatasetUpdateError("Computer says no")
+    error = models.TextField(blank=True, editable=False)
     
+    def run(self):
+        try:
+            for lid in self.dataset.layerindataset_set.all():
+                layer = lid.layer
+                table_name = "%s_update_%s" % (layer.name, self.to_version.replace("-", "_"))
+                import_proc = subprocess.Popen([
+                        LINZ2OSM_ROOT_DIR + '/scripts/load_lds_dataset.sh',
+                        'update',
+                        self.dataset.database_name,
+                        layer.wfs_type_name,
+                        table_name,
+                        'from:%s;to:%s' % (self.from_version, self.to_version),
+                        urllib.quote(layer.wfs_cql_filter)
+                        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                import_proc.wait()
+                import_output = import_proc.stdout.read()
+                print import_output
+                if import_proc.returncode != 0:
+                    raise DatasetUpdateError("Import of %s failed with return code %d and output:\n%s" % (layer.name, import_proc.returncode, import_output))                
+                
+                with transaction.commit_manually(using=self.dataset.name):
+                    try:
+                        osm.apply_changeset_to_dataset(self, table_name, lid)
+                        raise DatasetUpdateError("Computer says no")
+                    except:
+                        transaction.rollback(using=self.dataset.name)
+                        raise
+                    else:
+                        transaction.commit(using=self.dataset.name)
+        except DatasetUpdateError as e:
+            self.error = unicode(e)
+        except Exception as e:
+            print "Unexpected other exception:", sys.exc_info()[0]
+            self.error = unicode(e)
+            raise
+        else:
+            self.complete = True
+        finally:
+            self.save()
+
 class Layer(models.Model):
     GEOTYPE_CHOICES = [
         ('POINT', 'Point'),
@@ -344,7 +378,6 @@ class LayerInDataset(geomodels.Model):
     
     def features_todo_pct(self):
         return (100.0 * self.features_todo() / self.features_total)
-
                            
 class TagManager(models.Manager):
     def eval(self, code, fields):

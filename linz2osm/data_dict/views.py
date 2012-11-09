@@ -30,6 +30,7 @@ from django import forms
 from django.contrib.auth.decorators import login_required, user_passes_test
 
 from linz2osm.data_dict.models import *
+from linz2osm.data_dict import tasks
 from linz2osm.utils.forms import BootstrapErrorList
 from linz2osm.convert import osm
 
@@ -116,12 +117,25 @@ class UpdateForm(forms.Form):
 def update_dataset(request, dataset_id=None):
     dataset = get_object_or_404(Dataset, name=dataset_id)
     max_update_version = dataset.get_max_update_version()
-    
-    if request.method == 'POST':
-        form = UpdateForm(request.POST, error_class=BootstrapErrorList, dataset=dataset)
-        if form.is_valid():
-            update_version = form.cleaned_data['update_version']
-            with transaction.commit_manually():
+    last_update = dataset.get_last_update()
+    ctx = {
+        'dataset': dataset,
+        'title': dataset.description,
+        'update_version': max_update_version,
+        'show_form': True,
+        }
+
+    if last_update and not last_update.complete and not last_update.error:
+        ctx['show_form'] = False
+        ctx['status'] = "Currently updating to %s" % last_update.to_version
+        form = None
+    else:
+        if last_update and not last_update.complete and last_update.error:
+            ctx['status'] = "Last update attempt ended with error: \n%s" % last_update.error
+        if request.method == 'POST':
+            form = UpdateForm(request.POST, error_class=BootstrapErrorList, dataset=dataset)
+            if form.is_valid():
+                update_version = form.cleaned_data['update_version']
                 dataset_update = DatasetUpdate(
                     dataset=dataset,
                     from_version=dataset.version,
@@ -129,26 +143,14 @@ def update_dataset(request, dataset_id=None):
                     seq=dataset.get_last_update_seq_no() + 1,
                     owner=request.user,
                     complete=False)
-                try:
-                    dataset_update.run()
-                except DatasetUpdateError, e:
-                    form._errors["__all__"] = form.error_class([unicode(e)])
-                    transaction.rollback()
-                except:
-                    transaction.rollback()
-                    print "Unexpected other exception:", sys.exc_info()[0]
-                    raise
-                else:
-                    transaction.commit()
-    else:
-        form = UpdateForm(error_class=BootstrapErrorList, dataset=dataset, initial={'update_version': max_update_version})
-        
-    ctx = {
-        'dataset': dataset,
-        'layers_in_dataset': dataset.layerindataset_set.order_by('layer__name').all(),
-        'title': dataset.description,
-        'update_version': max_update_version,
-        }
+                dataset_update.save()
+                tasks.dataset_update.delay(dataset_update)
+                ctx['show_form'] = False
+                ctx['status'] = "Currently updating to %s" % dataset_update.to_version
+        else:
+            form = UpdateForm(error_class=BootstrapErrorList, dataset=dataset, initial={'update_version': max_update_version})
+
+    ctx['layers_in_dataset'] = dataset.layerindataset_set.order_by('layer__name').all()
     ctx['form'] = form
     
     return render_to_response('data_dict/update_dataset.html', ctx, context_instance=RequestContext(request))        

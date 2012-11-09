@@ -24,7 +24,6 @@
 {% block content %}
 <div class="row">
   <div class="span12">
-    <form action='' method='POST'>
     <h2>{{ dataset.description }}</h2>
     <table class="table table-bordered">
       <tbody>
@@ -47,9 +46,18 @@
         <tr>
           <th>Update To</th>
           <td>
-            {{form.as_p}}
-            {% csrf_token %}
-            <input type="submit" name="submit" value="Update">
+            {% if show_form %}
+            <form action='' method='POST'>
+              {{form.as_p}}
+              {% csrf_token %}
+              <input type="submit" name="submit" value="Update">
+            </form>
+            {% else %}
+            <button value="Reload" onclick="window.location.reload(); return false;">Reload</button>
+            {% endif %}
+            <p>
+            {{ status|linebreaks }}
+            </p>
           </td>
         </tr>
       </tbody>
@@ -85,7 +93,6 @@
       </tr>
       {% endfor %}
     </table>
-    </form>
   </div>
 </div>
 {% endblock %}

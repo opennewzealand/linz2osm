@@ -243,6 +243,11 @@ class WorksliceFeature(models.Model):
     workslice = models.ForeignKey(Workslice)
     feature_id = models.IntegerField()
     layer_in_dataset = models.ForeignKey(LayerInDataset)
+    dirty = models.IntegerField(default=0, choices=(
+            (0, 'no',),
+            (1, 'deleted',),
+            (2, 'updated',),
+            ))
 
     def wgs_geom(self, expression = "ST_Transform(wkb_geometry, 4326)"):
         cursor = connections[self.layer_in_dataset.dataset.name].cursor()

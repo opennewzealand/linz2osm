@@ -16,11 +16,18 @@
 
 from __future__ import absolute_import
 
-from celery import Celery
+from django.conf import settings
+from linz2osm.convert import osm
+from linz2osm.workslices.celery import Celery
+from datetime import datetime
+import time
+import os.path
 
-celery = Celery(broker = 'amqp://',
-                backend = 'amqp://',
-                include = ['linz2osm.workslices.tasks'])
-celery.conf.update(
-    CELERY_TASK_RESULT_EXPIRES = 86400,
-    )
+celery = Celery('tasks', broker = settings.BROKER_URL)
+
+@celery.task
+def dataset_update(dataset_update):
+    start_t = time.time()
+    dataset_update.run()
+    finish_t = time.time()
+    print "MISSION COMPLETE - updated %s in %f sec" % (dataset_update.dataset.name, finish_t - start_t)
