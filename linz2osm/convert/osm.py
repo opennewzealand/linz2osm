@@ -207,11 +207,53 @@ def clean_data(cell):
 def featureset_conflicts(layer_in_dataset, workslice_features):
     data_table = get_data_table(layer_in_dataset, [wf.feature_id for wf in workslice_features])
     return overpass.featureset_conflicts_for_data(layer_in_dataset, workslice_features, data_table)
+
+def apply_changeset_to_dataset(dataset_update, table_name, lid):
+    database_id = dataset_update.dataset.name
+    cursor = connections[database_id].cursor()
+    data_columns, geom_column = get_data_columns(cursor, table_name)
+
+    cursor.execute('SELECT ST_AsEWKB(%s), \"%s\" FROM %s ORDER BY %s' % (geom_column, '\",\"'.join(data_columns), table_name, lid.layer.pkey_name))
+
+    data_table = []
+    
+    for i,row in enumerate(cursor):
+        if row[0] is None:
+            continue
+        row_geom = geos.GEOSGeometry(row[0])
+        if row_geom.empty:
+            continue
+        
+        row_data = dict(zip(data_columns,[clean_data(c) for c in row[1:] ]))
+        print table_name
+        print data_columns
+        print row_data
+        print "We have a %s for %d with data %s" % (row_data['__change__'], row_data[lid.layer.pkey_name], unicode(row_data))
+        if row_data['__change__'] == 'UPDATE':
+            pass
+        elif row_data['__change__'] == 'INSERT':
+            pass
+        elif row_data['__change__'] == 'DELETE':
+            pass
+
+
     
 def export(workslice):
     layer_in_dataset = workslice.layer_in_dataset
     feature_ids = [wf.feature_id for wf in workslice.workslicefeature_set.all()]
     return export_custom(layer_in_dataset, feature_ids, workslice.id)
+
+def get_data_columns(cursor, layer_name):
+    cursor.execute('SELECT column_name, udt_name FROM information_schema.columns WHERE table_name=%s;', [layer_name])
+    data_columns = []
+    geom_column = None
+    for column_name,udt_name in cursor:
+        if udt_name == 'geometry':
+            geom_column = column_name
+        else:
+            data_columns.append(column_name)
+
+    return data_columns, geom_column
 
 def get_data_table(layer_in_dataset, feature_ids = None, workslice_id = None):
     dataset = layer_in_dataset.dataset
@@ -221,16 +263,9 @@ def get_data_table(layer_in_dataset, feature_ids = None, workslice_id = None):
     cursor = connections[database_id].cursor()
     db_info = settings.DATABASES[database_id]
     
-    cursor.execute('SELECT column_name,udt_name FROM information_schema.columns WHERE table_name=%s;', [layer.name])
-    data_columns = []
-    geom_column = None
-    for column_name,udt_name in cursor:
-        if udt_name == 'geometry':
-            geom_column = column_name
-        else:
-            data_columns.append(column_name)
-
+    data_columns, geom_column = get_data_columns(cursor, layer.name)
     columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, dataset.srid)] + ['"%s"' % c for c in data_columns]
+    
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
 
     if feature_ids is not None:

@@ -55,7 +55,7 @@ Install
    and some defaults for all layers.
  * run `manage.py generate_datasets` to configure the app for the datasets and layers you've added
  * run `manage.py runserver`
- * from the linz2osm dir, run `../manage.py celery -A workslices worker
+ * from the linz2osm dir, run `../manage.py celery worker`
  * head to http://localhost:8000
  * have fun! :)
 
