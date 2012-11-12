@@ -147,7 +147,7 @@ def get_layer_stats(database_id, layer):
     cursor = connections[database_id].cursor()
 
     # Expand bounds by 1,001 metres (or, if using WGS84, by 0.01 degree)
-    if str(srid) == '4326':
+    if str(srid) in ['4326', '4167']:
         expansion = "0.01"
     else:
         expansion = "1001.0"
