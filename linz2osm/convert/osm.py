@@ -208,14 +208,20 @@ def featureset_conflicts(layer_in_dataset, workslice_features):
     data_table = get_data_table(layer_in_dataset, [wf.feature_id for wf in workslice_features])
     return overpass.featureset_conflicts_for_data(layer_in_dataset, workslice_features, data_table)
 
-def apply_changeset_to_dataset(dataset_update, table_name, lid):
+def apply_changeset_to_dataset(dataset_update, table_name, lid):    
     database_id = dataset_update.dataset.name
+    destination_table = lid.layer.name
+
+    print "Applying changes from %s to %s in %s" % (table_name, lid.layer.name, database_id)
+
     cursor = connections[database_id].cursor()
     data_columns, geom_column = get_data_columns(cursor, table_name)
 
     cursor.execute('SELECT ST_AsEWKB(%s), \"%s\" FROM %s ORDER BY %s' % (geom_column, '\",\"'.join(data_columns), table_name, lid.layer.pkey_name))
 
-    data_table = []
+    update_table = []
+    insert_table = []
+    delete_table = []
     
     for i,row in enumerate(cursor):
         if row[0] is None:
@@ -229,12 +235,37 @@ def apply_changeset_to_dataset(dataset_update, table_name, lid):
         print data_columns
         print row_data
         print "We have a %s for %d with data %s" % (row_data['__change__'], row_data[lid.layer.pkey_name], unicode(row_data))
-        if row_data['__change__'] == 'UPDATE':
-            pass
-        elif row_data['__change__'] == 'INSERT':
-            pass
-        elif row_data['__change__'] == 'DELETE':
-            pass
+
+        action = row_data.pop('__change__')
+        
+        if action == 'UPDATE':
+            update_table.append(row_data)
+        elif action == 'INSERT':
+            insert_table.append(row_data)
+        elif action == 'DELETE':
+            delete_table.append(row_data)
+
+    for row in insert_table:
+        cursor.execute(
+            'INSERT INTO %s (\"%s\", \"%s\") VALUES (ST_GeomFromEWKB(\'%s\'), %s);' % (
+                destination_table,
+                geom_column,
+                '\",\"'.join(data_columns),
+                data_table[geom_column],
+                ', '.join(['%s' for dn in data_columns]),
+                ),
+            [data_table[cname] for cname in data_columns])
+
+    for row in delete_table:
+        cursor.execute(
+            'DELETE FROM %s WHERE %s = %%s' % (
+                destination_table,
+                lid.layer.pkey_name
+                ),
+            data_table[lid.layer.pkey_name])
+        lid.workslicefeature_set.filter(feature_id=data_table[lid.layer.pkey_name]).update(dirty=1)
+                                        
+                       
 
 
     

@@ -20,7 +20,7 @@ import sys
 from itertools import chain
 from datetime import datetime as dt
 
-from django.db import transaction
+from django.db import transaction, connections
 from django.core import serializers
 from django.shortcuts import get_object_or_404, render_to_response
 from django.http import HttpResponse
@@ -115,6 +115,8 @@ class UpdateForm(forms.Form):
 @login_required
 @user_passes_test(lambda u: u.has_perm(u'data_dict.change_dataset'))
 def update_dataset(request, dataset_id=None):
+    # FIXME: pause workslice processing during update
+    
     dataset = get_object_or_404(Dataset, name=dataset_id)
     max_update_version = dataset.get_max_update_version()
     last_update = dataset.get_last_update()
@@ -152,6 +154,7 @@ def update_dataset(request, dataset_id=None):
 
     ctx['layers_in_dataset'] = dataset.layerindataset_set.order_by('layer__name').all()
     ctx['form'] = form
+    ctx['queries'] = connections[dataset.name].queries
     
     return render_to_response('data_dict/update_dataset.html', ctx, context_instance=RequestContext(request))        
 

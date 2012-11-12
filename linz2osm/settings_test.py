@@ -33,8 +33,14 @@ DATABASES = {
 }
 
 INSTALLED_APPS = (
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    #'django.contrib.sessions',
+
+    'linz2osm.lobby',
     'linz2osm.data_dict',
     'linz2osm.convert',
+    'linz2osm.workslices',
     # 'linz2osm.workslices',
     # 'linz2osm.lobby',
     
