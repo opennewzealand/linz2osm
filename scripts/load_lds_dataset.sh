@@ -28,9 +28,9 @@ fi
 dataset_db=$2
 layer_name=$4
 layer_id="v:x${3}-changeset"
-wfs_server="http://wfs.data.linz.govt.nz"
-lds_key="cd067d1e5bd54e42bacfb9c19942737d"
-#wfs_cmd="${wfs_server}/${lds_key}/v/x${3}-changeset/wfs?SERVICE=WFS&VERSION=1.1.0&TYPENAME=${layer_id}"
+wfs_server="http://wfs.data.linz.govt.nz" # Production
+lds_key="cd067d1e5bd54e42bacfb9c19942737d" # Production
+
 wfs_cmd="${wfs_server}/${lds_key}/v/x${3}-changeset/wfs?SERVICE=WFS&VERSION=1.1.0&typeName=${layer_id}"
 
 # Add <viewparams>
@@ -70,3 +70,6 @@ if [ "${1}" == "initial" ]
     then
     psql ${dataset_db} -c "ALTER TABLE ${table_name} DROP COLUMN \"__change__\";"
 fi
+
+psql ${dataset_db} -c "ALTER TABLE ${table_name} DROP COLUMN ogc_fid;"
+psql ${dataset_db} -c "ALTER TABLE ${table_name} ADD PRIMARY KEY (id);"

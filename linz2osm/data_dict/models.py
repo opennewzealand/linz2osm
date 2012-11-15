@@ -142,15 +142,18 @@ class DatasetUpdate(models.Model):
                 if import_proc.returncode != 0:
                     raise DatasetUpdateError("Import of %s failed with return code %d and output:\n%s" % (layer.name, import_proc.returncode, import_output))                
                 
-                with transaction.commit_manually(using=self.dataset.name):
-                    try:
-                        osm.apply_changeset_to_dataset(self, table_name, lid)
-                        raise DatasetUpdateError("Computer says no")
-                    except:
-                        transaction.rollback(using=self.dataset.name)
-                        raise
-                    else:
-                        transaction.commit(using=self.dataset.name)
+                with transaction.commit_manually():
+                    with transaction.commit_manually(using=self.dataset.name):
+                        try:
+                            osm.apply_changeset_to_dataset(self, table_name, lid)
+                        except:
+                            print "ERROR - ROLLBACK"
+                            transaction.rollback(using=self.dataset.name)
+                            transaction.rollback()
+                            raise
+                        else:
+                            transaction.commit(using=self.dataset.name)
+                            transaction.commit()
         except DatasetUpdateError as e:
             self.error = unicode(e)
         except Exception as e:

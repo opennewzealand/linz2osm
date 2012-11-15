@@ -151,7 +151,8 @@ def get_layer_stats(database_id, layer):
         expansion = "0.01"
     else:
         expansion = "1001.0"
-    cursor.execute("SELECT ST_AsHexEWKB(ST_Transform(ST_SetSRID(ST_Envelope(ST_Buffer(ST_Extent(wkb_geometry), %s)), %d), 4326)) FROM %s;" % (expansion, srid, layer.name))
+    sql = "SELECT ST_AsHexEWKB(ST_Transform(ST_SetSRID(ST_Envelope(ST_Buffer(ST_Extent(wkb_geometry), %s)), %d), 4326)) FROM %s;" % (expansion, srid, layer.name)
+    cursor.execute(sql)
     extent = geos.GEOSGeometry(cursor.fetchone()[0])
     et = extent.extent
     
@@ -231,7 +232,7 @@ def apply_changeset_to_dataset(dataset_update, table_name, lid):
             continue
         
         row_data = dict(zip(data_columns,[clean_data(c) for c in row[1:] ]))
-        print "We have a %s for %d with %s and data %s" % (row_data['__change__'], row_data[lid.layer.pkey_name], row_geom.ewkt, unicode(row_data))
+        # print "We have a %s for %d" % (row_data['__change__'], row_data[lid.layer.pkey_name])
         row_data[geom_column] = row_geom
 
         action = row_data.pop('__change__')
@@ -243,6 +244,8 @@ def apply_changeset_to_dataset(dataset_update, table_name, lid):
         elif action == 'DELETE':
             delete_table.append(row_data)
 
+    print "%d updates, %d inserts, %d deletes" % (len(update_table), len(insert_table), len(delete_table))
+    
     data_columns.remove('__change__')
             
     for row in insert_table:        

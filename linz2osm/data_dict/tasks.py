@@ -27,6 +27,7 @@ celery = Celery('tasks', broker = settings.BROKER_URL)
 
 @celery.task
 def dataset_update(dataset_update):
+    print "DOING DATASET UPDATE"
     start_t = time.time()
     dataset_update.run()
     finish_t = time.time()
