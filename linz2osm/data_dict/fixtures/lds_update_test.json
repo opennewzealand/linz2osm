@@ -1,0 +1,131 @@
+[
+    {
+        "pk": 1,
+        "model": "auth.user",
+        "fields": {
+            "username": "root",
+            "first_name": "Enoch",
+            "last_name": "Root",
+            "email": "eroot@epipyhte.example.net",
+            "password": "xxx",
+            "is_staff": true,
+            "is_active": true,
+            "is_superuser": true,
+            "last_login": "2012-08-01",
+            "date_joined": "2011-09-01"
+        }
+    },
+    {
+        "pk": "lds",
+        "model": "data_dict.group",
+        "fields": {
+            "description": "TEST LDS group"
+        }
+    },
+    {
+        "pk": "lds_sample",
+        "model": "data_dict.dataset",
+        "fields": {
+            "srid": 4326,
+            "database_name": "test_lds_sample",
+            "description": "Mainland 2012/TEST",
+            "group": "lds",
+            "version": "2012-01-01",
+            "update_method": "lds"
+        }
+    },
+    {
+        "pk": "sign_pnt",
+        "model": "data_dict.layer",
+        "fields": {
+            "geometry_type": "POINT",
+            "notes": "blah blah World War Three blah blah Secret Plans blah blah",
+            "processors": null,
+            "entity": "Sign",
+            "pkey_name": "id",
+            "wfs_type_name": "-666",
+            "wfs_cql_filter": "name != 'Hamilton'"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "data_dict.layerindataset",
+        "fields": {
+            "layer": "sign_pnt",
+            "features_total": 6,
+            "tagging_approved": true,
+            "completed": false,
+            "dataset": "lds_sample",
+            "extent": "POLYGON ((167.0 -45.0, 167.0 -40.0, 175.0 -40.0, 175.0 -45.0, 167.0 -45.0))"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = fields.name;",
+            "layer": "sign_pnt",
+            "tag": "name"
+        }
+    },
+    {
+        "pk": 2,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = fields.id",
+            "layer": "sign_pnt",
+            "tag": "LINZ:source_id"
+        }
+    },
+    {
+        "pk": 3,
+        "model": "data_dict.tag",
+        "fields": {
+            "code": "value = 'sign'",
+            "layer": "sign_pnt",
+            "tag": "man_made"
+        }
+    },
+    {
+        "pk": 77,
+        "model": "workslices.workslice",
+        "fields": {
+            "state": "out",
+            "user": 1,
+            "layer_in_dataset": 1,
+            "checkout_extent": "MULTIPOLYGON (((167.0 -45.0, 167.0 -40.0, 175.0 -40.0, 175.0 -45.0, 167.0 -45.0)))",
+            "feature_count": 3,
+            "file_size": 2200
+        }
+    },
+    {
+        "pk": 771,
+        "model": "workslices.workslicefeature",
+        "fields": {
+            "workslice": 77,
+            "feature_id": 1,
+            "layer_in_dataset": 1,
+            "dirty": 0
+        }
+    },
+    {
+        "pk": 772,
+        "model": "workslices.workslicefeature",
+        "fields": {
+            "workslice": 77,
+            "feature_id": 2,
+            "layer_in_dataset": 1,
+            "dirty": 0
+        }
+    },
+    {
+        "pk": 773,
+        "model": "workslices.workslicefeature",
+        "fields": {
+            "workslice": 77,
+            "feature_id": 3,
+            "layer_in_dataset": 1,
+            "dirty": 0
+        }
+    }
+]

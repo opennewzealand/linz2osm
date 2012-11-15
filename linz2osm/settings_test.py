@@ -30,6 +30,13 @@ DATABASES = {
         'ENGINE' : 'django.contrib.gis.db.backends.postgis',
         'NAME' : 'linz2osm_test',
     },
+    'lds_sample': {
+        '_description': "LINZ Data Service Sample Data",
+        '_srid': 4326,
+        '_version': "2012-01-01",
+        'ENGINE' : 'django.contrib.gis.db.backends.postgis',
+        'NAME' : 'lds_sample',
+    }        
 }
 
 INSTALLED_APPS = (
@@ -49,3 +56,5 @@ INSTALLED_APPS = (
 )
 
 BROKER_URL = 'amqp://guest@localhost//'
+# SOUTH_TESTS_MIGRATE = False
+SKIP_SOUTH_TESTS = True

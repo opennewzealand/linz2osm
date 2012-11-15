@@ -122,6 +122,7 @@ class DatasetUpdate(models.Model):
     error = models.TextField(blank=True, editable=False)
     
     def run(self):
+        # FIXME: tests for changeset retrieval, etc.
         try:
             for lid in self.dataset.layerindataset_set.all():
                 layer = lid.layer
@@ -158,6 +159,8 @@ class DatasetUpdate(models.Model):
             raise
         else:
             self.complete = True
+            self.dataset.version = self.to_version
+            self.dataset.save()
         finally:
             self.save()
 
@@ -261,11 +264,7 @@ class LayerInDatasetManager(geomodels.GeoManager):
         if not LayerInDataset.objects.filter(layer=layer, dataset=dataset).exists():
             # TODO: merge with osm.get_layer_feature_count
 
-            stats = osm.get_layer_stats(dataset.name, layer)
-            
-            cursor = connections[dataset.name].cursor()
-            cursor.execute('SELECT count(1) FROM %s;' % layer.name)
-            feature_ct = cursor.fetchone()[0]
+            stats = osm.get_layer_stats(dataset.name, layer)            
             
             return self.create(layer=layer,
                                dataset=dataset,

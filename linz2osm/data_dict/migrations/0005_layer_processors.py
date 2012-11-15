@@ -35,33 +35,37 @@ class Migration(DataMigration):
     
     def forwards(self, orm):
         "Populate processors from wind_polygons_ccw/reverse_line_coords."
-        for layer in orm.Layer.objects.all():
-            p = []
-            geom_type = self._get_geom_type(layer.name)
+        # XXX: This has already been applied in production, but breaks tests so now commented out
+        # for layer in orm.Layer.objects.all():
+        #     p = []
+        #     geom_type = self._get_geom_type(layer.name)
             
-            if geom_type in ('POLYGON', 'MULTIPOLYGON'):
-                if layer.wind_polygons_ccw:
-                    p.append(('PolyWindingCCW', {}))
-                else:
-                    p.append(('PolyWindingCW', {}))
-            elif geom_type in ('LINESTRING', 'MULTILINESTRING'):
-                if layer.reverse_line_coords:
-                    p.append(('ReverseLine', {}))
+        #     if geom_type in ('POLYGON', 'MULTIPOLYGON'):
+        #         if layer.wind_polygons_ccw:
+        #             p.append(('PolyWindingCCW', {}))
+        #         else:
+        #             p.append(('PolyWindingCW', {}))
+        #     elif geom_type in ('LINESTRING', 'MULTILINESTRING'):
+        #         if layer.reverse_line_coords:
+        #             p.append(('ReverseLine', {}))
             
-            if p:
-                layer.processors = p
-                layer.save()
+        #     if p:
+        #         layer.processors = p
+        #         layer.save()
+        pass
     
     def backwards(self, orm):
         "Populate wind_polygons_ccw/reverse_line_coords from processors."
-        for layer in orm.Layer.objects.all():
-            for pk in layer.processors.keys():
-                if pk == 'PolyWindingCW':
-                    layer.wind_polygons_ccw = False
-                    layer.save()
-                elif pk == 'ReverseLine':
-                    layer.reverse_line_coords = True
-                    layer.save()
+        # XXX: This has already been applied in production, but breaks tests so now commented out
+        # for layer in orm.Layer.objects.all():
+        #     for pk in layer.processors.keys():
+        #         if pk == 'PolyWindingCW':
+        #             layer.wind_polygons_ccw = False
+        #             layer.save()
+        #         elif pk == 'ReverseLine':
+        #             layer.reverse_line_coords = True
+        #             layer.save()
+        pass
     
     models = {
         'data_dict.layer': {
