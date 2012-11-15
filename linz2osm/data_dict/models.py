@@ -133,6 +133,7 @@ class DatasetUpdate(models.Model):
                         self.dataset.database_name,
                         layer.wfs_type_name,
                         table_name,
+                        LINZ_DATA_SERVICE_API_KEY,
                         'from:%s;to:%s' % (self.from_version, self.to_version),
                         urllib.quote(layer.wfs_cql_filter)
                         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

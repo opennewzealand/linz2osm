@@ -16,10 +16,10 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-if [ $# -lt 4 ]
+if [ $# -lt 5 ]
 then
-    echo "Usage: load_lds_dataset.sh {initial|update} <database> <layer_id> <layer_name> [<viewparams> [<filter>]]"
-    echo "Args were $0 $1 $2 $3 $4 $5 $6 $7 $8 $9"
+    echo "Usage: load_lds_dataset.sh {initial|update} <database> <layer_id> <layer_name> <lds_key> [<viewparams> [<filter>]]"
+    echo "Args were $@"
     exit 1
 fi
 
@@ -29,20 +29,20 @@ dataset_db=$2
 layer_name=$4
 layer_id="v:x${3}-changeset"
 wfs_server="http://wfs.data.linz.govt.nz" # Production
-lds_key="cd067d1e5bd54e42bacfb9c19942737d" # Production
+lds_key=$5 
 
 wfs_cmd="${wfs_server}/${lds_key}/v/x${3}-changeset/wfs?SERVICE=WFS&VERSION=1.1.0&typeName=${layer_id}"
 
 # Add <viewparams>
-if [ "${5}" ]
+if [ "${6}" ]
     then
-    wfs_cmd="${wfs_cmd}&viewparams=${5}"
+    wfs_cmd="${wfs_cmd}&viewparams=${6}"
 fi
 
 # Add <filter>
-if [ "${6}" ]
+if [ "${7}" ]
     then
-    wfs_cmd="${wfs_cmd}&CQL_FILTER=${6}"
+    wfs_cmd="${wfs_cmd}&CQL_FILTER=${7}"
 fi
 
 lcopts="-lco LAUNDER=yes -lco OVERWRITE=yes"

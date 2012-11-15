@@ -3,12 +3,13 @@ Importing LDS data
 
 Use scripts/load_lds_dataset.sh to load data initially, similar to the other load scripts.
 
-Arguments are "load_lds_dataset.sh {initial|update} <database> <layer_id> <layer_name> [<viewparams> [<filter>]]"
+Arguments are "load_lds_dataset.sh {initial|update} <database> <layer_id> <layer_name> <lds_key> [<viewparams> [<filter>]]"
 
 use "initial" as the first argument
 <database> is the database of the dataset you wish to import to
 <layer_id> is the numeric ID from lds, e.g. 787 is layer v:x787.
 <layer_name> is the table name of the layer you wish to import
+<lds_key> is your API key for LDS
 <viewparams> is the date range you wish to import, in the form from:YYYY-MM-DD;to:YYYY-MM-DD.
 Use 1970-01-01 as the from date and the date of YESTERDAY UTC as the to date. E.g. at 9am on 8 Nov 2012 NZDT, use 2012-11-06 as the date.
 <filter> is a CQL filter for the data. You cannot change this later.

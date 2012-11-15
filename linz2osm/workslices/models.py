@@ -223,7 +223,8 @@ class WorksliceFeatureManager(models.Manager):
             in covered_fids
             if not self.filter(
                 layer_in_dataset=layer_in_dataset,
-                feature_id=fid
+                feature_id=fid,
+                dirty=0
                 ).exists()
             ]
         if len(ws_feats) > layer_in_dataset.layer.feature_limit:
