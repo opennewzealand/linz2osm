@@ -111,11 +111,11 @@
       {{ workslice_id }}
   );
   {% if status_name == 'Processing' %}
-  var progressTimer = 7000;
+  var progressTimer = 4000;
   window.setTimeout(function() {
       document.location.reload(true);
-  }, 7000);
-  for(var i = 0; i <= 100; i += 2) {
+  }, 4500);
+  for(var i = 0; i <= 100; i += 4) {
       window.setTimeout(function(k) {
           return function() {
               $("#processing-progress-bar").attr("style", "width: " + k + "%;");

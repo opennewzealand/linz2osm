@@ -96,22 +96,6 @@ def show_dataset(request, dataset_id=None):
         }
     return render_to_response('data_dict/show_dataset.html', ctx, context_instance=RequestContext(request))
 
-
-class UpdateForm(forms.Form):
-    update_version = forms.DateField(input_formats=['%Y-%m-%d'])
-
-    def __init__(self, *args, **kwargs):
-        self.dataset = kwargs.pop('dataset')
-        self.max_update_version = self.dataset.get_max_update_version()
-        super(UpdateForm, self).__init__(*args, **kwargs)
-
-    def clean_update_version(self):
-        cleaned_update_version_str = self.cleaned_data['update_version'].strftime("%Y-%m-%d")
-
-        if cleaned_update_version_str > self.max_update_version:
-            raise forms.ValidationError("Update version cannot be after %s" % self.max_update_version)
-        return cleaned_update_version_str
-
 @login_required
 @user_passes_test(lambda u: u.has_perm(u'data_dict.change_dataset'))
 def merge_deletions_from_dataset(request, dataset_id=None):
@@ -131,7 +115,22 @@ def merge_deletions_from_dataset(request, dataset_id=None):
         tasks.deletions_export.delay(dataset)
         dataset.save()
     return render_to_response('data_dict/merge_deletions_for_dataset.html', ctx, context_instance=RequestContext(request))        
-    
+
+class UpdateForm(forms.Form):
+    update_version = forms.DateField(input_formats=['%Y-%m-%d'])
+
+    def __init__(self, *args, **kwargs):
+        self.dataset = kwargs.pop('dataset')
+        self.max_update_version = self.dataset.get_max_update_version()
+        super(UpdateForm, self).__init__(*args, **kwargs)
+
+    def clean_update_version(self):
+        cleaned_update_version_str = self.cleaned_data['update_version'].strftime("%Y-%m-%d")
+
+        if cleaned_update_version_str > self.max_update_version:
+            raise forms.ValidationError("Update version cannot be after %s" % self.max_update_version)
+        return cleaned_update_version_str
+
 @login_required
 @user_passes_test(lambda u: u.has_perm(u'data_dict.change_dataset'))
 def update_dataset(request, dataset_id=None):
@@ -165,8 +164,8 @@ def update_dataset(request, dataset_id=None):
                     seq=dataset.get_last_update_seq_no() + 1,
                     owner=request.user,
                     complete=False)
-                dataset_update.save()
                 tasks.dataset_update.delay(dataset_update)
+                dataset_update.save()
                 ctx['show_form'] = False
                 ctx['status'] = "Currently updating to %s" % dataset_update.to_version
         else:
