@@ -18,7 +18,7 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from linz2osm.convert import osm
-from linz2osm.workslices.celery import Celery
+from linz2osm.data_dict.celery import Celery
 from datetime import datetime
 import time
 import os.path
