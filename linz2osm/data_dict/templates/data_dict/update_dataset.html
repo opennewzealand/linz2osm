@@ -25,6 +25,9 @@
 <div class="row">
   <div class="span12">
     <h2>{{ dataset.description }}</h2>
+    <div class="alert">
+      Be sure no workslices for layers in this dataset are checked out or abandoned during the update
+    </div>
     <table class="table table-bordered">
       <tbody>
         <tr>
@@ -50,7 +53,7 @@
             <form action='' method='POST'>
               {{form.as_p}}
               {% csrf_token %}
-              <input type="submit" name="submit" value="Update">
+              <input type="submit" name="submit_update" value="Update">
             </form>
             {% else %}
             <button value="Reload" onclick="window.location.reload(); return false;">Reload</button>
@@ -93,11 +96,6 @@
       </tr>
       {% endfor %}
     </table>
-
-    <h3>SQL</h3>
-    <pre>
-      {{ queries }}
-    </pre>
   </div>
 </div>
 {% endblock %}

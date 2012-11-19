@@ -133,6 +133,7 @@ COMMENTS_APP = 'linz2osm.linz2osm_comments'
 
 CACHE_BACKEND = 'db://django_cache'
 BROKER_URL = 'amqp://guest@localhost//'
+LINZ_DATA_SERVICE_API_KEY = 'ENTER API KEY'
 
 LOGIN_URL = '/login/'
 

@@ -143,7 +143,7 @@ class Workslice(models.Model):
         'complete': [('abandoned', 'Abandon')],
         }
     state = models.CharField(max_length=30, choices=STATES)
-    checked_out_at = models.DateTimeField(null=True, blank=True)
+    checked_out_at = models.DateTimeField(null=True, blank=True, db_index=True)
     status_changed_at = models.DateTimeField(null=True, blank=True)
     followup_deadline = models.DateTimeField(null=True, blank=True)
     user = models.ForeignKey(auth.models.User)
@@ -165,6 +165,7 @@ class Workslice(models.Model):
         return ('linz2osm.workslices.views.show_workslice', (), {'workslice_id': self.id})
     
     def friendly_status(self):
+        # FIXME get_status_display()
         return self.__class__.STATES_LOOKUP[self.state]
 
     def post_checkout_status(self):
@@ -242,7 +243,7 @@ class WorksliceFeature(models.Model):
     objects = WorksliceFeatureManager()
     
     workslice = models.ForeignKey(Workslice)
-    feature_id = models.IntegerField()
+    feature_id = models.IntegerField(db_index=True)
     layer_in_dataset = models.ForeignKey(LayerInDataset)
     dirty = models.IntegerField(default=0, choices=(
             (0, 'no',),

@@ -86,7 +86,7 @@ def osm_conflicts_json(workslice_features, tags_ql):
 def osm_individual_conflicts_query(layer_in_dataset, workslice_feature, query_data):
     return "".join(("[out:json];\n(\n",
                     workslice_feature.osm_individual_conflict_query_ql(query_data),
-                    "\n);\nout;\n"))
+                    "\n);\nout meta;\n"))
 
 def osm_individual_conflicts_json(requests_manager, layer_in_dataset, workslice_feature, query_data):
     r = requests_manager.post(OVERPASS_API_URL, data={
@@ -143,18 +143,28 @@ def node_point(node_id, nodes):
     else:
         return None
 
+def featureset_matches_for_data(layer_in_dataset, workslice_features, data_table):
+    match_tags = layer_in_dataset.get_match_tags()
+    return featureset_tag_search_for_data(layer_in_dataset, workslice_features, data_table, match_tags, 'match')
+    
 def featureset_conflicts_for_data(layer_in_dataset, workslice_features, data_table):
-    workslice_feature_db = dict([(wf.feature_id, wf) for wf in workslice_features])
     conflict_tags = layer_in_dataset.get_conflict_tags()
+    return featureset_tag_search_for_data(layer_in_dataset, workslice_features, data_table, conflict_tags, 'conflict')
+
+def featureset_tag_search_for_data(layer_in_dataset, workslice_features, data_table, search_tags, eval_type):
+    workslice_feature_db = dict([(wf.feature_id, wf) for wf in workslice_features])
     # FIXME: use apply_to when searching
 
     session = requests.session()
     conflicts = []
     for i, (row_data, row_geom) in enumerate(data_table):
         query_tags = []
-        for tag in conflict_tags:
+        for tag in search_tags:
             try:
-                v = tag.eval_for_conflict_filter(row_data)
+                if eval_type == 'conflict':
+                    v = tag.eval_for_conflict_filter(row_data)
+                elif eval_type == 'match':
+                    v = tag.eval_for_match_filter(row_data)
             except tag.ScriptError, e:
                 emsg = "Error evaluating '%s' tag against record:\n" % tag
                 emsg += simplejson.dumps(e.data, indent=2) + "\n"
@@ -166,9 +176,11 @@ def featureset_conflicts_for_data(layer_in_dataset, workslice_features, data_tab
         wf = workslice_feature_db[feature_id]
         if wf:
             query_text = "\n".join(query_tags)
-            
+
             conflicts_json = osm_individual_conflicts_json(session, layer_in_dataset, wf, query_text)
-            conflicts.append((wf, conflicts_json,))            
+            conflicts.append((wf, conflicts_json,))
+
+            print conflicts_json
         else:
             print "WORKSLICE FEATURE NOT FOUND"
     session.close()

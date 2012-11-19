@@ -1,0 +1,83 @@
+{% extends "global.html" %}
+{% load i18n staticfiles %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <li>
+    <a href="/admin/">Admin</a> <span class="divider">&rsaquo;</span>
+  </li>
+  <li>
+    <a href="/admin/data_dict/">Data_dict</a> <span class="divider">&rsaquo;</span>
+  </li>
+  <li>
+    <a href="/admin/data_dict/dataset/">Datasets</a> <span class="divider">&rsaquo;</span>
+  </li>
+  <li>
+    <a href="/admin/data_dict/dataset/{{ dataset.name }}/">{{ dataset.description }}</a> <span class="divider">&rsaquo;</span>
+  </li>
+  <li class="active">
+     Merge deleted data for {{ dataset.get_update_method_display }}
+  </li>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="span12">
+    <h2>{{ dataset.description }}</h2>
+    <h3>OSM merge deleted features file</h3>
+    <p>
+      These are osmChange files that will delete features from OSM that have been removed in any dataset updates.
+    </p>
+    <p>
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>Tags to match by</th>
+            <th>Deleted Features</th>
+            <th>File</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lid in layers_in_dataset %}
+          <tr>
+            <td>{{ lid.layer.name }}</td>
+            <td>
+              <ul>
+              {% for tag in lid.get_match_tags %}
+              <li>{{ tag.tag }}</li>
+              {% endfor %}
+              </ul>
+            </td>
+            <td>
+              {{ lid.deleted_features_count }}
+            </td>
+            <td>
+              {% if lid.last_deletions_dump_filename %}
+              <a href="{{ MEDIA_URL }}{{ lid.last_deletions_dump_filename }}.osc">{{ lid.last_deletions_dump_filename }}.osc</a>
+              {% elif show_button %}
+              Not generated
+              {% else %}
+              <img src="{% static 'ajax-loader.gif' %}">
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </p>
+    <p>
+      {% if show_button %}
+      <form action='' method='POST'>
+        {% csrf_token %}
+        <input type="submit" name="submit_generate" value="{% if dataset.last_deletions_dump_filename %}Regenerate{% else %}Generate{% endif %} files">
+      </form>
+      {% else %}
+      Regenerating...
+      <a href="#" onclick="window.location.reload(); return false;">refresh page</a>
+      {% endif %}
+    </p>
+  </div>
+</div>
+{% endblock %}

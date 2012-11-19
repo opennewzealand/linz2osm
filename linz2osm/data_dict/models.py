@@ -31,6 +31,7 @@ from django.contrib.gis.db import models as geomodels
 from django.contrib.auth.models import User
 
 from linz2osm_root import LINZ2OSM_ROOT_DIR
+from linz2osm.settings import LINZ_DATA_SERVICE_API_KEY
 
 from linz2osm.utils.db_fields import JSONField
 from linz2osm.convert import processing, osm
@@ -80,6 +81,7 @@ class Dataset(models.Model):
     srid = models.IntegerField()
     group = models.ForeignKey(Group, blank=True, null=True)
     update_method = models.CharField(max_length=255, choices=UPDATE_METHOD_CHOICES, default='manual')
+    generating_deletions_osm = models.BooleanField(default=False, editable=False)
     
     def has_layer_in_schema(self, layer_name):
         cursor = connections[self.name].cursor()
@@ -285,7 +287,8 @@ class LayerInDataset(geomodels.Model):
     extent = geomodels.GeometryField(null=True)
     tagging_approved = geomodels.BooleanField(default=False)
     completed = geomodels.BooleanField(default=False)
-    
+    last_deletions_dump_filename = models.CharField(max_length=255, blank=True)
+
     def __unicode__(self):
         return "%s / %s" % (self.dataset.description, self.layer.name,)
 
@@ -315,6 +318,9 @@ class LayerInDataset(geomodels.Model):
 
     def get_conflict_tags(self):
         return [t for t in self.get_all_tags() if t.is_conflict_search_tag]
+
+    def get_match_tags(self):
+        return [t for t in self.get_all_tags() if t.match_search_tag]
     
     def get_all_tags(self):
         # if we override a default one, use the specific one
@@ -329,7 +335,7 @@ class LayerInDataset(geomodels.Model):
         if self.layer:
             for t in self.layer.tags.all():
                 tags[(t.tag, t.apply_to)] = t
-        return tags.values()            
+        return sorted(tags.values(), key=lambda t: t.tag)
     
     def get_statistics_for(self, field_name):
         return osm.get_field_stats(self.dataset.name, self.layer, field_name)
@@ -381,6 +387,12 @@ class LayerInDataset(geomodels.Model):
     
     def features_todo_pct(self):
         return (100.0 * self.features_todo() / self.features_total)
+
+    def deleted_features_count(self):
+        return self.workslicefeature_set.filter(dirty=1).count()
+    
+    def export_deletes_name(self):
+        return "deletes-%s-%s-%s" % (self.layer.name, self.dataset.name, datetime.datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%S"))
                            
 class TagManager(models.Manager):
     def eval(self, code, fields):
@@ -447,6 +459,7 @@ class Tag(models.Model):
     code = models.TextField(blank=True, help_text="Javascript code that sets the 'value' paramter to a non-null value to set the tag. 'fields' is an object with all available attributes for the current record")
     apply_to = models.IntegerField(default=0, choices=APPLY_TO_CHOICES)
     conflict_search_tag = models.IntegerField(default=0, choices=CONFLICT_SEARCH_CHOICES, verbose_name='Use this tag to search for conflicts in OSM')
+    match_search_tag = models.BooleanField(default=False, verbose_name='Use this tag to track uploaded features in OSM')
     
     class Meta:
         unique_together = ('layer', 'apply_to', 'tag',)
@@ -474,6 +487,10 @@ class Tag(models.Model):
     def eval(self, fields):
         return Tag.objects.eval(self.code, fields)
 
+    def eval_for_match_filter(self, fields):
+        v = Tag.objects.eval(self.code, fields)
+        return '["%s"="%s"]' % (self.tag, v)
+    
     def eval_for_conflict_filter(self, fields):
         if self.conflict_search_tag == 0:
             return None

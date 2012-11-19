@@ -19,6 +19,7 @@ from django.conf.urls.defaults import *
 urlpatterns = patterns('linz2osm.data_dict.views',
                        (r'^tag/eval/$', 'tag_eval'),
                        (r'^dataset/(?P<dataset_id>\w+)/update$', 'update_dataset'),
+                       (r'^dataset/(?P<dataset_id>\w+)/merge_deletions$', 'merge_deletions_from_dataset'),
                        (r'^dataset/(?P<dataset_id>\w+)/$', 'show_dataset'),
                        (r'^field_stats/(?P<dataset_id>\w+)/(?P<layer_id>\w+)/(?P<field_name>\w+)/$', 'field_stats'),
                        (r'^layer/(?P<layer_id>\w+)/info/$', 'layer_notes'),

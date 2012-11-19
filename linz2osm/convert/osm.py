@@ -209,6 +209,10 @@ def featureset_conflicts(layer_in_dataset, workslice_features):
     data_table = get_data_table(layer_in_dataset, [wf.feature_id for wf in workslice_features])
     return overpass.featureset_conflicts_for_data(layer_in_dataset, workslice_features, data_table)
 
+def featureset_matches(layer_in_dataset, workslice_features):
+    data_table = get_data_table(layer_in_dataset, [wf.feature_id for wf in workslice_features])
+    return overpass.featureset_matches_for_data(layer_in_dataset, workslice_features, data_table)
+
 def apply_changeset_to_dataset(dataset_update, table_name, lid):
     database_id = dataset_update.dataset.name
     destination_table = lid.layer.name
@@ -287,6 +291,8 @@ def apply_changeset_to_dataset(dataset_update, table_name, lid):
     stats = get_layer_stats(lid.dataset.name, lid.layer)
     lid.features_total = stats['feature_count']
     lid.extent = lid.extent.union(stats['extent']).envelope
+    lid.last_deletions_dump_filename = None
+
     lid.save()
                                         
     
@@ -364,7 +370,7 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
         for node in node_match_json:
             osm_nodes[node['tags'].get(layer.special_node_tag_name)] = str(node['id'])
         
-    writer = OSMWriter(id_hash=(dataset.name, layer.name, feature_ids),
+    writer = OSMCreateWriter(id_hash=(dataset.name, layer.name, feature_ids),
                        osm_nodes=osm_nodes,
                        special_start_node_field_name=layer.special_start_node_field_name,
                        special_end_node_field_name=layer.special_end_node_field_name
@@ -403,6 +409,28 @@ def int_or_none(obj):
         return None
 
 class OSMWriter(object):
+    def xml(self):
+        # prettify - ok to call more than once
+        self._etree_indent(self.tree.getroot())
+    
+        s = StringIO()
+        self.tree.write(s, 'utf-8')
+        s.write('\n')
+        return s.getvalue()
+
+    def _etree_indent(self, elem, level=0):
+        i = "\n" + level*"  "
+        if len(elem):
+            if not elem.text or not elem.text.strip():
+                elem.text = i + "  "
+            for e in elem:
+                self._etree_indent(e, level+1)
+            if not e.tail or not e.tail.strip():
+                e.tail = i
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
+    
+class OSMCreateWriter(OSMWriter):
     WAY_SPLIT_SIZE = 495
     
     def __init__(self, id_hash=None, processors=None, osm_nodes={}, special_start_node_field_name=None, special_end_node_field_name=None):
@@ -424,16 +452,7 @@ class OSMWriter(object):
     
     def add_feature(self, geom, tags=None, first_node_ref=None, last_node_ref=None):
         self.build_geom(geom, tags, first_node_ref, last_node_ref)
-    
-    def xml(self):
-        # prettify - ok to call more than once
-        self._etree_indent(self.tree.getroot())
-    
-        s = StringIO()
-        self.tree.write(s, 'utf-8')
-        s.write('\n')
-        return s.getvalue()
-    
+        
     @property
     def next_id(self):
         """ Return a unique ID. """
@@ -559,14 +578,29 @@ class OSMWriter(object):
                             raise Error(u'Tag value too long (max. 255 chars): %s' % tv)
                         ElementTree.SubElement(parent_node, 'tag', k=tn, v=tv)
     
-    def _etree_indent(self, elem, level=0):
-        i = "\n" + level*"  "
-        if len(elem):
-            if not elem.text or not elem.text.strip():
-                elem.text = i + "  "
-            for e in elem:
-                self._etree_indent(e, level+1)
-            if not e.tail or not e.tail.strip():
-                e.tail = i
-        if level and (not elem.tail or not elem.tail.strip()):
-            elem.tail = i
+def export_delete(layer_in_dataset, nodes, ways, relations):
+    writer = OSMDeleteWriter()
+    print "Deleting %d nodes, %d ways, %d relations..." % (len(nodes), len(ways), len(relations))
+    for node in nodes:
+        writer.remove_node(node)
+    for way in ways:
+        writer.remove_way(way)
+    for relation in relations:
+        writer.remove_relation(relation)
+    return writer.xml()
+
+class OSMDeleteWriter(OSMWriter):    
+    def __init__(self):
+        self.n_root = ElementTree.Element('osmChange', version="0.6", generator="linz2osm")
+        self.n_delete = ElementTree.SubElement(self.n_root, 'delete', version="0.6", generator="linz2osm")
+        self.tree = ElementTree.ElementTree(self.n_root)
+    
+    def remove_node(self, node):
+        ElementTree.SubElement(self.n_delete, 'node', version=str(node['version']), changeset=str(node['changeset']), id=str(node['id']), lat=str(node['lat']), lon=str(node['lon']))
+        print "   ... node %s" % node['id']
+        
+    def remove_way(self, way):
+        ElementTree.SubElement(self.n_delete, 'way', version=str(way['version']), changeset=str(way['changeset']), id=str(way['id']))
+
+    def remove_relation(self, relation):
+        ElementTree.SubElement(self.n_delete, 'relation', version=str(relation['version']), changeset=str(relation['changeset']), id=str(relation['id']))

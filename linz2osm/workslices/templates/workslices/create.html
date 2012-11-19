@@ -62,6 +62,9 @@
         <form id="grab-some-data-form" action="{% url linz2osm.workslices.views.create_workslice layer_in_dataset_id=layer_in_dataset.id %}" method="POST">
           {% csrf_token %}
           {{ form.as_p }}
+          <p>
+            <i><small>Conflict search will use {{ conflict_tags_display_list }} </small></i>
+          </p>
           <input type="submit" value="Check out" id="grab-some-data-submit">
         </form>
       </div>

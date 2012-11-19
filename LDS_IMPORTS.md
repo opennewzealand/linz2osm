@@ -12,10 +12,10 @@ use "initial" as the first argument
 <lds_key> is your API key for LDS
 <viewparams> is the date range you wish to import, in the form from:YYYY-MM-DD;to:YYYY-MM-DD.
 Use 1970-01-01 as the from date and the date of YESTERDAY UTC as the to date. E.g. at 9am on 8 Nov 2012 NZDT, use 2012-11-06 as the date.
-<filter> is a CQL filter for the data. You cannot change this later.
+<filter> is a CQL filter for the data, URL encoded. You cannot change this later.
 
 When you set up the layer, make sure to set wfs_type_name to the layer_id (e.g. 787, not v:x787) and wfs_cql_filter to the EXACT filter you
-used in the import script. Also set the update type to "LINZ Data Service".
+used in the import script (though in the app, it should NOT be URL encoded). Also set the update type to "LINZ Data Service".
 
 All layers in your dataset must have the same version, and will be updated together, so be sure to use the same 'to date' when you import them. Also make
 sure this date is set as the initial version for the dataset.

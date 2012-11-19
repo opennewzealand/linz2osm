@@ -111,6 +111,26 @@ class UpdateForm(forms.Form):
         if cleaned_update_version_str > self.max_update_version:
             raise forms.ValidationError("Update version cannot be after %s" % self.max_update_version)
         return cleaned_update_version_str
+
+@login_required
+@user_passes_test(lambda u: u.has_perm(u'data_dict.change_dataset'))
+def merge_deletions_from_dataset(request, dataset_id=None):
+    dataset = get_object_or_404(Dataset, name=dataset_id)
+    ctx = {
+        'dataset': dataset,
+        'show_button': True,
+        'layers_in_dataset': dataset.layerindataset_set.order_by('layer').all(),
+        }
+
+    if dataset.generating_deletions_osm:
+        ctx['show_button'] = False
+    elif request.method == 'POST':
+        ctx['show_button'] = False
+        dataset.generating_deletions_osm = True
+        dataset.layerindataset_set.update(last_deletions_dump_filename='')
+        tasks.deletions_export.delay(dataset)
+        dataset.save()
+    return render_to_response('data_dict/merge_deletions_for_dataset.html', ctx, context_instance=RequestContext(request))        
     
 @login_required
 @user_passes_test(lambda u: u.has_perm(u'data_dict.change_dataset'))
@@ -154,7 +174,6 @@ def update_dataset(request, dataset_id=None):
 
     ctx['layers_in_dataset'] = dataset.layerindataset_set.order_by('layer__name').all()
     ctx['form'] = form
-    ctx['queries'] = connections[dataset.name].queries
     
     return render_to_response('data_dict/update_dataset.html', ctx, context_instance=RequestContext(request))        
 

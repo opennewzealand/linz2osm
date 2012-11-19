@@ -16,9 +16,9 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-if [ $# -lt 2 ]
+if [ $# -lt 1 ]
 then
-    echo "Usage: load_linz_dataset.sh <directory1> <srid>"
+    echo "Usage: load_kml_dataset.sh <directory1>"
     exit 1
 fi
 
@@ -29,12 +29,8 @@ echo "Will use database ${dataset_db}"
 dropdb ${dataset_db}
 createdb ${dataset_db} -T template_postgis
 
-for shapefile in $1/*.shp
+for kmlfile in $1/*.kml
 do
-    if [[ "`basename ${shapefile}`" = contour*.shp ]]
-    then
-        continue
-    fi
-    echo "${shapefile}"
-    ogr2ogr -overwrite -f PostgreSQL PG:dbname=${dataset_db} -lco OVERWRITE=yes -lco LAUNDER=yes ${shapefile} -a_srs $2 -s_srs $2
+    echo "${kmlfile}"
+    ogr2ogr -overwrite -f PostgreSQL PG:dbname=${dataset_db} -lco OVERWRITE=yes -lco LAUNDER=yes ${kmlfile} -a_srs EPSG:4326 -s_srs EPSG:4326
 done

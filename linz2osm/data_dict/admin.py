@@ -46,7 +46,7 @@ class DatasetAdmin(admin.ModelAdmin):
         if obj.update_method == "manual":
             return "Manual updates only"
         else:
-            return "<a href='/data_dict/dataset/%s/update'>Update with %s</a>" % (obj.name, obj.get_update_method_display())
+            return "<a href='/data_dict/dataset/%s/update'>Update with %s</a>, <a href='/data_dict/dataset/%s/merge_deletions'>Purge deleted data from OSM</a>" % (obj.name, obj.get_update_method_display(), obj.name)
     update_link.short_description = 'Update'
     update_link.allow_tags = True
     

@@ -199,9 +199,12 @@ def create_workslice(request, layer_in_dataset_id):
     
     ctx = {
         'layer_in_dataset': layer_in_dataset,
+        'conflict_tags_display_list': ', '.join(sorted([t.tag for t in layer_in_dataset.get_conflict_tags()])),
         'workslices': layer_in_dataset.workslice_set.all(),
         'title': "%s - %s" % (dataset.description, layer.name),
     }
+
+    
     if request.method == 'POST':
         if not request.user.is_authenticated():
             return HttpResponseRedirect('/login/')
