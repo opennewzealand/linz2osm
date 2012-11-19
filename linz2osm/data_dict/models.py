@@ -30,9 +30,6 @@ from django.conf import settings
 from django.contrib.gis.db import models as geomodels
 from django.contrib.auth.models import User
 
-from linz2osm_root import LINZ2OSM_ROOT_DIR
-from linz2osm.settings import LINZ_DATA_SERVICE_API_KEY
-
 from linz2osm.utils.db_fields import JSONField
 from linz2osm.convert import processing, osm
 
@@ -130,12 +127,12 @@ class DatasetUpdate(models.Model):
                 layer = lid.layer
                 table_name = "%s_update_%s" % (layer.name, self.to_version.replace("-", "_"))
                 import_proc = subprocess.Popen([
-                        LINZ2OSM_ROOT_DIR + '/scripts/load_lds_dataset.sh',
+                        settings.LINZ2OSM_SCRIPT_ROOT + '/load_lds_dataset.sh',
                         'update',
                         self.dataset.database_name,
                         layer.wfs_type_name,
                         table_name,
-                        LINZ_DATA_SERVICE_API_KEY,
+                        settings.LINZ_DATA_SERVICE_API_KEY,
                         'from:%s;to:%s' % (self.from_version, self.to_version),
                         urllib.quote(layer.wfs_cql_filter)
                         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

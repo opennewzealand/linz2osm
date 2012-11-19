@@ -67,6 +67,7 @@ USE_I18N = True
 # Example: "/home/media/media.lawrence.com/"
 MEDIA_ROOT = ''
 STATIC_ROOT = ''
+LINZ2OSM_SCRIPT_ROOT = ''
 STATICFILES_DIRS = (
     '/path/to/linz2osm/assets/',
 )

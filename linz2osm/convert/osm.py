@@ -291,7 +291,7 @@ def apply_changeset_to_dataset(dataset_update, table_name, lid):
     stats = get_layer_stats(lid.dataset.name, lid.layer)
     lid.features_total = stats['feature_count']
     lid.extent = lid.extent.union(stats['extent']).envelope
-    lid.last_deletions_dump_filename = None
+    lid.last_deletions_dump_filename = ''
 
     lid.save()
                                         
