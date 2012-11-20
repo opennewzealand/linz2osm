@@ -264,16 +264,19 @@ class Layer(models.Model):
 
 class LayerInDatasetManager(geomodels.GeoManager):
     def create_layer_in_dataset(self, layer, dataset):
-        if not LayerInDataset.objects.filter(layer=layer, dataset=dataset).exists():
-            # TODO: merge with osm.get_layer_feature_count
-
-            stats = osm.get_layer_stats(dataset.name, layer)            
-            
-            return self.create(layer=layer,
-                               dataset=dataset,
-                               features_total=stats['feature_count'],
-                               extent=stats['extent']
-                               )
+        stats = osm.get_layer_stats(dataset.name, layer)
+        if LayerInDataset.objects.filter(layer=layer, dataset=dataset).exists():
+            lid = LayerInDataset.objects.get(layer=layer, dataset=dataset)
+            lid.features_total=stats['feature_count']
+            lid.extent=stats['extent']
+            lid.save()
+        else:
+            lid = self.create(layer=layer,
+                              dataset=dataset,
+                              features_total=stats['feature_count'],
+                              extent=stats['extent']
+                              )
+        return lid
         
 class LayerInDataset(geomodels.Model):
     objects = LayerInDatasetManager()
