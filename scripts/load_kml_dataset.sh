@@ -32,5 +32,5 @@ createdb ${dataset_db} -T template_postgis
 for kmlfile in $1/*.kml
 do
     echo "${kmlfile}"
-    ogr2ogr -overwrite -f PostgreSQL PG:dbname=${dataset_db} -lco OVERWRITE=yes -lco LAUNDER=yes ${kmlfile} -a_srs EPSG:4326 -s_srs EPSG:4326
+    ogr2ogr -append -f PostgreSQL PG:dbname=${dataset_db} -lco LAUNDER=yes ${kmlfile} -a_srs EPSG:4326 -s_srs EPSG:4326
 done
