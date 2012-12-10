@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
 #  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -58,7 +58,7 @@ def get_base_and_limit_feature_ids(layer_in_dataset, base_id=None, feature_limit
         sql += ' WHERE %(pkey_name)s >= %(base_id)d'
 
     sql += ' ORDER BY %(pkey_name)s ASC'
-        
+
     if feature_limit:
         sql += ' LIMIT %(feature_limit)d'
 
@@ -70,18 +70,21 @@ def get_layer_feature_ids(layer_in_dataset, extent=None, feature_limit=None):
 
     sql = 'SELECT %(pkey_name)s FROM %(layer_name)s'
     params = []
-    
+
     if extent:
         srid = layer_in_dataset.dataset.srid
         extent_trans = extent.hexewkb
-        sql += ' WHERE (wkb_geometry && ST_Transform(%%s, %%s)) AND ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s, %%s))'
+        sql += ' WHERE ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s, %%s)) OR ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(ST_Translate(%%s, 360.0, 0.0), %%s))'
         params += [extent_trans, srid, extent_trans, srid]
 
     sql += ' ORDER BY %(pkey_name)s'
     if feature_limit:
         sql += ' LIMIT %d' % (feature_limit + 1)
 
+    print sql
+
     cursor.execute(sql % {'pkey_name': layer_in_dataset.layer.pkey_name, 'layer_name': layer_in_dataset.layer.name}, params)
+
     if (feature_limit is not None) and cursor.rowcount > feature_limit:
         return None # FIXME: use exceptions - should have checked feature count before approving workslice
     return [r[0] for r in cursor.fetchall()]
@@ -104,15 +107,15 @@ def get_layer_feature_count(database_id, layer, intersect_geom=None):
     layer_srid = get_layer_geometry_type(database_id, layer)[1]
     if intersect_geom and intersect_geom.srid is None:
         intersect_geom.srid = layer_srid
-    
+
     sql = 'SELECT count(*) FROM %s'
     params = []
     if intersect_geom:
         intersect_trans = intersect_geom.hexewkb
-        sql += ' WHERE wkb_geometry && ST_Transform(%%s, %%s) AND ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s, %%s))'
+        sql += ' WHERE ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s, %%s)) OR ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(ST_Translate(%%s, 360.0, 0.0), %%s))'
         params += [intersect_trans, layer_srid, intersect_trans, layer_srid]
 
-    cursor.execute(sql % layer.name, params) 
+    cursor.execute(sql % layer.name, params)
     return cursor.fetchone()[0]
 
 class NoSuchFieldNameError(Exception):
@@ -132,13 +135,13 @@ def get_field_stats(database_id, layer, field_name):
     if col_type_row is None:
         raise NoSuchFieldNameError
     col_type = col_type_row[0]
-    
+
     sql = "SELECT \"%(c)s\", count(*) FROM \"%(t)s\" WHERE \"%(c)s\" IS NOT NULL "
     if col_type in ('character varying',):
         sql += " AND \"%(c)s\" <> '' "
     sql += "GROUP BY \"%(c)s\" ORDER BY count(*) DESC, \"%(c)s\" ASC; "
-    
-    cursor.execute(sql % {'t': layer.name, 'c': field_name}) 
+
+    cursor.execute(sql % {'t': layer.name, 'c': field_name})
     return cursor.fetchall()
 
 def get_layer_stats(database_id, layer):
@@ -155,7 +158,7 @@ def get_layer_stats(database_id, layer):
     cursor.execute(sql)
     extent = geos.GEOSGeometry(cursor.fetchone()[0])
     et = extent.extent
-    
+
     r = {
         'feature_count': get_layer_feature_count(database_id, layer),
         'extent': extent,
@@ -163,7 +166,7 @@ def get_layer_stats(database_id, layer):
         'primary_key': layer.pkey_name,
         'fields': {}
     }
-    
+
     cursor.execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s AND column_name NOT IN (%s, 'wkb_geometry', 'macronated', 'grp_macron', 'mp_line_ogc_fid');", [layer.name, layer.pkey_name])
     for col_name,col_type in cursor.fetchall():
         sql = 'SELECT count(*) FROM "%(t)s" WHERE "%(c)s" IS NOT NULL'
@@ -177,15 +180,15 @@ def get_layer_stats(database_id, layer):
             'col_type': col_type,
             'show_distinct_values': (row[0] > 0 and (col_name not in ('id', 'linz2osm_id', 'ogc_fid', 'name', 'name_id', 'road_name_id', 'elevation') or r['feature_count'] <= 1000)),
         }
-    
+
     if geom_type in ('LINESTRING', 'POLYGON'):
         cursor.execute("SELECT avg(ST_NPoints(wkb_geometry)), max(ST_NPoints(wkb_geometry)) FROM \"%s\";" % layer.name)
         s = cursor.fetchone();
         r.update({
             'points_avg': s[0],
             'points_max': s[1],
-        })        
-    
+        })
+
     if geom_type == 'POLYGON':
         cursor.execute("SELECT avg(ST_NRings(wkb_geometry)), max(ST_NRings(wkb_geometry)), avg(ST_NPoints(ST_ExteriorRing(wkb_geometry))), max(ST_NPoints(ST_ExteriorRing(wkb_geometry))) FROM \"%s\";" % layer.name)
         s = cursor.fetchone();
@@ -195,9 +198,9 @@ def get_layer_stats(database_id, layer):
             'points_ext_ring_avg': s[2],
             'points_ext_ring_max': s[3],
         })
-    
+
     return r
-    
+
 
 def clean_data(cell):
     if isinstance(cell, unicode) or isinstance(cell, str):
@@ -227,20 +230,20 @@ def apply_changeset_to_dataset(dataset_update, table_name, lid):
     update_table = []
     insert_table = []
     delete_table = []
-    
+
     for i,row in enumerate(cursor):
         if row[0] is None:
             continue
         row_geom = geos.GEOSGeometry(row[0])
         if row_geom.empty:
             continue
-        
+
         row_data = dict(zip(data_columns,[clean_data(c) for c in row[1:] ]))
         # print "We have a %s for %d" % (row_data['__change__'], row_data[lid.layer.pkey_name])
         row_data[geom_column] = row_geom
 
         action = row_data.pop('__change__')
-        
+
         if action == 'UPDATE':
             update_table.append(row_data)
         elif action == 'INSERT':
@@ -249,10 +252,10 @@ def apply_changeset_to_dataset(dataset_update, table_name, lid):
             delete_table.append(row_data)
 
     print "%d updates, %d inserts, %d deletes" % (len(update_table), len(insert_table), len(delete_table))
-    
+
     data_columns.remove('__change__')
-            
-    for row in insert_table:        
+
+    for row in insert_table:
         cursor.execute(
             'INSERT INTO %s (\"%s\", \"%s\") VALUES (\'%s\', %s);' % (
                 destination_table,
@@ -276,7 +279,7 @@ def apply_changeset_to_dataset(dataset_update, table_name, lid):
                 ),
             [row[cname] for cname in data_columns])
         lid.workslicefeature_set.filter(feature_id=row[lid.layer.pkey_name]).update(dirty=2)
-        
+
     for row in delete_table:
         cursor.execute(
             'DELETE FROM %s WHERE %s = %%s' % (
@@ -294,8 +297,8 @@ def apply_changeset_to_dataset(dataset_update, table_name, lid):
     lid.last_deletions_dump_filename = ''
 
     lid.save()
-                                        
-    
+
+
 def export(workslice):
     layer_in_dataset = workslice.layer_in_dataset
     feature_ids = [wf.feature_id for wf in workslice.workslicefeature_set.all()]
@@ -320,10 +323,10 @@ def get_data_table(layer_in_dataset, feature_ids = None, workslice_id = None):
     database_id = dataset.name
     cursor = connections[database_id].cursor()
     db_info = settings.DATABASES[database_id]
-    
+
     data_columns, geom_column = get_data_columns(cursor, layer.name)
     columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, dataset.srid)] + ['"%s"' % c for c in data_columns]
-    
+
     sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
 
     if feature_ids is not None:
@@ -334,16 +337,16 @@ def get_data_table(layer_in_dataset, feature_ids = None, workslice_id = None):
 
     sql_base += ' ORDER BY %s ASC' % layer.pkey_name
     cursor.execute(sql_base)
-            
+
     data_table = []
-    
+
     for i,row in enumerate(cursor):
         if row[0] is None:
             continue
         row_geom = geos.GEOSGeometry(row[0])
         if row_geom.empty:
             continue
-        
+
         row_data = dict(zip(data_columns,[clean_data(c) for c in row[1:] ]))
         row_data['layer_name'] = layer.name
         row_data['dataset_name'] = dataset.name
@@ -357,19 +360,19 @@ def get_data_table(layer_in_dataset, feature_ids = None, workslice_id = None):
 
 def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
     dataset = layer_in_dataset.dataset
-    layer = layer_in_dataset.layer    
-    
+    layer = layer_in_dataset.layer
+
     layer_tags = layer_in_dataset.get_all_tags()
     processors = layer.get_processors()
 
     data_table = get_data_table(layer_in_dataset, feature_ids, workslice_id)
-    
+
     osm_nodes = {}
     if layer.special_node_reuse_logic:
         node_match_json = overpass.osm_node_match_json(layer_in_dataset, data_table)['elements']
         for node in node_match_json:
             osm_nodes[node['tags'].get(layer.special_node_tag_name)] = str(node['id'])
-        
+
     writer = OSMCreateWriter(id_hash=(dataset.name, layer.name, feature_ids),
                        osm_nodes=osm_nodes,
                        special_start_node_field_name=layer.special_start_node_field_name,
@@ -397,7 +400,7 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
             last_node_ref = str(row_data.get(layer.special_end_node_field_name))
         else:
             first_node_ref, last_node_ref = None, None
-            
+
         writer.add_feature(row_geom, row_tags, first_node_ref, last_node_ref)
 
     return writer.xml()
@@ -412,7 +415,7 @@ class OSMWriter(object):
     def xml(self):
         # prettify - ok to call more than once
         self._etree_indent(self.tree.getroot())
-    
+
         s = StringIO()
         self.tree.write(s, 'utf-8')
         s.write('\n')
@@ -429,10 +432,10 @@ class OSMWriter(object):
                 e.tail = i
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
-    
+
 class OSMCreateWriter(OSMWriter):
     WAY_SPLIT_SIZE = 495
-    
+
     def __init__(self, id_hash=None, processors=None, osm_nodes={}, special_start_node_field_name=None, special_end_node_field_name=None):
         self.n_root = ElementTree.Element('osmChange', version="0.6", generator="linz2osm")
         self.n_create = ElementTree.SubElement(self.n_root, 'create', version="0.6", generator="linz2osm")
@@ -447,26 +450,26 @@ class OSMCreateWriter(OSMWriter):
         else:
             h = hashlib.sha1(unicode(id_hash).encode('utf8')).hexdigest()
             self._id = -1 * int(h[:6], 16)
-    
+
         self.processors = processors or []
-    
+
     def add_feature(self, geom, tags=None, first_node_ref=None, last_node_ref=None):
         self.build_geom(geom, tags, first_node_ref, last_node_ref)
-        
+
     @property
     def next_id(self):
         """ Return a unique ID. """
         self._id -= 1
         return str(self._id)
-    
+
     def build_polygon(self, geom, tags, root=None):
-        if root is None: 
+        if root is None:
             r = ElementTree.Element('relation', id=self.next_id)
             ElementTree.SubElement(r, 'tag', k='type', v='multipolygon')
             self.build_tags(r, tags, "relation")
         else:
             r = root
-        
+
         if isinstance(geom, geos.MultiPolygon):
             for g in geom:
                 self.build_polygon(g, tags, r)
@@ -481,7 +484,7 @@ class OSMCreateWriter(OSMWriter):
         if root is None:
             self.n_create.append(r)
         return [r.get('id')]
-            
+
     def build_way(self, coords, tags, tag_nodes_at_ends=False, first_node_ref=None, last_node_ref=None):
         ids = []
         rem_coords = coords[:]
@@ -489,7 +492,7 @@ class OSMCreateWriter(OSMWriter):
         special_node_type = "first" if tag_nodes_at_ends else None
         while True:
             w = ElementTree.Element('way', id=self.next_id)
-            
+
             cur_coords = rem_coords[:self.WAY_SPLIT_SIZE]
             rem_coords = rem_coords[self.WAY_SPLIT_SIZE-1:]
 
@@ -518,12 +521,12 @@ class OSMCreateWriter(OSMWriter):
             self.build_tags(w, tags, "geometry")
             self.n_create.append(w)
             ids.append(w.get('id'))
-            
+
             if len(rem_coords) < 2:
                 break
 
         return ids
-        
+
 
     def _node(self, coords, tags, map_node=True, special_node_type=None, osm_node=None):
         k = (str(coords[0]), str(coords[1]), id(tags) if tags else None)
@@ -538,32 +541,32 @@ class OSMCreateWriter(OSMWriter):
 
     def build_node(self, geom, tags, map_node=True):
         return [self._node((geom.x, geom.y), tags, map_node, "geometry")]
-    
+
     def build_geom(self, geom, tags, first_node_ref, last_node_ref, inner=False):
         if isinstance(geom, geos.Polygon) and (len(geom) == 1) and (len(geom[0]) <= self.WAY_SPLIT_SIZE):
             # short single-ring polygons are built as ways
             return self.build_way(geom[0].tuple, tags)
-            
+
         elif isinstance(geom, (geos.MultiPolygon, geos.Polygon)):
             return self.build_polygon(geom, tags)
-    
+
         elif isinstance(geom, geos.GeometryCollection):
             # FIXME: Link together as a relation?
             ids = []
             for g in geom:
                 ids += self.build_geom(g, tags, first_node_ref, last_node_ref, inner=True)
             return ids
-        
+
         elif isinstance(geom, geos.Point):
             # node
             # indepenent nodes are mapped (ie. POINTs)
             # repeated nodes within a MULTIPOINT/GEOMETRYCOLLECTION are mapped
             return self.build_node(geom, tags, inner)
-        
+
         elif isinstance(geom, geos.LineString):
             # way
             return self.build_way(geom.tuple, tags, True, first_node_ref, last_node_ref)
-    
+
     def build_tags(self, parent_node, tags, object_type):
         if tags:
             applied_tags = set()
@@ -577,7 +580,7 @@ class OSMCreateWriter(OSMWriter):
                         if len(tv) > 255:
                             raise Error(u'Tag value too long (max. 255 chars): %s' % tv)
                         ElementTree.SubElement(parent_node, 'tag', k=tn, v=tv)
-    
+
 def export_delete(layer_in_dataset, nodes, ways, relations):
     writer = OSMDeleteWriter()
     print "Deleting %d nodes, %d ways, %d relations..." % (len(nodes), len(ways), len(relations))
@@ -589,16 +592,16 @@ def export_delete(layer_in_dataset, nodes, ways, relations):
         writer.remove_relation(relation)
     return writer.xml()
 
-class OSMDeleteWriter(OSMWriter):    
+class OSMDeleteWriter(OSMWriter):
     def __init__(self):
         self.n_root = ElementTree.Element('osmChange', version="0.6", generator="linz2osm")
         self.n_delete = ElementTree.SubElement(self.n_root, 'delete', version="0.6", generator="linz2osm")
         self.tree = ElementTree.ElementTree(self.n_root)
-    
+
     def remove_node(self, node):
         ElementTree.SubElement(self.n_delete, 'node', version=str(node['version']), changeset=str(node['changeset']), id=str(node['id']), lat=str(node['lat']), lon=str(node['lon']))
         print "   ... node %s" % node['id']
-        
+
     def remove_way(self, way):
         ElementTree.SubElement(self.n_delete, 'way', version=str(way['version']), changeset=str(way['changeset']), id=str(way['id']))
 
