@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
 #  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -41,12 +41,12 @@ class Group(models.Model):
 
     def __str__(self):
         return self.name
-    
+
 class DatasetManager(models.Manager):
     def clear_datasets(self):
         # cascades and also drops LayerInDatasets
         Dataset.objects.all().delete()
-    
+
     def generate_datasets(self):
         for name, details in settings.DATABASES.items():
             if name != 'default':
@@ -58,7 +58,7 @@ class DatasetManager(models.Manager):
                                           description = details['_description'],
                                           srid = int(details['_srid']),
                                           version = details['_version'])
-                    
+
                 for layer in Layer.objects.all():
                     if dataset.has_layer_in_schema(layer.name):
                         LayerInDataset.objects.create_layer_in_dataset(layer, dataset)
@@ -70,7 +70,7 @@ class Dataset(models.Model):
         ('lds', 'LINZ Data Service'),
         # ('wfs', 'WFS'),
         ]
-    
+
     name = models.CharField(max_length=255, unique=True, primary_key=True)
     database_name = models.CharField(max_length=255)
     description = models.TextField()
@@ -79,12 +79,12 @@ class Dataset(models.Model):
     group = models.ForeignKey(Group, blank=True, null=True)
     update_method = models.CharField(max_length=255, choices=UPDATE_METHOD_CHOICES, default='manual')
     generating_deletions_osm = models.BooleanField(default=False, editable=False)
-    
+
     def has_layer_in_schema(self, layer_name):
         cursor = connections[self.name].cursor()
         cursor.execute("SELECT true FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename=%s;", [layer_name])
         return (cursor.fetchone() is not None)
-    
+
     def __unicode__(self):
         return unicode(self.description)
 
@@ -105,12 +105,12 @@ class Dataset(models.Model):
             return latest[0]
         else:
             return None
-    
+
     objects = DatasetManager()
 
 class DatasetUpdateError(Exception):
     pass
-    
+
 class DatasetUpdate(models.Model):
     dataset = models.ForeignKey(Dataset)
     from_version = models.CharField(max_length=255, blank=True)
@@ -119,7 +119,7 @@ class DatasetUpdate(models.Model):
     owner = models.ForeignKey(User)
     complete = models.BooleanField(default=False)
     error = models.TextField(blank=True, editable=False)
-    
+
     def run(self):
         # FIXME: tests for changeset retrieval, etc.
         try:
@@ -140,8 +140,8 @@ class DatasetUpdate(models.Model):
                 import_output = import_proc.stdout.read()
                 print import_output
                 if import_proc.returncode != 0:
-                    raise DatasetUpdateError("Import of %s failed with return code %d and output:\n%s" % (layer.name, import_proc.returncode, import_output))                
-                
+                    raise DatasetUpdateError("Import of %s failed with return code %d and output:\n%s" % (layer.name, import_proc.returncode, import_output))
+
                 with transaction.commit_manually():
                     with transaction.commit_manually(using=self.dataset.name):
                         try:
@@ -178,7 +178,7 @@ class Layer(models.Model):
         ('linz2osm_id', 'linz2osm_id'),
         ('id', 'id')
         ]
-    
+
     name = models.CharField(max_length=100, primary_key=True)
     entity = models.CharField(max_length=200, blank=True, db_index=True)
     notes = models.TextField(blank=True)
@@ -197,7 +197,7 @@ class Layer(models.Model):
     special_dataset_version_tag = models.CharField(max_length=255, blank=True, editable=False)
     wfs_type_name = models.CharField(max_length=255, blank=True, verbose_name='WFS typeName', help_text='Used for LDS or WFS updates')
     wfs_cql_filter = models.TextField(max_length=255, blank=True, verbose_name='WFS cql_filter', help_text='Used for LDS or WFS updates')
-    
+
     def __unicode__(self):
         return unicode(self.name)
 
@@ -220,8 +220,8 @@ class Layer(models.Model):
         if self.geometry_type == 'POINT':
             return 1000
         else:
-            return 100
-        
+            return 300
+
     @property
     def linz_dictionary_url(self):
         BASE_URL = "http://apps.linz.govt.nz/topo-data-dictionary/index.aspx?page=class-%s"
@@ -230,7 +230,7 @@ class Layer(models.Model):
     def layerindatasets_ordered(self):
         return self.layerindataset_set.order_by('dataset__description')
 
-    def potential_tags(self):        
+    def potential_tags(self):
         own_tags = self.tags.order_by('tag').all()
         groups = [lid.dataset.group for lid in self.layerindataset_set.all()] + [self.group]
         groupset = set([g for g in groups if g is not None])
@@ -238,9 +238,9 @@ class Layer(models.Model):
         group_tags.sort(key=lambda group: group[0])
         default_tags = [t for t in Tag.objects.default() if t not in own_tags]
         default_tags.sort(key=lambda t: t.tag)
-        
+
         return [("Tags specific to this layer", own_tags)] + group_tags + [("Default tags", default_tags)]
-    
+
     def get_statistics(self, dataset_id=None):
         from linz2osm.convert.osm import get_layer_stats
         if dataset_id:
@@ -250,7 +250,7 @@ class Layer(models.Model):
             for ds in self.datasets.all():
                 r[(ds.name, ds.description)] = get_layer_stats(ds.name, self)
             return r
-    
+
     def get_processors(self):
         from linz2osm.convert.processing import get_class
         p_list = []
@@ -277,7 +277,7 @@ class LayerInDatasetManager(geomodels.GeoManager):
                               extent=stats['extent']
                               )
         return lid
-        
+
 class LayerInDataset(geomodels.Model):
     objects = LayerInDatasetManager()
 
@@ -311,7 +311,7 @@ class LayerInDataset(geomodels.Model):
     @property
     def filter_tag_names(self):
         return [tag.tag for tag in self.layer.tags.all() if tag.is_conflict_search_tag]
-    
+
     @models.permalink
     def get_absolute_url(self):
         return ('linz2osm.workslices.views.create_workslice', (), {'layer_in_dataset_id': self.id})
@@ -321,7 +321,7 @@ class LayerInDataset(geomodels.Model):
 
     def get_match_tags(self):
         return [t for t in self.get_all_tags() if t.match_search_tag]
-    
+
     def get_all_tags(self):
         # if we override a default one, use the specific one
         # count tags with different apply_to values separately
@@ -336,14 +336,14 @@ class LayerInDataset(geomodels.Model):
             for t in self.layer.tags.all():
                 tags[(t.tag, t.apply_to)] = t
         return sorted(tags.values(), key=lambda t: t.tag)
-    
+
     def get_statistics_for(self, field_name):
         return osm.get_field_stats(self.dataset.name, self.layer, field_name)
-    
+
     def js_display_bounds_array(self):
         min_x, min_y, max_x, max_y = [f for f in self.extent.extent]
-        x_margin = (max_x - min_x) * 0.1 
-        y_margin = (max_y - min_y) * 0.1 
+        x_margin = (max_x - min_x) * 0.1
+        y_margin = (max_y - min_y) * 0.1
         return unicode([min_x - x_margin, min_y - y_margin, max_x + x_margin, max_y + y_margin])
 
     def js_extent_geojson(self):
@@ -357,7 +357,7 @@ class LayerInDataset(geomodels.Model):
 
     def js_workslice_geojson(self):
         shown_workslices = self.workslice_set.filter(state__in=('processing','out','complete','blocked',))
-        
+
         return """
             { "type": "FeatureCollection",
               "features": [%s],
@@ -375,25 +375,25 @@ class LayerInDataset(geomodels.Model):
 
     def features_complete_pct(self):
         return (100.0 * self.features_complete() / self.features_total)
-    
+
     def features_in_progress(self):
         return self.workslice_set.filter(state__in=('processing','out','blocked',)).aggregate(Sum('feature_count'))['feature_count__sum'] or 0
 
     def features_in_progress_pct(self):
         return (100.0 * self.features_in_progress() / self.features_total)
-    
+
     def features_todo(self):
         return (self.features_total - self.features_complete() - self.features_in_progress()) or 0
-    
+
     def features_todo_pct(self):
         return (100.0 * self.features_todo() / self.features_total)
 
     def deleted_features_count(self):
         return self.workslicefeature_set.filter(dirty=1).count()
-    
+
     def export_deletes_name(self):
         return "deletes-%s-%s-%s" % (self.layer.name, self.dataset.name, datetime.datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%S"))
-                           
+
 class TagManager(models.Manager):
     def eval(self, code, fields):
         eval_fields = {}
@@ -403,22 +403,22 @@ class TagManager(models.Manager):
             elif isinstance(fv, datetime.date):
                 fv = str(fv)
             eval_fields[fk] = fv
-        
+
         js = pydermonkey.Runtime().new_context()
         try:
             script = js.compile_script(code, '<Tag Code>', 1)
 
             context = js.new_object()
             js.init_standard_classes(context)
-            
+
             js.define_property(context, 'value', None);
             context_fields = js.new_object()
             for fk,fv in eval_fields.items():
                 js.define_property(context_fields, fk, fv)
-            js.define_property(context, 'fields', context_fields) 
-            
+            js.define_property(context, 'fields', context_fields)
+
             js.execute_script(context, script)
-            
+
             value = js.get_property(context, 'value')
             if value is pydermonkey.undefined:
                 value = None
@@ -452,7 +452,7 @@ CONFLICT_SEARCH_CHOICES = [
 @total_ordering
 class Tag(models.Model):
     objects = TagManager()
-    
+
     layer = models.ForeignKey(Layer, null=True, blank=True, related_name='tags')
     group = models.ForeignKey(Group, null=True, blank=True, related_name='tags')
     tag = models.CharField(max_length=100, help_text="OSM tag name")
@@ -460,15 +460,15 @@ class Tag(models.Model):
     apply_to = models.IntegerField(default=0, choices=APPLY_TO_CHOICES)
     conflict_search_tag = models.IntegerField(default=0, choices=CONFLICT_SEARCH_CHOICES, verbose_name='Use this tag to search for conflicts in OSM')
     match_search_tag = models.BooleanField(default=False, verbose_name='Use this tag to track uploaded features in OSM')
-    
+
     class Meta:
         unique_together = ('layer', 'apply_to', 'tag',)
         verbose_name = 'Default Tag'
         verbose_name_plural = 'Default Tags'
-    
+
     class ScriptError(Exception):
         data = None
-    
+
     def __unicode__(self):
         return self.tag
 
@@ -483,14 +483,14 @@ class Tag(models.Model):
             return self.apply_to in [0, 2]
         else:
             return True
-    
+
     def eval(self, fields):
         return Tag.objects.eval(self.code, fields)
 
     def eval_for_match_filter(self, fields):
         v = Tag.objects.eval(self.code, fields)
         return '["%s"="%s"]' % (self.tag, v)
-    
+
     def eval_for_conflict_filter(self, fields):
         if self.conflict_search_tag == 0:
             return None
@@ -508,7 +508,7 @@ class Tag(models.Model):
     @property
     def is_conflict_search_tag(self):
         return self.conflict_search_tag != 0
-        
+
     def __lt__(self, other):
         if other.layer_id:
             if not self.layer_id:
@@ -523,4 +523,4 @@ class Tag(models.Model):
             if self.tag.startswith("LINZ:"):
                 return False
         return self.tag.__lt__(other.tag)
-        
+
