@@ -25,6 +25,7 @@ from xml.etree import ElementTree
 
 import hashlib
 import re
+import math
 
 from linz2osm.convert import overpass
 
@@ -433,6 +434,71 @@ class OSMWriter(object):
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
 
+def wrap_longitude(lon):
+    wrapped = (lon + 180) % 360 - 180
+    if wrapped == -180 and lon >= 180:
+        return 180
+    else:
+        return wrapped
+
+def coords_for_next_way(coords, way_split_size):
+    for pos in range(1, way_split_size):
+        last_coords = coords[pos - 1]
+        this_coords = coords[pos]
+
+        # If this way spans over 180 degrees it must be taking the long way around
+        last_lon_wrapped = wrap_longitude(last_coords[0])
+        this_lon_wrapped = wrap_longitude(this_coords[0])
+
+        if math.fabs(last_lon_wrapped - this_lon_wrapped) > 180:
+            print "At pos %d got crossing of %f -> %f" % (pos, last_lon_wrapped, this_lon_wrapped)
+            # Uh-oh!
+            # We will end this way at the antimeridian, with an x of 180 or -180, then
+            # start a new way with an equivalent value on the antimeridian on the other side
+            if last_lon_wrapped == 180 or last_lon_wrapped == -180:
+                print "Last position was on AM so finishing with that node"
+                # Generate an equivalent node and restart the way with that
+                equiv_coords = (-last_lon_wrapped, last_coords[1])
+                cur_coords = coords[:pos]
+                rem_coords = [equiv_coords] + coords[pos:]
+            elif this_lon_wrapped == 180 or this_lon_wrapped == -180:
+                print "This position on AM so generating an equivalent then finishing"
+                # Generate an equivalent node, end the way with it, then restart
+                equiv_coords = (-this_lon_wrapped, this_coords[1])
+                cur_coords = coords[:pos] + [equiv_coords]
+                rem_coords = coords[pos:]
+            else:
+                print "Interpolating"
+                # Neither point is actually on the antimeridian, so need to interpolate,
+                # End the way with that node, then restart with an equivalent
+                if this_lon_wrapped > last_lon_wrapped: # Way is heading west
+                    left_x = this_lon_wrapped - 180
+                    left_y = this_coords[1]
+                    right_x = last_lon_wrapped + 180
+                    right_y = last_coords[1]
+                else: # Way is heading east
+                    left_x = last_lon_wrapped - 180
+                    left_y = last_coords[1]
+                    right_x = this_lon_wrapped + 180
+                    right_y = this_coords[1]
+
+                intersection_latitude = ((left_x * right_y) - (left_y * right_x)) / (left_x - right_x)
+
+                if this_lon_wrapped > last_lon_wrapped: # Westbound
+                    cur_coords = coords[:pos] + [(-180, intersection_latitude)]
+                    rem_coords = [(180, intersection_latitude)] + coords[pos:]
+                else:
+                    cur_coords = coords[:pos] + [(180, intersection_latitude)]
+                    rem_coords = [(-180, intersection_latitude)] + coords[pos:]
+
+            return cur_coords, rem_coords
+
+    # No intersections, so go until the way split size
+    cur_coords = rem_coords[:way_split_size]
+    rem_coords = rem_coords[way_split_size-1:]
+
+    return cur_coords, rem_coords
+
 class OSMCreateWriter(OSMWriter):
     WAY_SPLIT_SIZE = 495
 
@@ -485,9 +551,11 @@ class OSMCreateWriter(OSMWriter):
             self.n_create.append(r)
         return [r.get('id')]
 
+
+    # FIXME segments crossing antemeridian.
     def build_way(self, coords, tags, tag_nodes_at_ends=False, first_node_ref=None, last_node_ref=None):
         ids = []
-        rem_coords = coords[:]
+        rem_coords = [(wrap_longitude(x), y) for (x, y) in coords]
         node_map = {}
         special_node_type = "first" if tag_nodes_at_ends else None
         while True:
@@ -497,7 +565,9 @@ class OSMCreateWriter(OSMWriter):
             rem_coords = rem_coords[self.WAY_SPLIT_SIZE-1:]
 
             cur_coords_last_idx = len(cur_coords) - 1
+            last_coords = None
             for i,c in enumerate(cur_coords):
+                # Handle tagging special node types
                 if tag_nodes_at_ends and not rem_coords:
                     if i == cur_coords_last_idx:
                         special_node_type = "last"
@@ -517,7 +587,10 @@ class OSMCreateWriter(OSMWriter):
                 else:
                     n_id = self._node(c, None, True)
                 special_node_type = None
+
+                # Actually generate some XML now
                 ElementTree.SubElement(w, 'nd', ref=n_id)
+                last_coords = c
             self.build_tags(w, tags, "geometry")
             self.n_create.append(w)
             ids.append(w.get('id'))
@@ -527,13 +600,14 @@ class OSMCreateWriter(OSMWriter):
 
         return ids
 
-
     def _node(self, coords, tags, map_node=True, special_node_type=None, osm_node=None):
-        k = (str(coords[0]), str(coords[1]), id(tags) if tags else None)
+        lat = coords[1]
+        lon = wrap_longitude(coords[0])
+        k = (str(lon), str(lat), id(tags) if tags else None)
         n = self._nodes.get(k)
 
         if (not map_node) or (n is None):
-            n = ElementTree.SubElement(self.n_create, 'node', id=self.next_id, lat=str(coords[1]), lon=str(coords[0]))
+            n = ElementTree.SubElement(self.n_create, 'node', id=self.next_id, lat=str(lat), lon=str(lon))
             self.build_tags(n, tags, special_node_type)
             if map_node:
                 self._nodes[k] = n
