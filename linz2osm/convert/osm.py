@@ -442,7 +442,7 @@ def wrap_longitude(lon):
         return wrapped
 
 def coords_for_next_way(coords, way_split_size):
-    for pos in range(1, way_split_size):
+    for pos in range(1, min(way_split_size, len(coords))):
         last_coords = coords[pos - 1]
         this_coords = coords[pos]
 
@@ -456,11 +456,17 @@ def coords_for_next_way(coords, way_split_size):
             # We will end this way at the antimeridian, with an x of 180 or -180, then
             # start a new way with an equivalent value on the antimeridian on the other side
             if last_lon_wrapped == 180 or last_lon_wrapped == -180:
-                print "Last position was on AM so finishing with that node"
-                # Generate an equivalent node and restart the way with that
-                equiv_coords = (-last_lon_wrapped, last_coords[1])
-                cur_coords = coords[:pos]
-                rem_coords = [equiv_coords] + coords[pos:]
+                if pos == 1:
+                    print "Conveniently the first node is on the AM, so simply converting it and making a two-node way"
+                    equiv_coords = (-last_lon_wrapped, last_coords[1])
+                    cur_coords = [equiv_coords, coords[1]]
+                    rem_coords = coords[1:]
+                else:
+                    print "Last position was on AM so finishing with that node"
+                    # Generate an equivalent node and restart the way with that
+                    equiv_coords = (-last_lon_wrapped, last_coords[1])
+                    cur_coords = coords[:pos]
+                    rem_coords = [equiv_coords] + coords[pos:]
             elif this_lon_wrapped == 180 or this_lon_wrapped == -180:
                 print "This position on AM so generating an equivalent then finishing"
                 # Generate an equivalent node, end the way with it, then restart
@@ -494,8 +500,8 @@ def coords_for_next_way(coords, way_split_size):
             return cur_coords, rem_coords
 
     # No intersections, so go until the way split size
-    cur_coords = rem_coords[:way_split_size]
-    rem_coords = rem_coords[way_split_size-1:]
+    cur_coords = coords[:way_split_size]
+    rem_coords = coords[way_split_size-1:]
 
     return cur_coords, rem_coords
 
@@ -561,8 +567,7 @@ class OSMCreateWriter(OSMWriter):
         while True:
             w = ElementTree.Element('way', id=self.next_id)
 
-            cur_coords = rem_coords[:self.WAY_SPLIT_SIZE]
-            rem_coords = rem_coords[self.WAY_SPLIT_SIZE-1:]
+            cur_coords, rem_coords = coords_for_next_way(rem_coords, self.WAY_SPLIT_SIZE)
 
             cur_coords_last_idx = len(cur_coords) - 1
             last_coords = None

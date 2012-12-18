@@ -28,6 +28,7 @@ from django.db.models import Sum
 from django.utils import text
 from django.conf import settings
 from django.contrib.gis.db import models as geomodels
+from django.contrib.gis import geos
 from django.contrib.auth.models import User
 
 from linz2osm.utils.db_fields import JSONField
@@ -291,6 +292,11 @@ class LayerInDataset(geomodels.Model):
 
     def __unicode__(self):
         return "%s / %s" % (self.dataset.description, self.layer.name,)
+
+    @property
+    def translated_extent(self):
+        extent_left, extent_right = [geos.Polygon(geos.LinearRing([(x + offset, y) for (x, y) in self.extent.coords[0]])) for offset in [-360, 360]]
+        return geos.MultiPolygon(self.extent, extent_left, extent_right)
 
     @property
     def row_class(self):

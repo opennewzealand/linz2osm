@@ -27,7 +27,7 @@ from linz2osm.convert import osm
 
 class TestWriter(TestCase):
     def test_id(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
 
         id0 = w.next_id
         self.assertEqual(type(id0), str)
@@ -37,31 +37,31 @@ class TestWriter(TestCase):
         self.assertNotEqual(int(id1), int(id0))
 
     def test_id_hash(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         self.assertEqual(int(w.next_id), -1)
 
-        w = osm.OSMWriter('bob')
+        w = osm.OSMCreateWriter('bob')
         id = int(w.next_id)
         self.assert_(id < 0, "Expected ID <0, got %s" % id)
         self.assertNotEqual(id, -1)
 
-        w = osm.OSMWriter(777)
+        w = osm.OSMCreateWriter(777)
         id = int(w.next_id)
         self.assert_(id < 0, "Expected ID <0, got %s" % id)
         self.assertNotEqual(id, -1)
 
-        w = osm.OSMWriter(u'unicode: \xe4\xf6\xfc')
+        w = osm.OSMCreateWriter(u'unicode: \xe4\xf6\xfc')
         id = int(w.next_id)
         self.assert_(id < 0, "Expected ID <0, got %s" % id)
         self.assertNotEqual(id, -1)
 
-        w = osm.OSMWriter((7, u'unicode: \xe4\xf6\xfc'))
+        w = osm.OSMCreateWriter((7, u'unicode: \xe4\xf6\xfc'))
         id = int(w.next_id)
         self.assert_(id < 0, "Expected ID <0, got %s" % id)
         self.assertNotEqual(id, -1)
 
     def test_node(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
 
         id = w.build_node(geos.Point(123, 456), [])
         # print w.xml()
@@ -82,46 +82,46 @@ class TestWriter(TestCase):
 
     def test_repeated_nodes(self):
         """ Nodes should be repeated """
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         ids = [
             w.build_node(geos.Point(123, 456), [], map=False),
             w.build_node(geos.Point(123, 456), [], map=False),
         ]
         self.assertEqual(len(w.tree.findall('.//node')), 2)
 
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         ids = [
             w.build_geom(geos.Point(123, 456), []),
             w.build_geom(geos.Point(123, 456), []),
         ]
         self.assertEqual(len(w.tree.findall('.//node')), 2)
 
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(123,456)), {})
         self.assertEqual(len(w.tree.findall('.//node')), 1)
 
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(12,34)), {})
         ids = w.build_geom(geos.Point(123, 456), {})
         self.assertEqual(len(w.tree.findall('.//node')), 3)
 
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         ids = w.build_geom(geos.Point(123, 456), {})
         ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(12,34)), {})
         self.assertEqual(len(w.tree.findall('.//node')), 3)
 
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         ids = w.build_geom(geos.Point(123, 456), {'tag':'val'})
         ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(12,34)), {'tag':'val'})
         self.assertEqual(len(w.tree.findall('.//node')), 3)
 
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         ids = w.build_geom(geos.MultiPoint(geos.Point(123, 456), geos.Point(12,34)), {'tag':'val'})
         ids = w.build_geom(geos.Point(123, 456), {'tag':'val'})
         self.assertEqual(len(w.tree.findall('.//node')), 3)
 
     def test_tags_single(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         parent = ElementTree.Element('parent')
 
         w.build_tags(parent, {'t1': 'v1'})
@@ -133,14 +133,14 @@ class TestWriter(TestCase):
 
     def test_tags_empty(self):
         # should be able to call with empty dicts
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         parent = ElementTree.Element('parent')
 
         w.build_tags(parent, {})
         w.build_tags(parent, None)
 
     def test_tags_multiple(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         parent = ElementTree.Element('parent')
         w.build_tags(parent, {'t0': 'v0', 't1': 'v1'})
         self.assertEqual(len(parent.getchildren()), 2)
@@ -150,7 +150,7 @@ class TestWriter(TestCase):
             self.assertEqual(tn.get('v'), 'v%d' % i)
 
     def test_tags_unicode(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         parent = ElementTree.Element('parent')
         w.build_tags(parent, {u'unicode_tag: \xe4\xf6\xfc': u'unicode_value: \xe4\xf6\xfc'})
         tn = parent.getchildren()[0]
@@ -158,20 +158,20 @@ class TestWriter(TestCase):
         self.assertEqual(tn.get('v'), u'unicode_value: \xe4\xf6\xfc')
 
     def test_tags_nonstring(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         parent = ElementTree.Element('parent')
         w.build_tags(parent, {'t1': 7})
         tn = parent.getchildren()[0]
         self.assertEqual(tn.get('v'), '7')
 
     def test_tags_long(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         parent = ElementTree.Element('parent')
         self.assertRaises(osm.Error, w.build_tags, parent, {'*' * 256: 'v'})
         self.assertRaises(osm.Error, w.build_tags, parent, {'t': '*' * 256})
 
     def test_way_simple(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
 
         l = ((1,1), (2,2), (3,3),)
 
@@ -201,7 +201,7 @@ class TestWriter(TestCase):
             self.assertEqual(float(node_el.get('lat')), l[i][1])
 
     def test_way_multiple(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
 
         l = (
             ((1,1), (2,2), (3,3),),
@@ -234,7 +234,7 @@ class TestWriter(TestCase):
                 self.assertEqual(float(node_el.get('lat')), l[j][i][1])
 
     def test_ways_repeated_nodes(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
 
         rc = []
         for i in range(6):
@@ -260,7 +260,7 @@ class TestWriter(TestCase):
         self.assertEqual(len(nodes), 6)
 
     def test_way_circular(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
 
         l = ((0,0), (1,1), (2,0), (0,0),)
 
@@ -281,7 +281,7 @@ class TestWriter(TestCase):
         self.assertEqual(wn.getchildren()[0].get('ref'), wn.getchildren()[3].get('ref'))
 
     def test_polygon(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
 
         g = geos.Polygon([(0,0), (10,10), (20,0), (0,0)], [(8,2), (10,4), (12,2), (8,2)])
 
@@ -310,7 +310,7 @@ class TestWriter(TestCase):
         self.assertEqual(len(rel.findall('tag')), 1+1)
 
     def test_way_crossover(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
 
         l = ((0,0), (1,1), (2,0), (0,0), (-1,-1),)
 
@@ -373,13 +373,19 @@ class TestWriter(TestCase):
         t8 = [(170, 2), (171, 3), (175, 5), (180, 6), (-179, 7), (-178, 14)]
         c, r = osm.coords_for_next_way(t8, 4)
         self.assertEqual(c, [(170, 2), (171, 3), (175, 5), (180, 6)])
-        self.assertEqual(r, [(180, 6), (-179, 7)])
+        self.assertEqual(r, [(180, 6), (-179, 7), (-178, 14)])
         c2, r2 = osm.coords_for_next_way(r, 4)
         self.assertEqual(c2, [(-180, 6), (-179, 7)])
         self.assertEqual(r2, [(-179, 7), (-178, 14)])
 
+        # Test coords shorter than split length
+        t9 = [(170, 2), (171, 5), (177, 8)]
+        c, r = osm.coords_for_next_way(t9, 100)
+        self.assertEqual(c, t9)
+        self.assertEqual(r, [])
+
     def test_way_split(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         w.WAY_SPLIT_SIZE = 10
 
         l = [(x, -x) for x in range(31)]
@@ -416,7 +422,7 @@ class TestWriter(TestCase):
         self.assertEqual(total_nodes, 31)
 
         # test we don't get any empty ways with multiple of WAY_SPLIT_SIZE -1
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         w.WAY_SPLIT_SIZE = 10
         l = [(x, -x) for x in range(19)] # one node is repeated between 2x ways
         ids = w.build_way(l, {})
@@ -425,7 +431,7 @@ class TestWriter(TestCase):
         self.assertEqual(len(ways), 2)
 
     def test_way_split_polygon(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         w.WAY_SPLIT_SIZE = 10
 
         g = geos.Polygon([(x, -x) for x in range(15)] + [(0,0)])
@@ -461,7 +467,7 @@ class TestWriter(TestCase):
         self.assertEqual(rel_tags[1].get('v'), 'myval')
 
     def test_split_polygon(self):
-        w = osm.OSMWriter()
+        w = osm.OSMCreateWriter()
         w.WAY_SPLIT_SIZE = 10
 
         g = geos.Polygon([(x, -x**2) for x in range(15)] + [(0,0)], ((1,-2), (4,-2), (4,-3), (1,-2)))
@@ -534,7 +540,7 @@ class TestWriter(TestCase):
         )
 
         for i, (node_count, way_count, relation_count, tag_count, geom) in enumerate(geoms):
-            w = osm.OSMWriter()
+            w = osm.OSMCreateWriter()
 
             # print "#%d: %s" % (i, geom.wkt)
             w.build_geom(geom, {'mytag':'myvalue'})

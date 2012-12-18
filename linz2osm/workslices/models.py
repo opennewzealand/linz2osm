@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
 #  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -53,11 +53,11 @@ class Cell(object):
 class WorksliceFeatureFilter(object):
     def __init__(self, layer_in_dataset):
         self.layer_in_dataset = layer_in_dataset
-    
+
 class AllFilter(WorksliceFeatureFilter):
     def apply(self, workslice_features):
         return workslice_features
-    
+
 class NoConflictFilter(WorksliceFeatureFilter):
     def apply(self, workslice_features):
         osm_conflicts = osm.featureset_conflicts(self.layer_in_dataset, workslice_features)
@@ -66,45 +66,45 @@ class NoConflictFilter(WorksliceFeatureFilter):
             if not conflicts_json['elements']:
                 passed.append(wf)
         return passed
-    
+
 class WorksliceManager(models.GeoManager):
     def create_workslice(self, layer_in_dataset, user, extent=None, filter_name=None):
         if filter_name == 'noconflicts':
             feature_filter = NoConflictFilter(layer_in_dataset)
         else:
             feature_filter = AllFilter(layer_in_dataset)
-        
+
         try:
             with transaction.commit_on_success():
                 # print "original extent"
                 # print extent.ewkt
-                
+
                 # Get extent to use to get features (no clipping)
                 allocation_extent = extent or geos.MultiPolygon(layer_in_dataset.extent)
                 if allocation_extent.geom_type == 'Polygon':
                     allocation_extent = geos.MultiPolygon(allocation_extent)
                 allocation_extent.srid = 4326
-                    
-                # Get extent to show on map    
+
+                # Get extent to show on map
                 existing_checkouts = self.exclude(state__in=('draft', 'abandoned')).filter(layer_in_dataset=layer_in_dataset).unionagg()
                 display_extent = allocation_extent.clone()
                 if existing_checkouts is not None:
                     display_extent = display_extent.difference(existing_checkouts)
-                display_extent = display_extent.intersection(layer_in_dataset.extent)
+                display_extent = display_extent.intersection(layer_in_dataset.translated_extent)
                 if display_extent.geom_type == 'Polygon':
                     display_extent = geos.MultiPolygon(display_extent)
                 elif display_extent.geom_type != 'MultiPolygon':
                     # make a tiny circular checkout at the centroid of the checkout
-                    display_extent = geos.MultiPolygon(extent.centroid.buffer(0.0000000012345))
-                    
+                    display_extent = geos.MultiPolygon(extent.centroid.buffer(0.0000012345))
+
                 display_extent.srid = 4326
 
                 # print "allocation extent"
                 # print allocation_extent.ewkt
                 # print "display extent"
                 # print display_extent.ewkt
-                
-                # Get features    
+
+                # Get features
                 workslice = self.create(layer_in_dataset = layer_in_dataset,
                                         checkout_extent = display_extent,
                                         user = user,
@@ -123,7 +123,7 @@ class WorksliceManager(models.GeoManager):
             tasks.osm_export.delay(workslice)
             return workslice
 
-    
+
 class Workslice(models.Model):
     STATES = [
         ('draft', 'Draft'),            # While the user is still selecting dataset, layer & extent
@@ -152,18 +152,18 @@ class Workslice(models.Model):
     feature_count = models.IntegerField(null=True)
     file_size = models.IntegerField(null=True)
     # FIXME: store file name so changes won't mess it up
-    
+
     @property
     def name(self):
         return "%d-%s-%s-%s" % (self.id, self.layer_in_dataset.layer.name, self.layer_in_dataset.dataset.name, self.user.username)
 
     def acceptable_transitions(self):
         return self.__class__.TRANSITIONS[self.state]
-    
+
     @models.permalink
     def get_absolute_url(self):
         return ('linz2osm.workslices.views.show_workslice', (), {'workslice_id': self.id})
-    
+
     def friendly_status(self):
         # FIXME get_status_display()
         return self.__class__.STATES_LOOKUP[self.state]
@@ -205,7 +205,7 @@ class WorksliceTooFeaturefulError(Exception):
 
 class WorksliceInsufficientlyFeaturefulError(Exception):
     pass
-    
+
 class WorksliceFeatureManager(models.Manager):
     def allocate_workslice_features(self, workslice, extent, feature_filter):
         layer_in_dataset = workslice.layer_in_dataset
@@ -238,10 +238,10 @@ class WorksliceFeatureManager(models.Manager):
         workslice.save()
 
 INDIV_CONFLICT_PROXIMITY = 0.0001
-        
+
 class WorksliceFeature(models.Model):
     objects = WorksliceFeatureManager()
-    
+
     workslice = models.ForeignKey(Workslice)
     feature_id = models.IntegerField(db_index=True)
     layer_in_dataset = models.ForeignKey(LayerInDataset)
@@ -268,7 +268,7 @@ class WorksliceFeature(models.Model):
         geom = self.wgs_geom()
         if centroid_only:
             geom = geom.centroid
-        
+
         return """ {
             "geometry": %s,
             "type": "Feature",
@@ -279,7 +279,7 @@ class WorksliceFeature(models.Model):
 
     def osm_individual_conflict_query_ql(self, query_data):
         return self.osm_conflicts_query_ql(query_data, INDIV_CONFLICT_PROXIMITY)
-    
+
     def osm_conflicts_query_ql(self, tags_ql, proximity = overpass.OVERPASS_PROXIMITY):
         geotype = self.layer_in_dataset.layer.geometry_type
         if geotype == "POINT":
@@ -313,7 +313,7 @@ class WorksliceFeature(models.Model):
 
         geobounds = self.wgs_bounds().extent
         str_bounds = overpass.str_bounds_for(geobounds, proximity)
-        
+
         return query % {
             'tags': tags_ql,
             'bounds': str_bounds,
