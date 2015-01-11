@@ -57,9 +57,9 @@
           <span id="feature-selection-information"></span>
           <span id="feature-conflict-information"></span>
         </div>
-        <form id="feature-count-form" action="{% url linz2osm.workslices.views.workslice_info layer_in_dataset_id=layer_in_dataset.id %}" method="POST">
+        <form id="feature-count-form" action="{% url 'linz2osm.workslices.views.workslice_info' layer_in_dataset_id=layer_in_dataset.id %}" method="POST">
         </form>
-        <form id="grab-some-data-form" action="{% url linz2osm.workslices.views.create_workslice layer_in_dataset_id=layer_in_dataset.id %}" method="POST">
+        <form id="grab-some-data-form" action="{% url 'linz2osm.workslices.views.create_workslice' layer_in_dataset_id=layer_in_dataset.id %}" method="POST">
           {% csrf_token %}
           {{ form.as_p }}
           <p>

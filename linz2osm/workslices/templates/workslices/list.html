@@ -19,7 +19,7 @@
   </div>
   <div class="row">
     <div class="span4">
-      <form id="workslice-filter-form" action="{% url linz2osm.workslices.views.list_workslices %}" method="GET" class="form">
+      <form id="workslice-filter-form" action="{% url 'linz2osm.workslices.views.list_workslices' %}" method="GET" class="form">
         {% csrf_token %}
         {{ form.as_p }}
         <input type="submit" value="Filter" id="filter-workslices-submit" class="btn btn-primary">

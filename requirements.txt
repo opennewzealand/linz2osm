@@ -1,5 +1,5 @@
 BeautifulSoup>=3.2.1
-Django>=1.4.17,<1.5
+Django>=1.5,<1.6
 Pygments>=1.5
 South>=0.7.5
 pydermonkey>=0.0.6

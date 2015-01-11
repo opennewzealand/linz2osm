@@ -47,7 +47,7 @@
           <ul class="nav nav-pills layer-list-nav-content">
             {% include "data_dict/layer_info_dropdown.html" with layer=layer_in_dataset.layer %}
             {% if layer_in_dataset.tagging_approved %}
-            <li><a href="{% url linz2osm.workslices.views.create_workslice layer_in_dataset.id %}">Workslices</li>
+            <li><a href="{% url 'linz2osm.workslices.views.create_workslice' layer_in_dataset.id %}">Workslices</li>
             {% else %}
             <li class="disabled"><a href="#" class="disabled">Tagging not ready</a></li>
             {% endif %}

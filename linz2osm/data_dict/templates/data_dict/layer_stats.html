@@ -96,7 +96,7 @@
                 </td>
                 <td>
                   {% if f.1.show_distinct_values %}
-                  <a href="{% url linz2osm.data_dict.views.field_stats dataset_id=ds.0 layer_id=layer.name field_name=f.0 %}">Distinct Values</a>
+                  <a href="{% url 'linz2osm.data_dict.views.field_stats' dataset_id=ds.0 layer_id=layer.name field_name=f.0 %}">Distinct Values</a>
                   {% endif %}
                 </td>
               </tr>

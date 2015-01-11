@@ -1,19 +1,19 @@
     <h2>{{ layer.name }}</h2>
     <ul class="nav nav-pills">
       <li {% if current == 'layer_notes' %}class="active"{% endif %}>
-        <a href="{% url linz2osm.data_dict.views.layer_notes layer.name %}"
+        <a href="{% url 'linz2osm.data_dict.views.layer_notes' layer.name %}"
            {% if current == 'layer_notes' %}class="disabled"{% endif %}>Notes</a>
       </li>
       <li {% if current == 'layer_stats' %}class="active"{% endif %}>
-        <a href="{% url linz2osm.data_dict.views.layer_stats layer.name %}"
+        <a href="{% url 'linz2osm.data_dict.views.layer_stats' layer.name %}"
            {% if current == 'layer_stats' %}class="disabled"{% endif %}>Statistics</a>
       </li>
       <li {% if current == 'preview' %}class="active"{% endif %}>
-        <a href="{% url linz2osm.data_dict.views.preview layer_id=layer %}"
+        <a href="{% url 'linz2osm.data_dict.views.preview' layer_id=layer %}"
            {% if current == 'preview' %}class="disabled"{% endif %}>Preview</a>
       </li>
       <li {% if current == 'show_tagging' %}class="active"{% endif %}>
-        <a href="{% url linz2osm.data_dict.views.show_tagging layer_id=layer %}"
+        <a href="{% url 'linz2osm.data_dict.views.show_tagging' layer_id=layer %}"
            {% if current == 'show_tagging' %}class="disabled"{% endif %}>Tagging</a>
       </li>
       <li class="divider pills-horizontal-spacer">&nbsp;</li>

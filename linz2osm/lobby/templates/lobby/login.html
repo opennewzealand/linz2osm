@@ -13,7 +13,7 @@
 {% block content %}
 <div class="row">
   <div class="span6">
-    <form id="login-form" action="{% url linz2osm.lobby.views.login %}" method="POST">
+    <form id="login-form" action="{% url 'linz2osm.lobby.views.login' %}" method="POST">
       {% csrf_token %}
       {{ form.as_p }}
       <input type="submit" value="Login" id="login-submit">
