@@ -1,14 +1,18 @@
 BeautifulSoup>=3.2.1
-Django==1.4
+Django>=1.4.17,<1.5
 Pygments>=1.5
 South>=0.7.5
+pydermonkey>=0.0.6
+billiard>=3.3.0.19
 celery>=3.0.1
 django-celery>=3.0.1
 ipython>=0.13
+kombu>=3.0.24
 mercurial>=2.0.2
 oauth>=1.0.1
-# psycopg2>=2.4.5
-pydermonkey>=0.0.6
+psycopg2>=2.4.5
+python-dateutil>=2.4.0
+pytz
+requests>=0.14.0
 simplejson>=2.3.2
 virtualenv>=1.7.1.2
-requests>=0.14.0
