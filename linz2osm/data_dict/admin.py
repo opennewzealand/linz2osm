@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -22,7 +22,7 @@ from django import forms
 import pydermonkey
 
 from linz2osm.data_dict.models import Layer, Tag, LayerInDataset, Dataset, Group
-    
+
 class LayerInDatasetInline(admin.StackedInline):
     model = LayerInDataset
     max_num = 1
@@ -49,14 +49,14 @@ class DatasetAdmin(admin.ModelAdmin):
             return "<a href='/data_dict/dataset/%s/update'>Update with %s</a>, <a href='/data_dict/dataset/%s/merge_deletions'>Purge deleted data from OSM</a>" % (obj.name, obj.get_update_method_display(), obj.name)
     update_link.short_description = 'Update'
     update_link.allow_tags = True
-    
+
     # http://stackoverflow.com/questions/4343535/django-admin-make-a-field-read-only-when-modifying-obj-but-required-when-adding
     def get_readonly_fields(self, request, obj=None):
         if obj: # editing an existing object
             return self.readonly_fields + ('version',)
         return self.readonly_fields
 
-    
+
 class TagInlineForm(forms.ModelForm):
     class Meta:
         model = Tag
@@ -76,7 +76,7 @@ class TagInlineForm(forms.ModelForm):
 
             raise forms.ValidationError("Error: %s (line %d)" % (e_msg, e_lineno))
         return code_text
-    
+
 class TagInline(admin.StackedInline):
     model = Tag
     extra = 2
@@ -89,7 +89,7 @@ class GroupTagInline(TagInline):
 
 class LayerTagInline(TagInline):
     exclude = ("group",)
-    
+
 # TODO: filter by geometry type
 # TODO: custom templates so choices aren't so ugly
 class TaggingApprovedListFilter(admin.SimpleListFilter):
@@ -130,7 +130,7 @@ class TaggingApprovedListFilter(admin.SimpleListFilter):
                     return queryset.filter(layerindataset__dataset_id=dataset_name, layerindataset__tagging_approved=False)
 
         return queryset
-    
+
 class CompletedListFilter(admin.SimpleListFilter):
     title = 'completed'
     parameter_name = 'completed'
@@ -169,7 +169,7 @@ class CompletedListFilter(admin.SimpleListFilter):
                     return queryset.filter(layerindataset__dataset_id=dataset_name, layerindataset__completed=False)
 
         return queryset
-    
+
 class LayerAdmin(admin.ModelAdmin):
     list_display = ('name', 'entity', 'geometry_type', 'group', 'stats_link', 'tag_count', 'dataset_descriptions', 'notes',)
     list_filter = (TaggingApprovedListFilter, CompletedListFilter, 'geometry_type', 'group', 'datasets', 'entity',)
@@ -193,11 +193,11 @@ class LayerAdmin(admin.ModelAdmin):
             'all': ('code_exec.css',),
         }
         js = ("jquery.cookie.js", "code_exec.js",)
-            
+
     def tag_count(self, obj):
         return obj.tags.count()
     tag_count.short_description = 'Defined Tags'
-    
+
     def dataset_descriptions(self, obj):
         return render_to_string('admin/data_dict/layer/dataset_descriptions.html', {
                 'layer_in_datasets': obj.layerindataset_set.all()
@@ -215,13 +215,13 @@ class TagAdmin(admin.ModelAdmin):
     ordering = ('tag',)
     exclude = ('layer',)
     save_on_top = True
-    
+
     class Media:
         css = {
             'all': ('code_exec.css',),
         }
         js = ("jquery.cookie.js", "code_exec.js",)
-            
+
     def queryset(self, request):
         # only tags without layers (default tags)
         return self.model.objects.default()
@@ -233,7 +233,7 @@ class GroupAdmin(admin.ModelAdmin):
         GroupTagInline,
     ]
     save_on_top = True
-    
+
 admin.site.register(Group, GroupAdmin)
 admin.site.register(Layer, LayerAdmin)
 admin.site.register(Tag, TagAdmin)

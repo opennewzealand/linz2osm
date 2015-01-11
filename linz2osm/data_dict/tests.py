@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -33,7 +33,7 @@ class WFSUpdateTestCase(TestCase):
             cursor.execute("SELECT AddGeometryColumn('%s', 'wkb_geometry', 4326, 'POINT', 2);" % table_name)
 
         cursor.execute('ALTER TABLE sign_pnt_update_2012_07_01 ADD COLUMN "__change__" varchar(255);')
-            
+
         feature_list = [
             (1, "Aardvarkville", 'ST_SetSRID(ST_MakePoint(168.0, -41.0), 4326)'),
             (2, "Beaverburg", 'ST_SetSRID(ST_MakePoint(169.0, -41.0), 4326)'),
@@ -42,7 +42,7 @@ class WFSUpdateTestCase(TestCase):
             (5, "Elephantopolis", 'ST_SetSRID(ST_MakePoint(169.0, -42.0), 4326)'),
             (6, "Flamingodale", 'ST_SetSRID(ST_MakePoint(170.0, -42.0), 4326)'),
             ]
-            
+
         for feature in feature_list:
             cursor.execute("INSERT INTO sign_pnt (id, name, wkb_geometry) VALUES (%s, '%s', %s);" % feature)
 
@@ -61,7 +61,7 @@ class WFSUpdateTestCase(TestCase):
         cursor = connections['lds_sample'].cursor()
         for table_name in ['sign_pnt', 'sign_pnt_update_2012_07_01']:
             cursor.execute("DROP TABLE %s;" % table_name)
-            
+
     def test_base_data_loaded(self):
         c = connections['lds_sample'].cursor()
         c.execute("SELECT * FROM sign_pnt;")
@@ -74,14 +74,14 @@ class WFSUpdateTestCase(TestCase):
 
     def test_data_columns(self):
         c = connections['lds_sample'].cursor()
-        
+
         data_columns, geom_column = osm.get_data_columns(c, "sign_pnt_update_2012_07_01")
         self.assertEqual(geom_column, "wkb_geometry")
         self.assertEqual(sorted(data_columns), [u"__change__", u"id", u"name"])
-        
+
     def test_application_of_changeset(self):
         c = connections['lds_sample'].cursor()
-        
+
         self.lds_sample = Dataset.objects.get(pk='lds_sample')
         self.root_user = User.objects.get(username='root')
         self.layer_in_dataset = self.lds_sample.layerindataset_set.all()[0]
@@ -105,52 +105,52 @@ class WFSUpdateTestCase(TestCase):
         self.assertEqual(-41, beaver_point.y)
         c.execute("SELECT name FROM sign_pnt WHERE id = 5;");
         self.assertEqual("Elephantopolis", c.fetchone()[0])
-        
+
         # Should have marked the UPDATE on 2 onto the WorksliceFeature
         wf = WorksliceFeature.objects.get(layer_in_dataset=self.layer_in_dataset, feature_id=2)
         self.assertEqual("updated", wf.get_dirty_display())
-        
+
         # Should have deleted 3 and 6
         c.execute("SELECT count(*) FROM sign_pnt WHERE id IN (3, 6);")
         self.assertEqual(0, c.fetchone()[0])
-        
+
         # Should have marked the DELETE on 3 onto the WorksliceFeature
         wf = WorksliceFeature.objects.get(layer_in_dataset=self.layer_in_dataset, feature_id=3)
         self.assertEqual("deleted", wf.get_dirty_display())
-        
+
         # Should have inserted 7
         c.execute("SELECT name FROM sign_pnt WHERE id = 7;")
         self.assertEqual("Giraffeside", c.fetchone()[0])
-        
+
         # Should have updated the version on the dataset
         # FIXME: this happens in DatasetUpdate#run, so can't be tested without testing that method
         #self.lds_sample = Dataset.objects.get(name=self.lds_sample.name)
         #self.assertEqual("2012-07-01", self.lds_sample.version)
-        
+
         # Should have updated the feature count on the dataset
         self.layer_in_dataset = LayerInDataset.objects.get(pk=self.layer_in_dataset.id)
         self.assertEqual(5, self.layer_in_dataset.features_total)
-        
+
         # Should have created a workslice to delete the deleted features
 
         # Should have marked the DatasetUpdate as complete
         # FIXME: this happends in DatasetUpdate#run, so can't be tested without testing that method
         #self.dataset_update = DatasetUpdate.objects.get(pk=self.dataset_update.id)
         #self.assertTrue(self.dataset_update.complete)
-        
+
 
 class TagFetchingTestCase(TestCase):
     fixtures = ['data_dict_test.json']
-    
+
     def setUp(self):
         self.grp_linz = Group.objects.get(pk='linz')
         self.grp_nzopengps = Group.objects.get(pk='nzopengps')
         self.grp_pipelines = Group.objects.get(pk='pipelines')
-        
+
         self.ds_kermadecs = Dataset.objects.get(pk='kermadec_is')
         self.ds_mainland = Dataset.objects.get(pk='mainland')
         self.ds_nzopengps = Dataset.objects.get(pk='opengps_mainland')
-        
+
         cave_pnt = Layer.objects.get(pk='cave_pnt')
         pipeline_cl = Layer.objects.get(pk='pipeline_cl')
         nzopengps_road = Layer.objects.get(pk='nzopengps_road')

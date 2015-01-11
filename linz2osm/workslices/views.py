@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -69,7 +69,7 @@ def update_workslice(request, workslice_id=None):
         'file_name': "%s.osc" % workslice.name,
         'file_path': "%s%s.osc" % (settings.MEDIA_URL, workslice.name),
     }
-    
+
     if request.method == 'POST':
         form = WorksliceUpdateForm(request.POST, error_class=BootstrapErrorList)
         if form.is_valid():
@@ -82,7 +82,7 @@ def update_workslice(request, workslice_id=None):
                 for t in workslice.acceptable_transitions():
                     if t[0] == transition:
                         workslice.state = transition
-                        workslice.status_changed_at = datetime.now() 
+                        workslice.status_changed_at = datetime.now()
                         if transition == "abandoned":
                             workslice.workslicefeature_set.all().delete()
                         workslice.save()
@@ -116,7 +116,7 @@ class WorksliceFilterForm(forms.Form):
         return "".join(["&%s=%s" % (name, value) for name, value in self.data.iteritems() if name != 'page'])
 
 WORKSLICES_PER_PAGE = 15
-    
+
 def list_workslices(request, username=None):
     workslices = Workslice.objects
     form = WorksliceFilterForm(request.GET)
@@ -146,7 +146,7 @@ def list_workslices(request, username=None):
         display_workslices = paginator.page(1)
     except EmptyPage:
         display_workslices = paginator.page(paginator.num_pages)
-        
+
     ctx = {
         'workslices': display_workslices,
         'form': form,
@@ -175,7 +175,7 @@ class WorksliceForm(forms.Form):
         super(WorksliceForm, self).__init__(*args, **kwargs)
         if hide_filters:
             self.fields['feature_filter'].widget = forms.HiddenInput()
-    
+
     def clean(self):
         cleaned_data = super(WorksliceForm, self).clean()
         data = cleaned_data.get('cells')
@@ -188,15 +188,15 @@ class WorksliceForm(forms.Form):
         if not (isinstance(self.extent, Polygon)):
             raise forms.ValidationError('Extent must be contiguous and not cross anti-meridian.')
         if self.extent.num_interior_rings > 0:
-            raise forms.ValidationError('Extent must not have interior holes.')        
+            raise forms.ValidationError('Extent must not have interior holes.')
         return cleaned_data
-    
-    
+
+
 def create_workslice(request, layer_in_dataset_id):
     layer_in_dataset = get_object_or_404(LayerInDataset, pk=layer_in_dataset_id)
     layer = layer_in_dataset.layer
     dataset = layer_in_dataset.dataset
-    
+
     ctx = {
         'layer_in_dataset': layer_in_dataset,
         'conflict_tags_display_list': ', '.join(sorted([t.tag for t in layer_in_dataset.get_conflict_tags()])),
@@ -204,7 +204,7 @@ def create_workslice(request, layer_in_dataset_id):
         'title': "%s - %s" % (dataset.description, layer.name),
     }
 
-    
+
     if request.method == 'POST':
         if not request.user.is_authenticated():
             return HttpResponseRedirect('/login/')
@@ -233,9 +233,9 @@ def workslice_info(request, layer_in_dataset_id):
     layer_in_dataset = get_object_or_404(LayerInDataset, pk=layer_in_dataset_id)
     layer = layer_in_dataset.layer
     dataset = layer_in_dataset.dataset
-    
+
     ctx = {}
-    
+
     form = WorksliceForm(request.POST, error_class=BootstrapErrorList, hide_filters=layer_in_dataset.hide_filters)
     if form.is_valid():
         feature_count = osm.get_layer_feature_count(dataset.name, layer, form.extent)
@@ -259,7 +259,7 @@ def workslice_info(request, layer_in_dataset_id):
             if form.cleaned_data['show_conflicting_features'] in ['yes', 'count']:
                 if layer.tags_ql:
                     osm_conflicts = overpass.osm_conflicts_json(workslice_features, layer.tags_ql)['elements'] # FIXME: tagging
-                
+
                     nodes = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'node'])
                     ways = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'way'])
                     rels = dict([(n['id'], n) for n in osm_conflicts if n['type'] == 'rel'])
@@ -276,7 +276,7 @@ def workslice_info(request, layer_in_dataset_id):
                         conflict_count = len(ways) # FIXME: count rels too.
                         if form.cleaned_data['show_conflicting_features'] == 'yes':
                             ctx['osm_conflict_geometry'] = overpass.osm_geojson(rels.values(), nodes, ways)
-                    
+
                     if conflict_count > 1:
                         ctx['osm_conflict_info'] = "%d nearby features of this type in OSM." % conflict_count
                     elif conflict_count == 1:

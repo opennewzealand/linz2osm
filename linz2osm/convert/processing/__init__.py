@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -24,13 +24,13 @@ def get_available():
     import inspect
     from linz2osm.convert import processing as m
     from linz2osm.convert.processing.base import BaseProcessor
-    
+
     avail = {}
     for k in dir(m):
         o = getattr(m, k)
         if inspect.isclass(o) and issubclass(o, BaseProcessor):
             avail[k] = (o.__doc__ or k).strip()
-    
+
     return avail
 
 def get_class(key):

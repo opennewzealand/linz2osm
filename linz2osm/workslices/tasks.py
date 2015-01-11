@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -34,7 +34,7 @@ def osm_export(workslice):
     f = open(filepath, 'w')
     f.write(data)
     f.close()
-    
+
     workslice.state = 'out'
     workslice.status_changed_at = datetime.now()
     workslice.file_size = os.path.getsize(filepath)

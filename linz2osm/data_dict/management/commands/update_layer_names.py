@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -66,7 +66,7 @@ RENAMES = {
     'waterfal_poly': 'waterfall_poly',
     'water_r_cl': 'water_race_cl',
 }
-    
+
 class Command(BaseCommand):
     help = "Rename layers with old abbreviated names"
 
@@ -87,7 +87,7 @@ class Command(BaseCommand):
             print 'CONNECTION: default'
             for q in connection.queries:
                 print q['sql']
-                
+
         # the actual layers
         for conn_name in connections:
             if conn_name != 'default':

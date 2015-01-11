@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -118,14 +118,14 @@ INSTALLED_APPS = (
     'django.contrib.humanize',
     'django.contrib.sites',
     'django.contrib.comments',
-    
+
     'linz2osm.linz2osm_comments',
 
     'linz2osm.lobby',
     'linz2osm.data_dict',
     'linz2osm.convert',
     'linz2osm.workslices',
-    
+
     'djcelery',
     'south',
 )

@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -36,7 +36,7 @@ DATABASES = {
         '_version': "2012-01-01",
         'ENGINE' : 'django.contrib.gis.db.backends.postgis',
         'NAME' : 'lds_sample',
-    }        
+    }
 }
 
 INSTALLED_APPS = (
@@ -50,7 +50,7 @@ INSTALLED_APPS = (
     'linz2osm.workslices',
     # 'linz2osm.workslices',
     # 'linz2osm.lobby',
-    
+
     # 'djcelery',
     'south',
 )

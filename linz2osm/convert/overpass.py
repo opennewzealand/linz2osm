@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -47,7 +47,7 @@ def osm_node_match_query_ql(layer_in_dataset, row_data):
     geotype = layer.geometry_type
     if geotype != "LINESTRING":
         raise Error("Cannot do node matching for %s" % geotype)
-    
+
     return "\n".join([osm_node_match_query_ql_for_field(layer_in_dataset, layer.special_node_tag_name, v, row_data['dataset_name'], row_data['dataset_version'], ) for v in [
                 row_data[layer.special_start_node_field_name],
                 row_data[layer.special_end_node_field_name],
@@ -76,7 +76,7 @@ def osm_conflicts_query(workslice_features, tags_ql):
     return "".join(("[out:json];\n(\n",
                     "\n".join([wf.osm_conflicts_query_ql(tags_ql) for wf in workslice_features]),
                     "\n);\nout;\n",))
-    
+
 def osm_conflicts_json(workslice_features, tags_ql):
     r = requests.post(OVERPASS_API_URL, data={
             'data': osm_conflicts_query(workslice_features, tags_ql)
@@ -146,7 +146,7 @@ def node_point(node_id, nodes):
 def featureset_matches_for_data(layer_in_dataset, workslice_features, data_table):
     match_tags = layer_in_dataset.get_match_tags()
     return featureset_tag_search_for_data(layer_in_dataset, workslice_features, data_table, match_tags, 'match')
-    
+
 def featureset_conflicts_for_data(layer_in_dataset, workslice_features, data_table):
     conflict_tags = layer_in_dataset.get_conflict_tags()
     return featureset_tag_search_for_data(layer_in_dataset, workslice_features, data_table, conflict_tags, 'conflict')
@@ -185,4 +185,4 @@ def featureset_tag_search_for_data(layer_in_dataset, workslice_features, data_ta
             print "WORKSLICE FEATURE NOT FOUND"
     session.close()
     return conflicts
-                  
+

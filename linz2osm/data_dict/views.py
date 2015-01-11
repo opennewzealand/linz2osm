@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -40,9 +40,9 @@ def tag_eval(request, object_id=None):
         code = tag.code
     else:
         code = request.GET.get('code', '')
-    
+
     fields = simplejson.loads(request.GET.get('fields', '{}'))
-    
+
     try:
         value = Tag.objects.eval(code, fields)
     except Tag.ScriptError, e:
@@ -61,15 +61,15 @@ def tag_eval(request, object_id=None):
 def layer_stats(request, layer_id=None):
     # Because of interesting things in django-admin, objectids come escaped
     layer_id = re.sub("_5F", "_", layer_id)
-    
+
     l = get_object_or_404(Layer, name=layer_id)
-    
+
     c = {
         'layer': l,
         'statistics': l.get_statistics(),
         'title': '%s Statistics' % l,
     }
-    
+
     return render_to_response('data_dict/layer_stats.html', c, context_instance=RequestContext(request))
 
 def field_stats(request, dataset_id=None, layer_id=None, field_name=None):
@@ -114,7 +114,7 @@ def merge_deletions_from_dataset(request, dataset_id=None):
         dataset.layerindataset_set.update(last_deletions_dump_filename='')
         tasks.deletions_export.delay(dataset)
         dataset.save()
-    return render_to_response('data_dict/merge_deletions_for_dataset.html', ctx, context_instance=RequestContext(request))        
+    return render_to_response('data_dict/merge_deletions_for_dataset.html', ctx, context_instance=RequestContext(request))
 
 class UpdateForm(forms.Form):
     update_version = forms.DateField(input_formats=['%Y-%m-%d'])
@@ -135,7 +135,7 @@ class UpdateForm(forms.Form):
 @user_passes_test(lambda u: u.has_perm(u'data_dict.change_dataset'))
 def update_dataset(request, dataset_id=None):
     # FIXME: pause workslice processing during update
-    
+
     dataset = get_object_or_404(Dataset, name=dataset_id)
     max_update_version = dataset.get_max_update_version()
     last_update = dataset.get_last_update()
@@ -173,8 +173,8 @@ def update_dataset(request, dataset_id=None):
 
     ctx['layers_in_dataset'] = dataset.layerindataset_set.order_by('layer__name').all()
     ctx['form'] = form
-    
-    return render_to_response('data_dict/update_dataset.html', ctx, context_instance=RequestContext(request))        
+
+    return render_to_response('data_dict/update_dataset.html', ctx, context_instance=RequestContext(request))
 
 class PreviewForm(forms.Form):
     # From http://stackoverflow.com/a/4880869/186777
@@ -182,7 +182,7 @@ class PreviewForm(forms.Form):
         datasets = kwargs.pop('datasets')
         super(PreviewForm, self).__init__(*args, **kwargs)
         self.fields['dataset'].queryset = datasets
-    
+
     dataset = forms.ModelChoiceField(queryset=Dataset.objects.none(), required=True)
     feature_limit = forms.IntegerField(min_value=0, max_value=100, required=False, initial=10)
     starting_id = forms.IntegerField(min_value=1, required=False, label='Starting feature ID')
@@ -206,7 +206,7 @@ def preview(request, layer_id=None):
                 feature_count = 100
             else:
                 feature_count = 10
-                
+
             layer_in_dataset = LayerInDataset.objects.get(layer=layer, dataset=form.cleaned_data['dataset'])
             feature_ids = osm.get_base_and_limit_feature_ids(layer_in_dataset, starting_id, feature_count)
 
@@ -223,7 +223,7 @@ def show_tagging(request, layer_id=None):
     layer_id = re.sub("_5F", "_", layer_id)
     layer = get_object_or_404(Layer, pk=layer_id)
     grouped_tags = layer.potential_tags()
-    
+
     ctx = {
         'layer': layer,
         'grouped_tags': grouped_tags,
@@ -234,7 +234,7 @@ def show_tagging(request, layer_id=None):
 def layer_notes(request, layer_id=None):
     layer_id = re.sub("_5F", "_", layer_id)
     layer = get_object_or_404(Layer, pk=layer_id)
-    
+
     ctx = {
         'layer': layer,
         }

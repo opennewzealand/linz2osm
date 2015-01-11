@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -44,7 +44,7 @@ def deletions_export(dataset):
             nodes = []
             ways = []
             relations = []
-        
+
             matches = osm.featureset_matches(lid, lid.workslicefeature_set.filter(dirty=1))
             for (wf, osm_results) in matches:
                 for elem in osm_results['elements']:
@@ -56,10 +56,10 @@ def deletions_export(dataset):
                         relations.append(elem)
                     else:
                         raise osm.Error("Unsupported element type %s" % elem['type'])
-            
-            data = osm.export_delete(lid, nodes, ways, relations)        
+
+            data = osm.export_delete(lid, nodes, ways, relations)
             filename = lid.export_deletes_name()
-        
+
             filepath = "%s/%s.osc" % (settings.MEDIA_ROOT, filename)
             f = open(filepath, 'w')
             f.write(data)
@@ -73,6 +73,6 @@ def deletions_export(dataset):
     finally:
         dataset.generating_deletions_osm = False
         dataset.save()
-        
+
     finish_t = time.time()
-    print "MISSION COMPLETE - generated %d layers in %f sec" % (len(layers_in_dataset), finish_t - start_t) 
+    print "MISSION COMPLETE - generated %d layers in %f sec" % (len(layers_in_dataset), finish_t - start_t)

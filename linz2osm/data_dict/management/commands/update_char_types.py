@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -16,7 +16,7 @@
 
 from django.core.management.base import BaseCommand
 from django.db import transaction, connection, connections
-    
+
 class Command(BaseCommand):
     help = "Alter character columns to character varying"
 
@@ -32,6 +32,6 @@ class Command(BaseCommand):
                 print "----"
                 print conn_name
                 print "----"
-                
+
                 for table_name, column_name in char_columns:
                     print "ALTER TABLE %s ALTER COLUMN %s SET DATA TYPE character varying;" % (table_name, column_name)

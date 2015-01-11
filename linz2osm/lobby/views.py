@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -27,7 +27,7 @@ from linz2osm.workslices.models import Workslice
 class LoginForm(forms.Form):
     username = forms.CharField()
     password = forms.CharField(widget=forms.PasswordInput)
-    
+
 def home_page(request):
     ctx = {
         'datasets': Dataset.objects.order_by('description').all(),
@@ -61,4 +61,4 @@ def logout(request):
     ctx = {}
     return render_to_response('lobby/logout.html', ctx, context_instance=RequestContext(request))
 
-    
+

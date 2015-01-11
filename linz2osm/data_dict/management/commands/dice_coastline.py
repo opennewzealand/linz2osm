@@ -1,6 +1,6 @@
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
-# 
+#  Copyright (C) Koordinates Ltd.
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -36,7 +36,7 @@ class Command(BaseCommand):
             src_geom = GEOSGeometry(row[1])
             src_elevation = row[2]
             print "OGC_FID: % 5d - VERTICES: % 8d" % (row[0], src_geom.num_points,)
-            
+
             if src_geom.num_points > SPLIT_THRESHOLD:
                 for start in range(0, src_geom.num_points, SPLIT_AMOUNT):
                     new_fid = src_fid * 1000000 + start
@@ -46,4 +46,4 @@ class Command(BaseCommand):
                     c.execute("DELETE FROM coastline WHERE ogc_fid = %d;" % (src_fid))
                     transaction.commit(using=DB_NAME)
                     print "  * SPLIT INTO OGC_FID: % 10d - VERTICES: % 8d" % (new_fid, new_geom.num_points)
-                    
+

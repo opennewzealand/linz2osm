@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #  LINZ-2-OSM
-#  Copyright (C) 2010-2012 Koordinates Ltd.
+#  Copyright (C) Koordinates Ltd.
 # 
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
