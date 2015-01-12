@@ -40,7 +40,7 @@ def osm_node_match_json(layer_in_dataset, data_table):
     r = requests.post(OVERPASS_API_URL, data={
             'data': query
             })
-    return r.json
+    return r.json()
 
 def osm_node_match_query_ql(layer_in_dataset, row_data):
     layer = layer_in_dataset.layer
@@ -81,7 +81,7 @@ def osm_conflicts_json(workslice_features, tags_ql):
     r = requests.post(OVERPASS_API_URL, data={
             'data': osm_conflicts_query(workslice_features, tags_ql)
             })
-    return r.json
+    return r.json()
 
 def osm_individual_conflicts_query(layer_in_dataset, workslice_feature, query_data):
     return "".join(("[out:json];\n(\n",
@@ -92,7 +92,7 @@ def osm_individual_conflicts_json(requests_manager, layer_in_dataset, workslice_
     r = requests_manager.post(OVERPASS_API_URL, data={
             'data': osm_individual_conflicts_query(layer_in_dataset, workslice_feature, query_data)
             })
-    return r.json
+    return r.json()
 
 def osm_geojson(osm_features, nodes={}, ways={}):
     return dedent("""
