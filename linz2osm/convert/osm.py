@@ -75,7 +75,7 @@ def get_layer_feature_ids(layer_in_dataset, extent=None, feature_limit=None):
     if extent:
         srid = layer_in_dataset.dataset.srid
         extent_trans = extent.hexewkb
-        sql += ' WHERE ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s, %%s)) OR ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(ST_Translate(%%s, 360.0, 0.0), %%s))'
+        sql += ' WHERE ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s::geometry, %%s)) OR ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(ST_Translate(%%s::geometry, 360.0, 0.0), %%s))'
         params += [extent_trans, srid, extent_trans, srid]
 
     sql += ' ORDER BY %(pkey_name)s'
@@ -113,7 +113,7 @@ def get_layer_feature_count(database_id, layer, intersect_geom=None):
     params = []
     if intersect_geom:
         intersect_trans = intersect_geom.hexewkb
-        sql += ' WHERE ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s, %%s)) OR ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(ST_Translate(%%s, 360.0, 0.0), %%s))'
+        sql += ' WHERE ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s::geometry, %%s)) OR ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(ST_Translate(%%s::geometry, 360.0, 0.0), %%s))'
         params += [intersect_trans, layer_srid, intersect_trans, layer_srid]
 
     cursor.execute(sql % layer.name, params)
