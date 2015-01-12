@@ -8,8 +8,8 @@ Requirements
 ------------
 
  * Python 2.7 (not tested with Python 3)
- * Django 1.4
- * PostgreSQL 8.3 or later + PostGIS 1.5 or later
+ * Django 1.6
+ * PostgreSQL 8.4 or later + PostGIS 1.5 or later
  * Pydermonkey (see notes)
  * Pygments
  * Django South
@@ -95,7 +95,7 @@ LINZ-2-OSM is made possible with the generous support of these organisations:
 Legal
 -----
 
-Copyright (C) Koordinates Ltd.
+Copyright (C) 2010-2015 Koordinates Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
