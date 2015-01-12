@@ -42,17 +42,23 @@ Install
    * `MEDIA_ROOT`
    * `TEMPLATE_DIRS`
    * `SECRET_KEY`
-   * non-default databases are used as datasets, add a _description and _srid
-     field to define. 
+   * the non-default databases are used as datasets, add a _description and _srid
+     field to define. If you add more datasets, run `manage.py generate_datasets` to
+     update the app.
 
  * run `manage.py syncdb` to build the DB tables. Creating a user is a 
    good idea.
  * run `manage.py migrate` to apply DB migrations.
  * run `manage.py createcachetable django_cache` to add a cache table.
  
+Load data
+---------
+
  * run `manage.py loaddata v16_layers` to populate the layer models.
  * run `manage.py loaddata example_tags` to load some example tags for road_cl,
    and some defaults for all layers.
+ * 
+
  * run `manage.py generate_datasets` to configure the app for the datasets and layers you've added
  * run `manage.py runserver`
  * from the linz2osm dir, run `../manage.py celery worker`
