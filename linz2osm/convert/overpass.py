@@ -14,9 +14,10 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import urllib
+import json
 import requests
-from django.contrib.gis.geos import GEOSGeometry, Point, LineString
+
+from django.contrib.gis.geos import Point, LineString
 from textwrap import dedent
 
 OVERPASS_API_URL = "http://overpass.osm.rambler.ru/cgi/interpreter?data="
@@ -46,7 +47,7 @@ def osm_node_match_query_ql(layer_in_dataset, row_data):
     layer = layer_in_dataset.layer
     geotype = layer.geometry_type
     if geotype != "LINESTRING":
-        raise Error("Cannot do node matching for %s" % geotype)
+        raise ValueError("Cannot do node matching for %s" % geotype)
 
     return "\n".join([osm_node_match_query_ql_for_field(layer_in_dataset, layer.special_node_tag_name, v, row_data['dataset_name'], row_data['dataset_version'], ) for v in [
                 row_data[layer.special_start_node_field_name],
@@ -167,9 +168,9 @@ def featureset_tag_search_for_data(layer_in_dataset, workslice_features, data_ta
                     v = tag.eval_for_match_filter(row_data)
             except tag.ScriptError, e:
                 emsg = "Error evaluating '%s' tag against record:\n" % tag
-                emsg += simplejson.dumps(e.data, indent=2) + "\n"
+                emsg += json.dumps(e.data, indent=2) + "\n"
                 emsg += str(e)
-                raise Error(emsg)
+                raise ValueError(emsg)
             if (v is not None) and (v != ""):
                 query_tags.append(v)
         feature_id = row_data[layer_in_dataset.layer.pkey_name]

@@ -33,7 +33,6 @@ from django.contrib.gis.db import models
 from linz2osm.data_dict.models import Layer, Dataset, LayerInDataset
 from linz2osm.workslices import tasks
 from linz2osm.convert import osm, overpass
-from linz2osm.convert.osm import Error
 
 CELL_RE = re.compile(r'\AX(?P<x>[0-9-]+)Y(?P<y>[0-9-]+)C(?P<cpd>[0-9]+)\Z')
 
@@ -309,7 +308,7 @@ class WorksliceFeature(models.Model):
                 >;
                 );""")
         else:
-            raise Error("Unsupported geometry type %s" % geotype)
+            raise ValueError("Unsupported geometry type %s" % geotype)
 
         geobounds = self.wgs_bounds().extent
         str_bounds = overpass.str_bounds_for(geobounds, proximity)

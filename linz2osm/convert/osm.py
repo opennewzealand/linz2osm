@@ -14,23 +14,22 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import hashlib
+import json
+import math
+import re
+
 from cStringIO import StringIO
+from textwrap import dedent
+from xml.etree import ElementTree
+
 from django.conf import settings
 from django.contrib.gis import geos
 from django.core.cache import cache
 from django.db import connection, connections
-from django.utils import simplejson
-from textwrap import dedent
-from xml.etree import ElementTree
-
-import hashlib
-import re
-import math
 
 from linz2osm.convert import overpass
 
-class Error(Exception):
-    pass
 
 def get_srtext_from_srid(srid):
     cursor = connection.cursor()
@@ -386,9 +385,9 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
                 v = tag.eval(row_data)
             except tag.ScriptError, e:
                 emsg = "Error evaluating '%s' tag against record:\n" % tag
-                emsg += simplejson.dumps(e.data, indent=2) + "\n"
+                emsg += json.dumps(e.data, indent=2) + "\n"
                 emsg += str(e)
-                raise Error(emsg)
+                raise ValueError(emsg)
             if (v is not None) and (v != ""):
                 row_tags.append((tag.tag, v, tag,))
 
@@ -654,10 +653,10 @@ class OSMCreateWriter(OSMWriter):
                     if tn not in applied_tags:
                         applied_tags.add(tn)
                         if len(tn) > 255:
-                            raise Error(u'Tag key too long (max. 255 chars): %s' % tn)
+                            raise ValueError(u'Tag key too long (max. 255 chars): %s' % tn)
                         tv = unicode(tv)
                         if len(tv) > 255:
-                            raise Error(u'Tag value too long (max. 255 chars): %s' % tv)
+                            raise ValueError(u'Tag value too long (max. 255 chars): %s' % tv)
                         ElementTree.SubElement(parent_node, 'tag', k=tn, v=tv)
 
 def export_delete(layer_in_dataset, nodes, ways, relations):

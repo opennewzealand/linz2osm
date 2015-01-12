@@ -14,17 +14,15 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import re
-import sys
 
 from itertools import chain
 from datetime import datetime as dt
 
-from django.db import transaction, connections
 from django.core import serializers
 from django.shortcuts import get_object_or_404, render_to_response
 from django.http import HttpResponse
-from django.utils import simplejson
 from django.template import RequestContext
 from django import forms
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -41,7 +39,7 @@ def tag_eval(request, object_id=None):
     else:
         code = request.GET.get('code', '')
 
-    fields = simplejson.loads(request.GET.get('fields', '{}'))
+    fields = json.loads(request.GET.get('fields', '{}'))
 
     try:
         value = Tag.objects.eval(code, fields)
@@ -56,7 +54,7 @@ def tag_eval(request, object_id=None):
             'fields': fields,
             'value': value,
         }
-    return HttpResponse(simplejson.dumps(r), content_type='text/plain')
+    return HttpResponse(json.dumps(r), content_type='text/plain')
 
 def layer_stats(request, layer_id=None):
     # Because of interesting things in django-admin, objectids come escaped
