@@ -53,6 +53,13 @@ class DatasetManager(models.Manager):
             if name != 'default':
                 if Dataset.objects.filter(name=name).exists():
                     dataset = Dataset.objects.get(name=name)
+                    dataset.database_name = details['NAME']
+                    dataset.description = details['_description']
+                    dataset.version = details['_version']
+                    new_srid = int(details["_srid"])
+                    if dataset.srid != new_srid:
+                        raise ValueError("Dataset already exists with a different SRID (cannot update %d to %d)!" % (dataset.srid, new_srid))
+                    dataset.save()
                 else:
                     dataset = self.create(name = name,
                                           database_name = details['NAME'],
