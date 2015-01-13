@@ -173,6 +173,7 @@ class Layer(models.Model):
         ('POINT', 'Point'),
         ('LINESTRING', 'Linestring'),
         ('POLYGON', 'Polygon'),
+        ('RELATION', 'Relation'),
         ]
     PKEY_CHOICES = [
         ('ogc_fid', 'ogc_fid'),
@@ -220,8 +221,12 @@ class Layer(models.Model):
     def feature_limit(self):
         if self.geometry_type == 'POINT':
             return 1000
-        else:
+        elif self.geometry_type == 'LINESTRING':
             return 300
+        elif self.geometry_type == 'POLYGON':
+            return 150
+        elif self.geometry_type == 'RELATION':
+            return 50
 
     @property
     def linz_dictionary_url(self):
@@ -399,6 +404,36 @@ class LayerInDataset(geomodels.Model):
 
     def export_deletes_name(self):
         return "deletes-%s-%s-%s" % (self.layer.name, self.dataset.name, datetime.datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%S"))
+
+
+class MemberManager(models.Manager):
+    pass
+
+@total_ordering
+class Member(models.Model):
+    objects = MemberManager()
+
+    relation_layer = models.ForeignKey(Layer, blank=False, related_name='members')
+    member_layer = models.ForeignKey(Layer, blank=False, related_name='memberships')
+    relation_lookup_field = models.CharField(max_length=255, help_text='Field on the relation layer to use as join')
+    member_lookup_field = models.CharField(max_length=255, help_text='Field on the member layer to use as join')
+    role = models.CharField(max_length=100, help_text="OSM role name")
+
+    class Meta:
+        unique_together = ('relation_layer', 'member_layer', 'role',)
+        verbose_name = 'Relation Member'
+        verbose_name_plural = 'Relation Members'
+
+    def __unicode__(self):
+        return self.role
+
+    def __lt__(self, other):
+        return self.role.__lt__(other.role)
+
+    def eval_member_layer_for_match_filter(self, fields):
+        tags = self.member_layer.tags.filter(match_search_tag=True).all()
+        return ''.join([t.eval_for_match_filter(fields) for t in tags])
+
 
 class TagManager(models.Manager):
     def eval(self, code, fields):

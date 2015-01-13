@@ -21,7 +21,7 @@ from django.template.loader import render_to_string
 from django import forms
 import pydermonkey
 
-from linz2osm.data_dict.models import Layer, Tag, LayerInDataset, Dataset, Group
+from linz2osm.data_dict.models import Layer, Tag, LayerInDataset, Dataset, Group, Member
 
 class LayerInDatasetInline(admin.StackedInline):
     model = LayerInDataset
@@ -61,8 +61,8 @@ class TagInlineForm(forms.ModelForm):
     class Meta:
         model = Tag
 
-    def __init__(self, *args, **kwargs):
-        super(TagInlineForm, self).__init__(*args, **kwargs)
+    # def __init__(self, *args, **kwargs):
+    #     super(TagInlineForm, self).__init__(*args, **kwargs)
 
     def clean_code(self):
         code_text = self.cleaned_data['code']
@@ -83,6 +83,18 @@ class TagInline(admin.StackedInline):
     verbose_name = 'Tag'
     verbose_name_plural = 'Tags'
     form = TagInlineForm
+
+class MemberInlineForm(forms.ModelForm):
+    class Meta:
+        model = Member
+
+class LayerMemberInline(admin.StackedInline):
+    model = Member
+    fk_name = 'member_layer'
+    extra = 1
+    verbose_name = 'Member'
+    verbose_name_plural = 'Members'
+    form = MemberInlineForm
 
 class GroupTagInline(TagInline):
     exclude = ("layer",)
@@ -176,6 +188,7 @@ class LayerAdmin(admin.ModelAdmin):
     inlines = [
         LayerInDatasetInline,
         LayerTagInline,
+        LayerMemberInline
     ]
     ordering = ('name', 'group',)
     readonly_fields = ('special_node_reuse_logic',)
