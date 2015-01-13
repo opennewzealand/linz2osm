@@ -147,6 +147,7 @@ class Workslice(models.Model):
     followup_deadline = models.DateTimeField(null=True, blank=True)
     user = models.ForeignKey(auth.models.User)
     layer_in_dataset = models.ForeignKey(LayerInDataset)
+    version = models.TextField(blank=True)
     checkout_extent = models.MultiPolygonField()
     feature_count = models.IntegerField(null=True)
     file_size = models.IntegerField(null=True)
