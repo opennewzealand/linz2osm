@@ -77,14 +77,16 @@ Running in development mode
  * head to http://localhost:8000
  * have fun! :)
 
-New Datasets
-------------
+New Datasets and Layers
+-----------------------
 
 To load some other IFF data, use the linz_topo scripts from nz-geodata-scripts
 to populate a PostGIS DB. Then, add it as a database in the settings file,
-(make sure it has _description and _srid defined) and it should just work.
+(make sure it has _description and _srid defined).
 
  * http://code.google.com/p/nz-geodata-scripts/wiki/LinzTopo   
+
+Whenever you add a new dataset or layer, run `manage.py generate_datasets` to update the app.
 
 Support, Bugs, Ideas
 --------------------
