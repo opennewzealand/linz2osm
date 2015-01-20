@@ -52,13 +52,6 @@ class JSONDateEncoder(json.JSONEncoder):
             return obj.strftime('%H:%M:%S')
         return json.JSONEncoder.default(self, obj)
 
-# class JSONField(models.TextField):
-#     description = _("Data that serializes and deserializes into and out of JSON.")
-
-#     def pre_save(self, model_instance, add):
-#         value = getattr(model_instance, self.attname, None)
-#         return self._dumps(value)
-
 
 # Based on http://www.djangosnippets.org/snippets/1478/
 @register_south_field
