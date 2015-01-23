@@ -49,6 +49,7 @@
 
 {% for group_title, tags in grouped_tags %}
 <div class="row"></div>
+{% if tags %}
 <div class="row">
   <div class="span12">
     <h4>{{ group_title }}</h4>
@@ -63,10 +64,11 @@
   {% endif %}
 </div>
 {% endfor %}
-
+{% endif %}
 {% endfor %}
 
 {% if layer.geometry_type == 'RELATION' %}
+<div class="row"></div>
 <div class="row">
   <div class="span12">
     <h3>Members</h3>
