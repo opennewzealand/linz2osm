@@ -299,9 +299,9 @@ class MPRestrict(MPRecord):
         ("node_id_2", "integer"), # REFERENCES mp_node(id)
         ("node_id_3", "integer"), # REFERENCES mp_node(id)
         ("node_id_4", "integer"), # REFERENCES mp_node(id)
-        ("road_id_1", "integer"),
-        ("road_id_2", "integer"),
-        ("road_id_3", "integer"),
+        ("road_id_1", VARCHAR),
+        ("road_id_2", VARCHAR),
+        ("road_id_3", VARCHAR),
         ("not_for_emergency", FLAG_DEF_FALSE),
         ("not_for_goods", FLAG_DEF_FALSE),
         ("not_for_car", FLAG_DEF_FALSE),

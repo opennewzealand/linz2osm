@@ -65,4 +65,18 @@
 {% endfor %}
 
 {% endfor %}
+
+{% if layer.geometry_type == 'RELATION' %}
+<div class="row">
+  <div class="span12">
+    <h3>Members</h3>
+  </div>
+</div>
+{% for member in layer.members.all %}
+<div class="span8 code-content">
+  <strong><code>{{member.role}}</code></strong> &mdash; <strong><code>{{member.member_layer_id}}</code></strong>
+  {{ member.join_condition|stylize_no_ln:"sql" }}
+</div>
+{% endfor %}
+{% endif %}
 {% endblock %}

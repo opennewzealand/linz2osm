@@ -251,18 +251,25 @@ class WorksliceFeature(models.Model):
             (2, 'updated',),
             ))
 
-    def wgs_geom(self, expression = "ST_Transform(wkb_geometry, 4326)"):
+    def wgs_geom(self, expression = "ST_Transform(%s, 4326)"):
         cursor = connections[self.layer_in_dataset.dataset.name].cursor()
         layer = self.layer_in_dataset.layer
-        cursor.execute("SELECT ST_AsHexEWKB(%s) FROM %s WHERE %s = %d" % (
-                expression,
-                layer.name,
-                layer.pkey_name,
-                self.feature_id,))
+        cursor.execute("""
+            SELECT ST_AsHexEWKB(%(expression)s)
+            FROM %(layer_name)s
+            %(join_sql)s
+            WHERE %(layer_name)s.%(pkey_name)s = %(feature_id)d
+            """ % {
+                'expression': expression % layer.geometry_expression,
+                'layer_name': layer.name,
+                'join_sql': layer.join_sql,
+                'pkey_name': layer.pkey_name,
+                'feature_id': self.feature_id,
+        })
         return geos.GEOSGeometry(cursor.fetchone()[0])
 
     def wgs_bounds(self):
-        return self.wgs_geom("ST_Envelope(ST_Transform(wkb_geometry, 4326))")
+        return self.wgs_geom(expression="ST_Envelope(ST_Transform(%s, 4326))")
 
     def wgs_geojson(self, centroid_only=False):
         geom = self.wgs_geom()

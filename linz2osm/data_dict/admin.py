@@ -90,7 +90,7 @@ class MemberInlineForm(forms.ModelForm):
 
 class LayerMemberInline(admin.StackedInline):
     model = Member
-    fk_name = 'member_layer'
+    fk_name = 'relation_layer'
     extra = 1
     verbose_name = 'Member'
     verbose_name_plural = 'Members'

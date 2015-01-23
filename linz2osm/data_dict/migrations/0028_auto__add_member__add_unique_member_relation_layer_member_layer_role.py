@@ -13,9 +13,8 @@ class Migration(SchemaMigration):
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('relation_layer', self.gf('django.db.models.fields.related.ForeignKey')(related_name='members', to=orm['data_dict.Layer'])),
             ('member_layer', self.gf('django.db.models.fields.related.ForeignKey')(related_name='memberships', to=orm['data_dict.Layer'])),
-            ('relation_lookup_field', self.gf('django.db.models.fields.CharField')(max_length=255)),
-            ('member_lookup_field', self.gf('django.db.models.fields.CharField')(max_length=255)),
             ('role', self.gf('django.db.models.fields.CharField')(max_length=100)),
+            ('join_condition', self.gf('django.db.models.fields.TextField')()),
         ))
         db.send_create_signal(u'data_dict', ['Member'])
 
@@ -129,10 +128,9 @@ class Migration(SchemaMigration):
         u'data_dict.member': {
             'Meta': {'unique_together': "(('relation_layer', 'member_layer', 'role'),)", 'object_name': 'Member'},
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'join_condition': ('django.db.models.fields.TextField', [], {}),
             'member_layer': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'memberships'", 'to': u"orm['data_dict.Layer']"}),
-            'member_lookup_field': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'relation_layer': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'members'", 'to': u"orm['data_dict.Layer']"}),
-            'relation_lookup_field': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'role': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
         u'data_dict.tag': {

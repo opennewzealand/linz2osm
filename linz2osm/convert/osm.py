@@ -38,15 +38,33 @@ def get_srtext_from_srid(srid):
 
 def get_layer_geometry_type(database_id, layer):
     """ Returns a (geometry_type, srid) tuple """
-    cursor = connections[database_id].cursor()
-    cursor.execute('SELECT type,srid FROM geometry_columns WHERE f_table_name=%s;', [layer.name])
-    r = cursor.fetchone()
-    return tuple(r[:2])
+    if layer.geometry_type == 'RELATION':
+        geotypes = get_relation_geometry_types(database_id, layer)
+        if not geotypes:
+            raise ValueError("No members for relation")
+        srid = geotypes.values()[0][1]
+        if not all([srid == s for (geotype, s) in geotypes.values()]):
+            raise ValueError("SRIDs differ for relation layers!")
+        return ("GEOMETRYCOLLECTION", srid)
+    else:
+        cursor = connections[database_id].cursor()
+        cursor.execute('SELECT type, srid FROM geometry_columns WHERE f_table_name=%s;', [layer.name])
+        r = cursor.fetchone()
+        if not r:
+            raise ValueError("Could not get geometry_columns information for %s.%s" % (database_id, layer.name))
+        return tuple(r[:2])
+
+def get_relation_geometry_types(database_id, layer):
+    r = {}
+    for member in layer.members.all():
+        r[member.member_layer.name] = get_layer_geometry_type(database_id, member.member_layer)
+    return r
+
 
 def get_base_and_limit_feature_ids(layer_in_dataset, base_id=None, feature_limit=None):
     cursor = connections[layer_in_dataset.dataset.name].cursor()
 
-    sql = 'SELECT %(pkey_name)s FROM %(layer_name)s'
+    sql = 'SELECT %(layer_name)s.%(pkey_name)s FROM %(layer_name)s '
     params = {
         'pkey_name': layer_in_dataset.layer.pkey_name,
         'layer_name': layer_in_dataset.layer.name,
@@ -55,9 +73,9 @@ def get_base_and_limit_feature_ids(layer_in_dataset, base_id=None, feature_limit
         }
 
     if base_id:
-        sql += ' WHERE %(pkey_name)s >= %(base_id)d'
+        sql += ' WHERE %(layer_name)s.%(pkey_name)s >= %(base_id)d'
 
-    sql += ' ORDER BY %(pkey_name)s ASC'
+    sql += ' ORDER BY %(layer_name)s.%(pkey_name)s ASC'
 
     if feature_limit:
         sql += ' LIMIT %(feature_limit)d'
@@ -68,22 +86,27 @@ def get_base_and_limit_feature_ids(layer_in_dataset, base_id=None, feature_limit
 def get_layer_feature_ids(layer_in_dataset, extent=None, feature_limit=None):
     cursor = connections[layer_in_dataset.dataset.name].cursor()
 
-    sql = 'SELECT %(pkey_name)s FROM %(layer_name)s'
+    sql = 'SELECT %(layer_name)s.%(pkey_name)s FROM %(layer_name)s '
+    sql += layer_in_dataset.layer.join_sql
     params = []
 
     if extent:
         srid = layer_in_dataset.dataset.srid
         extent_trans = extent.hexewkb
-        sql += ' WHERE ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s::geometry, %%s)) OR ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(ST_Translate(%%s::geometry, 360.0, 0.0), %%s))'
+        sql += ' WHERE ST_CoveredBy(ST_Centroid(%(geometry_expression)s), ST_Transform(%%s::geometry, %%s)) OR ST_CoveredBy(ST_Centroid(%(geometry_expression)s), ST_Transform(ST_Translate(%%s::geometry, 360.0, 0.0), %%s))'
         params += [extent_trans, srid, extent_trans, srid]
 
-    sql += ' ORDER BY %(pkey_name)s'
+    sql += ' ORDER BY %(layer_name)s.%(pkey_name)s'
     if feature_limit:
         sql += ' LIMIT %d' % (feature_limit + 1)
 
     print sql
 
-    cursor.execute(sql % {'pkey_name': layer_in_dataset.layer.pkey_name, 'layer_name': layer_in_dataset.layer.name}, params)
+    cursor.execute(sql % {
+        'pkey_name': layer_in_dataset.layer.pkey_name,
+        'layer_name': layer_in_dataset.layer.name,
+        'geometry_expression': layer_in_dataset.layer.geometry_expression
+    }, params)
 
     if (feature_limit is not None) and cursor.rowcount > feature_limit:
         return None # FIXME: use exceptions - should have checked feature count before approving workslice
@@ -108,14 +131,19 @@ def get_layer_feature_count(database_id, layer, intersect_geom=None):
     if intersect_geom and intersect_geom.srid is None:
         intersect_geom.srid = layer_srid
 
-    sql = 'SELECT count(*) FROM %s'
+    sql = 'SELECT count(*) FROM %(layer_name)s '
+    sql += layer.join_sql
     params = []
     if intersect_geom:
         intersect_trans = intersect_geom.hexewkb
-        sql += ' WHERE ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(%%s::geometry, %%s)) OR ST_CoveredBy(ST_Centroid(wkb_geometry), ST_Transform(ST_Translate(%%s::geometry, 360.0, 0.0), %%s))'
+        sql += ' WHERE ST_CoveredBy(ST_Centroid(%(geometry_expression)s), ST_Transform(%%s::geometry, %%s)) OR ST_CoveredBy(ST_Centroid(%(geometry_expression)s), ST_Transform(ST_Translate(%%s::geometry, 360.0, 0.0), %%s))'
         params += [intersect_trans, layer_srid, intersect_trans, layer_srid]
 
-    cursor.execute(sql % layer.name, params)
+    cursor.execute(sql % {
+        'layer_name': layer.name,
+        'geometry_expression': layer.geometry_expression
+    },
+    params)
     return cursor.fetchone()[0]
 
 class NoSuchFieldNameError(Exception):
@@ -154,7 +182,7 @@ def get_layer_stats(database_id, layer):
         expansion = "0.01"
     else:
         expansion = "1001.0"
-    sql = "SELECT ST_AsHexEWKB(ST_Transform(ST_SetSRID(ST_Envelope(ST_Buffer(ST_Extent(wkb_geometry), %s)), %d), 4326)) FROM %s;" % (expansion, srid, layer.name)
+    sql = "SELECT ST_AsHexEWKB(ST_Transform(ST_SetSRID(ST_Envelope(ST_Buffer(ST_Extent(%s), %s)), %d), 4326)) FROM %s %s;" % (layer.geometry_expression, expansion, srid, layer.name, layer.join_sql)
     cursor.execute(sql)
     extent = geos.GEOSGeometry(cursor.fetchone()[0])
     et = extent.extent
@@ -181,23 +209,24 @@ def get_layer_stats(database_id, layer):
             'show_distinct_values': (row[0] > 0 and (col_name not in ('id', 'linz2osm_id', 'ogc_fid', 'name', 'name_id', 'road_name_id', 'elevation') or r['feature_count'] <= 1000)),
         }
 
-    if geom_type in ('LINESTRING', 'POLYGON'):
-        cursor.execute("SELECT avg(ST_NPoints(wkb_geometry)), max(ST_NPoints(wkb_geometry)) FROM \"%s\";" % layer.name)
-        s = cursor.fetchone();
-        r.update({
-            'points_avg': s[0],
-            'points_max': s[1],
-        })
+    if not layer.geometry_type == 'RELATION':
+        if geom_type in ('LINESTRING', 'POLYGON'):
+            cursor.execute("SELECT avg(ST_NPoints(wkb_geometry)), max(ST_NPoints(wkb_geometry)) FROM \"%s\";" % layer.name)
+            s = cursor.fetchone();
+            r.update({
+                'points_avg': s[0],
+                'points_max': s[1],
+            })
 
-    if geom_type == 'POLYGON':
-        cursor.execute("SELECT avg(ST_NRings(wkb_geometry)), max(ST_NRings(wkb_geometry)), avg(ST_NPoints(ST_ExteriorRing(wkb_geometry))), max(ST_NPoints(ST_ExteriorRing(wkb_geometry))) FROM \"%s\";" % layer.name)
-        s = cursor.fetchone();
-        r.update({
-            'rings_avg': s[0],
-            'rings_max': s[1],
-            'points_ext_ring_avg': s[2],
-            'points_ext_ring_max': s[3],
-        })
+        if geom_type == 'POLYGON':
+            cursor.execute("SELECT avg(ST_NRings(wkb_geometry)), max(ST_NRings(wkb_geometry)), avg(ST_NPoints(ST_ExteriorRing(wkb_geometry))), max(ST_NPoints(ST_ExteriorRing(wkb_geometry))) FROM \"%s\";" % layer.name)
+            s = cursor.fetchone();
+            r.update({
+                'rings_avg': s[0],
+                'rings_max': s[1],
+                'points_ext_ring_avg': s[2],
+                'points_ext_ring_max': s[3],
+            })
 
     return r
 
@@ -224,6 +253,9 @@ def apply_changeset_to_dataset(dataset_update, table_name, lid):
 
     cursor = connections[database_id].cursor()
     data_columns, geom_column = get_data_columns(cursor, table_name)
+
+    if not geom_column:
+        raise NotImplementedError("We don't yet support changeset application to non-geometry tables")
 
     cursor.execute('SELECT ST_AsEWKB(%s), \"%s\" FROM %s ORDER BY %s' % (geom_column, '\",\"'.join(data_columns), table_name, lid.layer.pkey_name))
 
@@ -322,20 +354,19 @@ def get_data_table(layer_in_dataset, feature_ids = None, workslice_id = None):
 
     database_id = dataset.name
     cursor = connections[database_id].cursor()
-    db_info = settings.DATABASES[database_id]
 
     data_columns, geom_column = get_data_columns(cursor, layer.name)
-    columns = ['st_asbinary(st_transform(st_setsrid("%s", %d), 4326)) AS geom' % (geom_column, dataset.srid)] + ['"%s"' % c for c in data_columns]
+    columns = ['st_asbinary(st_transform(st_setsrid(%s, %d), 4326)) AS geom' % (layer.geometry_expression, dataset.srid)] + ['"%s"."%s"' % (layer.name ,c) for c in data_columns]
 
-    sql_base = 'SELECT %s FROM "%s"' % (",".join(columns), layer.name)
+    sql_base = 'SELECT %s FROM "%s" %s' % (",".join(columns), layer.name, layer.join_sql)
 
     if feature_ids is not None:
         if len(feature_ids) > 0:
-            sql_base += ' WHERE %s IN (%s)' % (layer.pkey_name, ",".join([str(fid) for fid in feature_ids]))
+            sql_base += ' WHERE "%s"."%s" IN (%s)' % (layer.name, layer.pkey_name, ",".join([str(fid) for fid in feature_ids]))
         else:
-            sql_base += ' WHERE %s IS NULL' % layer.pkey_name
+            sql_base += ' WHERE "%s"."%s" IS NULL' % (layer.name, layer.pkey_name)
 
-    sql_base += ' ORDER BY %s ASC' % layer.pkey_name
+    sql_base += ' ORDER BY "%s"."%s" ASC' % (layer.name, layer.pkey_name)
     cursor.execute(sql_base)
 
     data_table = []

@@ -274,6 +274,19 @@ class Layer(models.Model):
                 p_list.append(p)
         return p_list
 
+    @property
+    def geometry_expression(self):
+        if self.geometry_type == 'RELATION':
+            return "ST_Collect(ARRAY[" + ", ".join(["%s.wkb_geometry" % m.table_alias for m in self.members.all()]) + "])"
+        else:
+            return "%s.wkb_geometry" % self.name
+
+    @property
+    def join_sql(self):
+        if self.geometry_type == 'RELATION':
+            return " " + " ".join([m.join_sql_fragment for m in self.members.all()])
+        else:
+            return " "
 
 class LayerInDatasetManager(geomodels.GeoManager):
     def create_layer_in_dataset(self, layer, dataset):
@@ -422,9 +435,8 @@ class Member(models.Model):
 
     relation_layer = models.ForeignKey(Layer, blank=False, related_name='members')
     member_layer = models.ForeignKey(Layer, blank=False, related_name='memberships')
-    relation_lookup_field = models.CharField(max_length=255, help_text='Field on the relation layer to use as join')
-    member_lookup_field = models.CharField(max_length=255, help_text='Field on the member layer to use as join')
     role = models.CharField(max_length=100, help_text="OSM role name")
+    join_condition = models.TextField(help_text='fragment of SQL to use as an INNER JOIN. Layer names will be automatically aliased.')
 
     class Meta:
         unique_together = ('relation_layer', 'member_layer', 'role',)
@@ -440,6 +452,15 @@ class Member(models.Model):
     def eval_member_layer_for_match_filter(self, fields):
         tags = self.member_layer.tags.filter(match_search_tag=True).all()
         return ''.join([t.eval_for_match_filter(fields) for t in tags])
+
+    # disambiguate tables in SQL if the same table is joined more than once
+    @property
+    def table_alias(self):
+        return "x%d" % self.pk
+
+    @property
+    def join_sql_fragment(self):
+        return "INNER JOIN %s AS %s ON %s" % (self.member_layer_id, self.table_alias, self.join_condition.replace(self.member_layer_id, self.table_alias))
 
 
 class TagManager(models.Manager):
