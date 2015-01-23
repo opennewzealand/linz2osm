@@ -315,6 +315,14 @@ class WorksliceFeature(models.Model):
                 %(bounds)s;
                 >;
                 );""")
+        elif geotype == "RELATION":
+            query = dedent("""
+                (
+                rel
+                %(tags)s
+                %(bounds)s;
+                >;
+                );""")
         else:
             raise ValueError("Unsupported geometry type %s" % geotype)
 

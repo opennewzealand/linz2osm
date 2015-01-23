@@ -275,6 +275,10 @@ def workslice_info(request, layer_in_dataset_id):
                         conflict_count = len(ways) # FIXME: count rels too.
                         if form.cleaned_data['show_conflicting_features'] == 'yes':
                             ctx['osm_conflict_geometry'] = overpass.osm_geojson(rels.values(), nodes, ways)
+                    elif layer.geometry_type == 'RELATION':
+                        conflict_count = len(rels)
+                        if form.cleaned_data['show_conflicting_features'] == 'yes':
+                            ctx['osm_conflict_geometry'] = overpass.osm_geojson(rels.values(), nodes, ways)
 
                     if conflict_count > 1:
                         ctx['osm_conflict_info'] = "%d nearby features of this type in OSM." % conflict_count
