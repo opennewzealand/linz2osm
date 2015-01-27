@@ -56,7 +56,7 @@ def get_layer_geometry_type(database_id, layer):
 
 def get_relation_geometry_types(database_id, layer):
     r = {}
-    for member in layer.members.all():
+    for member in layer.members.select_related('member_layer').all():
         r[member.member_layer.name] = get_layer_geometry_type(database_id, member.member_layer)
     return r
 
@@ -361,7 +361,7 @@ def get_data_table(layer_in_dataset, feature_ids = None, workslice_id = None):
     feature_id_columns = {}
     attr_columns = list(data_columns)
     if layer.geometry_type == 'RELATION':
-        for m in layer.members.all():
+        for m in layer.members.select_related('member_layer').all():
             fid_col_name = "%s_feature_id" % m.table_alias
             columns.append('"%s"."%s" AS %s' % (m.table_alias, m.member_layer.pkey_name, fid_col_name))
             feature_id_columns[fid_col_name] = m.pk
@@ -415,7 +415,7 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
     data_table = get_data_table(layer_in_dataset, feature_ids, workslice_id)
     member_data_tables = {}
     member_tags = {}
-    for m in layer.members.all():
+    for m in layer.members.select_related('member_layer').all():
         member_lid = dataset.layerindataset_set.get(layer=m.member_layer)
         member_feature_ids = [row_data['member_feature_ids'][m.pk] for (row_data, row_geom) in data_table]
         member_data_tables[m.pk] = get_data_table(member_lid, member_feature_ids, workslice_id)
@@ -436,7 +436,7 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
     member_feature_map = {}
 
     # None of this happens unless the layer is a RELATION
-    for m in layer.members.all():
+    for m in layer.members.select_related('member_layer').all():
         m_layer = m.member_layer
         m_processors = m_layer.get_processors()
         for i, (row_data, row_geom) in enumerate(member_data_tables[m.pk]):
@@ -456,7 +456,7 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
 
     for i, (row_data, row_geom) in enumerate(data_table):
         member_refs = []
-        for m in layer.members.all():
+        for m in layer.members.select_related('member_layer').all():
             db_feature_id = row_data['member_feature_ids'][m.pk]
             db_table_name = m.member_layer.name
             key = (db_table_name, db_feature_id)
