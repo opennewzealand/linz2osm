@@ -76,7 +76,12 @@
 </div>
 {% for member in layer.members.all %}
 <div class="span8 code-content">
-  <strong><code>{{member.role}}</code></strong> &mdash; <strong><code>{{member.member_layer_id}}</code></strong>
+  <strong><code>{{member.role}}</code></strong> &mdash; 
+  <strong><code>
+    <a href="{% url 'linz2osm.data_dict.views.show_tagging' layer_id=member.member_layer %}">
+      {{member.member_layer_id}}
+    </a>
+  </code></strong>
   {{ member.join_condition|stylize_no_ln:"sql" }}
 </div>
 {% endfor %}
