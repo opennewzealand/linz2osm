@@ -276,11 +276,11 @@ def apply_changeset_to_dataset(dataset_update, table_name, lid):
 
         action = row_data.pop('__change__')
 
-        if action == 'UPDATE':
+        if action == "UPDATE":
             update_table.append(row_data)
-        elif action == 'INSERT':
+        elif action == "INSERT":
             insert_table.append(row_data)
-        elif action == 'DELETE':
+        elif action == "DELETE":
             delete_table.append(row_data)
 
     print "%d updates, %d inserts, %d deletes" % (len(update_table), len(insert_table), len(delete_table))
@@ -356,7 +356,16 @@ def get_data_table(layer_in_dataset, feature_ids = None, workslice_id = None):
     cursor = connections[database_id].cursor()
 
     data_columns, geom_column = get_data_columns(cursor, layer.name)
-    columns = ['st_asbinary(st_transform(st_setsrid(%s, %d), 4326)) AS geom' % (layer.geometry_expression, dataset.srid)] + ['"%s"."%s"' % (layer.name ,c) for c in data_columns]
+    columns = ['st_asbinary(st_transform(st_setsrid(%s, %d), 4326)) AS geom' % (layer.geometry_expression, dataset.srid)]
+    columns += ['"%s"."%s"' % (layer.name, c) for c in data_columns]
+    feature_id_columns = {}
+    attr_columns = list(data_columns)
+    if layer.geometry_type == 'RELATION':
+        for m in layer.members.all():
+            fid_col_name = "%s_feature_id" % m.table_alias
+            columns.append('"%s"."%s" AS %s' % (m.table_alias, m.member_layer.pkey_name, fid_col_name))
+            feature_id_columns[fid_col_name] = m.pk
+            attr_columns.append(fid_col_name)
 
     sql_base = 'SELECT %s FROM "%s" %s' % (",".join(columns), layer.name, layer.join_sql)
 
@@ -378,10 +387,17 @@ def get_data_table(layer_in_dataset, feature_ids = None, workslice_id = None):
         if row_geom.empty:
             continue
 
-        row_data = dict(zip(data_columns,[clean_data(c) for c in row[1:] ]))
+        row_data = dict(zip(attr_columns,[clean_data(c) for c in row[1:] ]))
         row_data['layer_name'] = layer.name
         row_data['dataset_name'] = dataset.name
         row_data['dataset_version'] = dataset.version
+
+        if feature_id_columns:
+            r = {}
+            for col_name, member_id in feature_id_columns.iteritems():
+                r[member_id] = row_data.pop(col_name)
+            row_data['member_feature_ids'] = r
+
         if workslice_id is not None:
             row_data['workslice_id'] = workslice_id
 
@@ -397,6 +413,13 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
     processors = layer.get_processors()
 
     data_table = get_data_table(layer_in_dataset, feature_ids, workslice_id)
+    member_data_tables = {}
+    member_tags = {}
+    for m in layer.members.all():
+        member_lid = dataset.layerindataset_set.get(layer=m.member_layer)
+        member_feature_ids = [row_data['member_feature_ids'][m.pk] for (row_data, row_geom) in data_table]
+        member_data_tables[m.pk] = get_data_table(member_lid, member_feature_ids, workslice_id)
+        member_tags[m.pk] = member_lid.get_all_tags()
 
     osm_nodes = {}
     if layer.special_node_reuse_logic:
@@ -409,32 +432,71 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
                        special_start_node_field_name=layer.special_start_node_field_name,
                        special_end_node_field_name=layer.special_end_node_field_name
                        )
+
+    member_feature_map = {}
+
+    # None of this happens unless the layer is a RELATION
+    for m in layer.members.all():
+        m_layer = m.member_layer
+        m_processors = m_layer.get_processors()
+        for i, (row_data, row_geom) in enumerate(member_data_tables[m.pk]):
+            db_feature_id = row_data[m_layer.pkey_name]
+            db_table_name = m_layer.name
+            if m_layer.geometry_type == 'POINT':
+                osm_feature_type = 'node'
+            elif m_layer.geometry_type == 'LINESTRING':
+                osm_feature_type = 'way'
+            else:
+                raise ValueError("We do not yet support %ss as members" % m_layer.geometry_type)
+            key = (db_table_name, db_feature_id)
+            # Reuse a member feature if already included as a different role.
+            if key not in member_feature_map:
+                osm_feature_ids = _export_custom_data_row(writer, m_layer, member_tags[m.pk], m_processors, i, row_data, row_geom)
+                member_feature_map[key] = (osm_feature_type, osm_feature_ids)
+
     for i, (row_data, row_geom) in enumerate(data_table):
-        row_tags = []
-        for tag in layer_tags:
-            try:
-                v = tag.eval(row_data)
-            except tag.ScriptError, e:
-                emsg = "Error evaluating '%s' tag against record:\n" % tag
-                emsg += json.dumps(e.data, indent=2) + "\n"
-                emsg += str(e)
-                raise ValueError(emsg)
-            if (v is not None) and (v != ""):
-                row_tags.append((tag.tag, v, tag,))
+        member_refs = []
+        for m in layer.members.all():
+            db_feature_id = row_data['member_feature_ids'][m.pk]
+            db_table_name = m.member_layer.name
+            key = (db_table_name, db_feature_id)
+            osm_feature_type, osm_feature_ids = member_feature_map[key]
+            for fid in osm_feature_ids:
+                member_refs.append((m.role, osm_feature_type, fid))
 
-        # apply geometry processing
-        for p in processors:
-            row_geom = p.process(row_geom, fields=row_data, tags=row_tags, id=i)
-
-        if layer.special_node_reuse_logic:
-            first_node_ref = str(row_data.get(layer.special_start_node_field_name))
-            last_node_ref = str(row_data.get(layer.special_end_node_field_name))
-        else:
-            first_node_ref, last_node_ref = None, None
-
-        writer.add_feature(row_geom, row_tags, first_node_ref, last_node_ref)
+        _export_custom_data_row(writer, layer, layer_tags, processors, i, row_data, row_geom, member_refs=member_refs)
 
     return writer.xml()
+
+def _export_custom_data_row(writer, layer, tags, processors, i, row_data, row_geom, member_refs=None):
+    row_tags = []
+    for tag in tags:
+        try:
+            v = tag.eval(row_data)
+        except tag.ScriptError, e:
+            emsg = "Error evaluating '%s' tag against record:\n" % tag
+            emsg += json.dumps(e.data, indent=2) + "\n"
+            emsg += str(e)
+            raise ValueError(emsg)
+        if (v is not None) and (v != ""):
+            row_tags.append((tag.tag, v, tag,))
+
+    # apply geometry processing
+    for p in processors:
+        row_geom = p.process(row_geom, fields=row_data, tags=row_tags, id=i)
+
+    if layer.special_node_reuse_logic:
+        first_node_ref = str(row_data.get(layer.special_start_node_field_name))
+        last_node_ref = str(row_data.get(layer.special_end_node_field_name))
+    else:
+        first_node_ref, last_node_ref = None, None
+
+    if layer.geometry_type == "RELATION":
+        return writer.add_relation(row_tags, member_refs)
+    elif row_geom:
+        return writer.add_feature(row_geom, row_tags, first_node_ref, last_node_ref)
+    else:
+        raise ValueError("Layer is not relation and no geometry found")
 
 def int_or_none(obj):
     if isinstance(obj, (str, int, unicode)):
@@ -556,7 +618,10 @@ class OSMCreateWriter(OSMWriter):
         self.processors = processors or []
 
     def add_feature(self, geom, tags=None, first_node_ref=None, last_node_ref=None):
-        self.build_geom(geom, tags, first_node_ref, last_node_ref)
+        return self.build_geom(geom, tags, first_node_ref, last_node_ref)
+
+    def add_relation(self, tags=None, member_refs=None):
+        return self.build_rel(tags or [], member_refs or [])
 
     @property
     def next_id(self):
@@ -675,6 +740,16 @@ class OSMCreateWriter(OSMWriter):
         elif isinstance(geom, geos.LineString):
             # way
             return self.build_way(geom.tuple, tags, True, first_node_ref, last_node_ref)
+
+    def build_rel(self, tags, member_refs):
+        r = ElementTree.Element('relation', id=self.next_id)
+
+        for (role, ftype, ref) in member_refs:
+            ElementTree.SubElement(r, 'member', type=ftype, ref=ref, role=role)
+
+        self.build_tags(r, tags, "relation")
+        self.n_create.append(r)
+        return [r.get('id')]
 
     def build_tags(self, parent_node, tags, object_type):
         if tags:

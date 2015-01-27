@@ -483,7 +483,9 @@ class TagManager(models.Manager):
             js.define_property(context, 'value', None);
             context_fields = js.new_object()
             for fk,fv in eval_fields.items():
-                js.define_property(context_fields, fk, fv)
+                # Exclude e.g. member_feature_ids
+                if not isinstance(fv, dict):
+                    js.define_property(context_fields, fk, fv)
             js.define_property(context, 'fields', context_fields)
 
             js.execute_script(context, script)
@@ -493,11 +495,14 @@ class TagManager(models.Manager):
                 value = None
             return value
         except (Exception,), e:
-            e_msg = js.get_property(e.args[0], 'message')
-            e_lineno = js.get_property(e.args[0], 'lineNumber')
-            en = Tag.ScriptError("%s (line %d)" % (e_msg, e_lineno))
-            en.data = eval_fields
-            raise en
+            if isinstance(e.args[0], pydermonkey.Object):
+                e_msg = js.get_property(e.args[0], 'message')
+                e_lineno = js.get_property(e.args[0], 'lineNumber')
+                en = Tag.ScriptError("%s (line %d)" % (e_msg, e_lineno))
+                en.data = eval_fields
+                raise en
+            else:
+                raise
 
     def default(self):
         return self.get_query_set().filter(layer__isnull=True, group__isnull=True)
