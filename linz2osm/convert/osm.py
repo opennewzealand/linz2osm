@@ -447,7 +447,7 @@ def export_custom(layer_in_dataset, feature_ids = None, workslice_id = None):
             elif m_layer.geometry_type == 'LINESTRING':
                 osm_feature_type = 'way'
             else:
-                raise ValueError("We do not yet support %ss as members" % m_layer.geometry_type)
+                raise NotImplementedError("We do not yet support %ss as members" % m_layer.geometry_type)
             key = (db_table_name, db_feature_id)
             # Reuse a member feature if already included as a different role.
             if key not in member_feature_map:
@@ -657,7 +657,6 @@ class OSMCreateWriter(OSMWriter):
     def build_way(self, coords, tags, tag_nodes_at_ends=False, first_node_ref=None, last_node_ref=None):
         ids = []
         rem_coords = [(wrap_longitude(x), y) for (x, y) in coords]
-        node_map = {}
         special_node_type = "first" if tag_nodes_at_ends else None
         while True:
             w = ElementTree.Element('way', id=self.next_id)
@@ -665,7 +664,6 @@ class OSMCreateWriter(OSMWriter):
             cur_coords, rem_coords = coords_for_next_way(rem_coords, self.WAY_SPLIT_SIZE)
 
             cur_coords_last_idx = len(cur_coords) - 1
-            last_coords = None
             for i,c in enumerate(cur_coords):
                 # Handle tagging special node types
                 if tag_nodes_at_ends and not rem_coords:
@@ -690,7 +688,6 @@ class OSMCreateWriter(OSMWriter):
 
                 # Actually generate some XML now
                 ElementTree.SubElement(w, 'nd', ref=n_id)
-                last_coords = c
             self.build_tags(w, tags, "geometry")
             self.n_create.append(w)
             ids.append(w.get('id'))
