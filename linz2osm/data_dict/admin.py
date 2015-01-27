@@ -61,9 +61,6 @@ class TagInlineForm(forms.ModelForm):
     class Meta:
         model = Tag
 
-    # def __init__(self, *args, **kwargs):
-    #     super(TagInlineForm, self).__init__(*args, **kwargs)
-
     def clean_code(self):
         code_text = self.cleaned_data['code']
 
