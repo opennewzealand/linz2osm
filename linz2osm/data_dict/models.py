@@ -226,6 +226,10 @@ class Layer(models.Model):
 
     @property
     def feature_limit(self):
+        # These are limits on the number of elements you can check out at once,
+        # so that progress on layers isn't delayed with very long-running merges.
+        # They are almost completely arbitrary, but designed to make sure that
+        # a workslice shouldn't be more than a hour's work.
         if self.geometry_type == 'POINT':
             return 1000
         elif self.geometry_type == 'LINESTRING':
