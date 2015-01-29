@@ -387,6 +387,14 @@ class MPRestrict(MPRecord):
 
     @classmethod
     def bearings_sql(cls, mp_file):
+        # OK! We've added all the data, now time to determine which type of
+        # turn each restriction is.
+        # The general philosophy is that a main road that continues through the
+        # intersection is "straight ahead": turning onto it is a left or right turn.
+        # Otherwise, if it's the leftmost segment it's a left, if it's the rightmost
+        # it's a right, and if it's the centremost it's a straight ahead.
+        # As a last resort, we simply use the angle of the turn. What direction are
+        # you literally turning in?
         output_sql = []
         seg_db = mp_file.segments_db
         segs_for_node = dict([(node_id, []) for node_id in mp_file.created_nodes])
@@ -402,6 +410,38 @@ class MPRestrict(MPRecord):
                 raise
 
         for r in mp_file.restrictions_db:
+            # We have two to four relevant segments.
+            # * from: the "from" road in the restriction.
+            # * to: the "to" road in the restriction.
+            # * continuation: if not the same as "to", this is the next segment in the "from" road.
+            # * source: if not the same as "from", this is the previous segment in the "to" road.
+            #
+            # for example, if the restriction is a no-right-turn
+            #     from node 3 on road A
+            #     to node 5 on road B
+            #     via node 1
+            # then the segments could look like:
+            #
+            #
+            #                   continuation
+            #                       (2)
+            #                        |
+            #                        |
+            #                        |road A
+            #                        |
+            #                        |
+            #               road B   |   road B
+            #   source  (4)---------(1)----------(5)  to
+            #                       /|
+            #                      / |
+            #                     /  |
+            #              road C/   |road A
+            #                   /    |
+            #                  /     |
+            #                (6)    (3)
+            #              [other]  from
+
+
             segments_at_node = segs_for_node[r.record["nod"]]
             from_segment = None
             to_segment = None
@@ -413,6 +453,7 @@ class MPRestrict(MPRecord):
             u_turn = (restriction_on_same_road and (r.record["node_id_1"] == r.record["node_id_3"]))
             continuation_of_from_road = None
             source_of_to_road = None
+            # This INCLUDES the source and continuation, just not the FROM and TO segments.
             other_segments = []
             turn_type = "turn";
 
@@ -429,7 +470,7 @@ class MPRestrict(MPRecord):
                 else:
                     raise ValueError("Should not happen: segment does not match node at either end")
 
-                # This is the same road as the source. Is it the source?
+                # This is the same road as FROM. Is it the FROM, or the continuation, or neither?
                 if seg.record["road_id"] == r.record["road_id_1"]:
                     if (seg.record["node_id_start"] == r.record["node_id_1"]):
                         from_segment = seg
@@ -442,7 +483,7 @@ class MPRestrict(MPRecord):
                         bearing_continuation = normalise_bearing(seg_bearing)
                         other_segments.append(bearing_continuation)
 
-                # This is the same road as the destination. Is it the destination?
+                # This is the same road as TO. Is it the TO, or the source, or neither?
                 if seg.record["road_id"] == r.record["road_id_2"]:
                     if (seg.record["node_id_start"] == r.record["node_id_3"]):
                         to_segment = seg
@@ -459,6 +500,7 @@ class MPRestrict(MPRecord):
                 if seg.record["road_id"] not in (r.record["road_id_1"], r.record["road_id_2"]):
                     other_segments.append(seg_bearing)
 
+            # Check we have everything we needed to
             if bearing_into is not None and bearing_out is not None and from_segment is not None and to_segment is not None:
                 # Adjust bearings to be relative
                 bearing_out = relative_bearing(bearing_into, bearing_out)
@@ -469,39 +511,67 @@ class MPRestrict(MPRecord):
 
                 # Sort other segments and make bearings relative
                 sorted_other_segments = sorted([relative_bearing(bearing_into, b) for b in other_segments])
+                # Is the "TO" segment the closest to being straight on from the intersection?
                 bearing_out_is_closest_to_straight = all([abs(a) > bearing_out for a in sorted_other_segments])
 
+                # How many roads are there that are more of a left turn than the "TO"? Or more of a right turn?
                 segments_left_of_destination = len([s for s in sorted_other_segments if s < bearing_out])
                 segments_right_of_destination = len([s for s in sorted_other_segments if s > bearing_out])
 
                 if u_turn:
+                    # Easy enough
                     turn_type = "u_turn"
                 elif not sorted_other_segments:
+                    # If there's no other segments, must be straight on.
                     turn_type = "straight_on"
                 elif not continuation_of_from_road and not source_of_to_road:
+                    # It's the leftmost segment
                     if segments_left_of_destination == 0:
                         turn_type = "left_turn"
+                    # It's the rightmost segment
                     elif segments_right_of_destination == 0:
                         turn_type = "right_turn"
                 elif restriction_on_same_road:
-                    if segments_left_of_destination == 0 and bearing_out < 0.0:
+                    # Continuing on the same road? Probably a straight ahead, but
+                    # if we're literally turning, and it's the segment on the furthest
+                    # left or right, and there's another "straight ahead" segment,
+                    # then count it as a left or right.
+                    # e.g.
+                    #
+                    #               [other]
+                    #                  |
+                    #                  |road B
+                    #       road A     |
+                    #   to ------------+
+                    #                  |
+                    #                  |road A
+                    #                  |
+                    #                 from
+                    # Would be a no_left_turn, since road B is kind of "straight ahead",
+                    # even though it's a different road.
+                    if segments_left_of_destination == 0 and bearing_out < 0.0 and not bearing_out_is_closest_to_straight:
                         turn_type = "left_turn"
-                    elif segments_right_of_destination == 0 and bearing_out > 0.0:
+                    elif segments_right_of_destination == 0 and bearing_out > 0.0 and not bearing_out_is_closest_to_straight:
                         turn_type = "right_turn"
                     else:
                         turn_type = "straight_on"
                 elif continuation_of_from_road:
+                    # If we're leaving the main road, just check if we're leaving
+                    # it to the left, or to the right
                     if bearing_out < bearing_continuation:
                         turn_type = "left_turn"
                     elif bearing_out > bearing_continuation:
                         turn_type = "right_turn"
                 elif source_of_to_road:
+                    # If we're joining the main road, just check if we're joining it
+                    # on the left, or the right.
                     if bearing_out < bearing_source:
                         turn_type = "left_turn"
                     elif bearing_out > bearing_source:
                         turn_type = "right_turn"
 
                 if turn_type == "turn":
+                    # If all else fails, just use the actual angle of the turn.
                     if bearing_out_is_closest_to_straight:
                         turn_type = "straight_on"
                     elif bearing_out < 0:
@@ -840,6 +910,8 @@ class MPSegment(MPGeometry):
 
         seg_geom = geom[point_start:point_end+1]
         self.record["wkb_geometry"] = seg_geom
+        # Bearings for the first line segment leaving the start and end nodes
+        # Used to calculate turn angles for MPRestrict
         self.record["bearing_from_start_node"] = bearing(seg_geom[0], seg_geom[1])
         self.record["bearing_from_end_node"] = bearing(seg_geom[-1], seg_geom[-2])
 
