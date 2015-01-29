@@ -402,7 +402,6 @@ class MPRestrict(MPRecord):
                 raise
 
         for r in mp_file.restrictions_db:
-            # mp_file.err.write("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n")
             segments_at_node = segs_for_node[r.record["nod"]]
             from_segment = None
             to_segment = None
@@ -420,15 +419,8 @@ class MPRestrict(MPRecord):
             if not segments_at_node:
                 raise ValueError("No segments matching restriction")
 
-            # mp_file.err.write("restriction %s: %s (road=%s) -> %s -> %s (road=%s))\n" % (
-            #     r.record.get("id"), r.record["node_id_1"], r.record["road_id_1"], r.record["nod"], r.record["node_id_3"], r.record["road_id_2"]
-            # ))
-
             # Get the important segments
             for seg in segments_at_node:
-                # mp_file.err.write("segment %s (road=%s), from=%s to=%s bearing_from_start=%f bearing_from_end=%f\n" % (
-                #     seg.record.get("linz2osm_id"), seg.record["road_id"], seg.record["node_id_start"], seg.record["node_id_end"], seg.record["bearing_from_start_node"], seg.record["bearing_from_end_node"]
-                # ))
                 # Get the bearing from the correct node
                 if seg.record["node_id_start"] == r.record["nod"]:
                     seg_bearing = seg.record["bearing_from_start_node"]
@@ -448,6 +440,7 @@ class MPRestrict(MPRecord):
                     elif u_turn or not restriction_on_same_road:
                         continuation_of_from_road = seg
                         bearing_continuation = normalise_bearing(seg_bearing)
+                        other_segments.append(bearing_continuation)
 
                 # This is the same road as the destination. Is it the destination?
                 if seg.record["road_id"] == r.record["road_id_2"]:
@@ -460,52 +453,30 @@ class MPRestrict(MPRecord):
                     elif u_turn or not restriction_on_same_road:
                         source_of_to_road = seg
                         bearing_source = normalise_bearing(seg_bearing)
+                        other_segments.append(bearing_source)
 
                 # This is not the same road as source or destination?
                 if seg.record["road_id"] not in (r.record["road_id_1"], r.record["road_id_2"]):
                     other_segments.append(seg_bearing)
 
             if bearing_into is not None and bearing_out is not None and from_segment is not None and to_segment is not None:
-                # Includes the continuation and source, as well.
-                all_other_segments = list(other_segments)
                 # Adjust bearings to be relative
                 bearing_out = relative_bearing(bearing_into, bearing_out)
                 if bearing_continuation:
                     bearing_continuation = relative_bearing(bearing_into, bearing_continuation)
-                    all_other_segments.append(bearing_continuation)
                 if bearing_source:
                     bearing_source = relative_bearing(bearing_into, bearing_source)
-                    all_other_segments.append(bearing_source)
 
-                bearing_out_is_closest_to_straight = all([abs(a) > bearing_out for a in all_other_segments])
-                # mp_file.err.write("Bearing out is closest to straight=%s\n" % bearing_out_is_closest_to_straight)
-
-                sorted_all_other_segments = sorted([relative_bearing(bearing_into, b) for b in all_other_segments])
+                # Sort other segments and make bearings relative
                 sorted_other_segments = sorted([relative_bearing(bearing_into, b) for b in other_segments])
+                bearing_out_is_closest_to_straight = all([abs(a) > bearing_out for a in sorted_other_segments])
 
-                segments_left_of_destination = len([s for s in sorted_all_other_segments if s < bearing_out])
-                segments_right_of_destination = len([s for s in sorted_all_other_segments if s > bearing_out])
-
-                segments_left_of_continuation = len([s for s in sorted_other_segments if s < bearing_continuation])
-                segments_right_of_continuation = len([s for s in sorted_other_segments if s > bearing_continuation])
-
-                segments_left_of_source = len([s for s in sorted_other_segments if s < bearing_source])
-                segments_right_of_source = len([s for s in sorted_other_segments if s > bearing_source])
-
-                # mp_file.err.write("For restriction %s, in=%f out=%f src=%s cont=%s num_other_segments=%d (%s)\n" % (
-                #     r.record.get("id"), bearing_into, bearing_out,
-                #     str(bearing_source), str(bearing_continuation),
-                #     len(sorted_other_segments), ', '.join([str(a) for a in sorted_other_segments])
-                # ))
-                # mp_file.err.write("Of destination L=%d, R=%d, of continuation L=%d, R=%d, of source L=%d, R=%d\n" % (
-                #     segments_left_of_destination, segments_right_of_destination,
-                #     segments_left_of_continuation, segments_right_of_continuation,
-                #     segments_left_of_source, segments_right_of_source,
-                # ))
+                segments_left_of_destination = len([s for s in sorted_other_segments if s < bearing_out])
+                segments_right_of_destination = len([s for s in sorted_other_segments if s > bearing_out])
 
                 if u_turn:
                     turn_type = "u_turn"
-                elif not all_other_segments:
+                elif not sorted_other_segments:
                     turn_type = "straight_on"
                 elif not continuation_of_from_road and not source_of_to_road:
                     if segments_left_of_destination == 0:
