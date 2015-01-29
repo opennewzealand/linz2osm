@@ -25,7 +25,6 @@ from functools import total_ordering
 
 from django.db import models, connections, transaction
 from django.db.models import Sum
-from django.utils import text
 from django.conf import settings
 from django.contrib.gis.db import models as geomodels
 from django.contrib.gis import geos

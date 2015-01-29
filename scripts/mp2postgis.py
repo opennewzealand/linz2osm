@@ -13,6 +13,7 @@ import sys
 import datetime
 import re
 
+from math import pi, atan2, sin, cos
 from textwrap import dedent
 from unmangle import interpret_label
 
@@ -83,6 +84,37 @@ def sql_repr(obj):
         # this includes Polygon, int and float
         return str(obj)
 
+def _deg2rad(deg):
+    return deg * (pi / 180.0)
+
+def _rad2deg(rad):
+    return rad * (180.0 / pi)
+
+# The Earth is a sphere, donchaknow.
+# From http://www.ig.utexas.edu/outreach/googleearth/latlong.html
+def bearing(point_a, point_b):
+    ax, ay = point_a
+    bx, by = point_b
+
+    # Everyone loves their lat/longs in radians instead of degrees
+    axr, ayr = _deg2rad(float(ax)), _deg2rad(float(ay))
+    bxr, byr = _deg2rad(float(bx)), _deg2rad(float(by))
+
+    bearing_rads = atan2(
+        sin(bxr - axr) * cos(byr),
+        cos(ayr) * sin(byr) - sin(ayr) * cos(byr) * cos(bxr - axr)
+    )
+
+    return _rad2deg(bearing_rads)
+
+def normalise_bearing(bearing_degrees):
+    return (180.0 + bearing_degrees) % 360.0 - 180.0
+
+def reverse_bearing(bearing_degrees):
+    return normalise_bearing(bearing_degrees + 180)
+
+def relative_bearing(a, b):
+    return normalise_bearing(b - a)
 
 class MPRecord(object):
     table_name = "mp_record"
@@ -290,6 +322,7 @@ class MPCities(MPRecord):
             } for city in self.cities])
 
 class MPRestrict(MPRecord):
+    _last_mp_restrict_id = 0
     table_name = "mp_restrict"
     closing_tags = MPRecord.closing_tags + ("[END-RESTRICT]", "[END-Restrict]",)
     columns = MPRecord.columns + (
@@ -310,10 +343,18 @@ class MPRestrict(MPRecord):
         ("not_for_foot", FLAG_DEF_FALSE),
         ("not_for_bicycle", FLAG_DEF_FALSE),
         ("not_for_truck", FLAG_DEF_FALSE),
+        ("turn_angle", "double precision"),
+        ("turn_type", VARCHAR),
         )
 
     def __init__(self, mp_file, initial_info, *args, **kwargs):
         super(MPRestrict, self).__init__(mp_file, initial_info, *args, **kwargs)
+        self.record["id"] = self._next_id()
+
+    @classmethod
+    def _next_id(cls):
+        cls._last_mp_restrict_id += 1
+        return cls._last_mp_restrict_id
 
     def handle_line(self, line):
         if line.startswith("TraffPoints"):
@@ -323,7 +364,7 @@ class MPRestrict(MPRecord):
         elif line.startswith("TraffRoads"):
             traff_roads = line.split("=")[1].strip().split(",")[:3]
             for (counter, traff_road) in enumerate(traff_roads):
-                self.record["road_id_%d" % (counter + 1,)] = int(traff_road)
+                self.record["road_id_%d" % (counter + 1,)] = str(traff_road)
         elif line.startswith("Nod"):
             self.record["nod"] = int(line.split("=")[1].strip())
         elif line.startswith("RestrParam"):
@@ -335,6 +376,182 @@ class MPRestrict(MPRecord):
         else:
             return super(MPRestrict, self).handle_line(line)
         return True
+
+    def close_with_line(self, line):
+        self.mp_file.restrictions_db.append(self)
+        return super(MPRestrict, self).close_with_line(line)
+
+    @classmethod
+    def post_processing_sql(cls, mp_file):
+        return cls.bearings_sql(mp_file)
+
+    @classmethod
+    def bearings_sql(cls, mp_file):
+        output_sql = []
+        seg_db = mp_file.segments_db
+        segs_for_node = dict([(node_id, []) for node_id in mp_file.created_nodes])
+        for segment in seg_db:
+            try:
+                for record_part in ["node_id_start", "node_id_end"]:
+                    if segment.record[record_part]:
+                        segs_for_node[segment.record[record_part]].append(segment)
+            except KeyError:
+                mp_file.err.write(repr(segs_for_node.keys()))
+                mp_file.err.write("\n=====================================================\n")
+                mp_file.err.write(repr(segment.record))
+                raise
+
+        for r in mp_file.restrictions_db:
+            # mp_file.err.write("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n")
+            segments_at_node = segs_for_node[r.record["nod"]]
+            from_segment = None
+            to_segment = None
+            bearing_into = None         # The bearing INTO the node from source
+            bearing_out = None          # The bearing OUT of the node into destination. Adjusted to be relative to bearing_into.
+            bearing_source = None       # The bearing OUT of the node into the source of the continuing road. Adjusted to be relative to bearing_into.
+            bearing_continuation = None # The bearing OUT of the node into the destination of the continuing road. Adjusted to be relative to bearing_into.
+            restriction_on_same_road = (r.record["road_id_1"] == r.record["road_id_2"])
+            u_turn = (restriction_on_same_road and (r.record["node_id_1"] == r.record["node_id_3"]))
+            continuation_of_from_road = None
+            source_of_to_road = None
+            other_segments = []
+            turn_type = "turn";
+
+            if not segments_at_node:
+                raise ValueError("No segments matching restriction")
+
+            # mp_file.err.write("restriction %s: %s (road=%s) -> %s -> %s (road=%s))\n" % (
+            #     r.record.get("id"), r.record["node_id_1"], r.record["road_id_1"], r.record["nod"], r.record["node_id_3"], r.record["road_id_2"]
+            # ))
+
+            # Get the important segments
+            for seg in segments_at_node:
+                # mp_file.err.write("segment %s (road=%s), from=%s to=%s bearing_from_start=%f bearing_from_end=%f\n" % (
+                #     seg.record.get("linz2osm_id"), seg.record["road_id"], seg.record["node_id_start"], seg.record["node_id_end"], seg.record["bearing_from_start_node"], seg.record["bearing_from_end_node"]
+                # ))
+                # Get the bearing from the correct node
+                if seg.record["node_id_start"] == r.record["nod"]:
+                    seg_bearing = seg.record["bearing_from_start_node"]
+                elif seg.record["node_id_end"] == r.record["nod"]:
+                    seg_bearing = seg.record["bearing_from_end_node"]
+                else:
+                    raise ValueError("Should not happen: segment does not match node at either end")
+
+                # This is the same road as the source. Is it the source?
+                if seg.record["road_id"] == r.record["road_id_1"]:
+                    if (seg.record["node_id_start"] == r.record["node_id_1"]):
+                        from_segment = seg
+                        bearing_into = reverse_bearing(seg_bearing)
+                    elif (seg.record["node_id_end"] == r.record["node_id_1"]):
+                        from_segment = seg
+                        bearing_into = reverse_bearing(seg_bearing)
+                    elif u_turn or not restriction_on_same_road:
+                        continuation_of_from_road = seg
+                        bearing_continuation = normalise_bearing(seg_bearing)
+
+                # This is the same road as the destination. Is it the destination?
+                if seg.record["road_id"] == r.record["road_id_2"]:
+                    if (seg.record["node_id_start"] == r.record["node_id_3"]):
+                        to_segment = seg
+                        bearing_out = normalise_bearing(seg_bearing)
+                    elif (seg.record["node_id_end"] == r.record["node_id_3"]):
+                        to_segment = seg
+                        bearing_out = normalise_bearing(seg_bearing)
+                    elif u_turn or not restriction_on_same_road:
+                        source_of_to_road = seg
+                        bearing_source = normalise_bearing(seg_bearing)
+
+                # This is not the same road as source or destination?
+                if seg.record["road_id"] not in (r.record["road_id_1"], r.record["road_id_2"]):
+                    other_segments.append(seg_bearing)
+
+            if bearing_into is not None and bearing_out is not None and from_segment is not None and to_segment is not None:
+                # Includes the continuation and source, as well.
+                all_other_segments = list(other_segments)
+                # Adjust bearings to be relative
+                bearing_out = relative_bearing(bearing_into, bearing_out)
+                if bearing_continuation:
+                    bearing_continuation = relative_bearing(bearing_into, bearing_continuation)
+                    all_other_segments.append(bearing_continuation)
+                if bearing_source:
+                    bearing_source = relative_bearing(bearing_into, bearing_source)
+                    all_other_segments.append(bearing_source)
+
+                bearing_out_is_closest_to_straight = all([abs(a) > bearing_out for a in all_other_segments])
+                # mp_file.err.write("Bearing out is closest to straight=%s\n" % bearing_out_is_closest_to_straight)
+
+                sorted_all_other_segments = sorted([relative_bearing(bearing_into, b) for b in all_other_segments])
+                sorted_other_segments = sorted([relative_bearing(bearing_into, b) for b in other_segments])
+
+                segments_left_of_destination = len([s for s in sorted_all_other_segments if s < bearing_out])
+                segments_right_of_destination = len([s for s in sorted_all_other_segments if s > bearing_out])
+
+                segments_left_of_continuation = len([s for s in sorted_other_segments if s < bearing_continuation])
+                segments_right_of_continuation = len([s for s in sorted_other_segments if s > bearing_continuation])
+
+                segments_left_of_source = len([s for s in sorted_other_segments if s < bearing_source])
+                segments_right_of_source = len([s for s in sorted_other_segments if s > bearing_source])
+
+                # mp_file.err.write("For restriction %s, in=%f out=%f src=%s cont=%s num_other_segments=%d (%s)\n" % (
+                #     r.record.get("id"), bearing_into, bearing_out,
+                #     str(bearing_source), str(bearing_continuation),
+                #     len(sorted_other_segments), ', '.join([str(a) for a in sorted_other_segments])
+                # ))
+                # mp_file.err.write("Of destination L=%d, R=%d, of continuation L=%d, R=%d, of source L=%d, R=%d\n" % (
+                #     segments_left_of_destination, segments_right_of_destination,
+                #     segments_left_of_continuation, segments_right_of_continuation,
+                #     segments_left_of_source, segments_right_of_source,
+                # ))
+
+                if u_turn:
+                    turn_type = "u_turn"
+                elif not all_other_segments:
+                    turn_type = "straight_on"
+                elif not continuation_of_from_road and not source_of_to_road:
+                    if segments_left_of_destination == 0:
+                        turn_type = "left_turn"
+                    elif segments_right_of_destination == 0:
+                        turn_type = "right_turn"
+                elif restriction_on_same_road:
+                    if segments_left_of_destination == 0 and bearing_out < 0.0:
+                        turn_type = "left_turn"
+                    elif segments_right_of_destination == 0 and bearing_out > 0.0:
+                        turn_type = "right_turn"
+                    else:
+                        turn_type = "straight_on"
+                elif continuation_of_from_road:
+                    if bearing_out < bearing_continuation:
+                        turn_type = "left_turn"
+                    elif bearing_out > bearing_continuation:
+                        turn_type = "right_turn"
+                elif source_of_to_road:
+                    if bearing_out < bearing_source:
+                        turn_type = "left_turn"
+                    elif bearing_out > bearing_source:
+                        turn_type = "right_turn"
+
+                if turn_type == "turn":
+                    if bearing_out_is_closest_to_straight:
+                        turn_type = "straight_on"
+                    elif bearing_out < 0:
+                        turn_type = "left_turn"
+                    elif bearing_out > 0:
+                        turn_type = "right_turn"
+                    else:
+                        turn_type = "straight_on"
+
+                # mp_file.err.write("Resulting turn is: %s\n" % turn_type)
+                output_sql.append("""
+                    UPDATE %s SET (turn_type, turn_angle) = ('%s', %f) WHERE id = %d;
+                """ % (
+                    cls.table_name, turn_type, bearing_out, r.record["id"]
+                ))
+            else:
+                mp_file.err.write("Could not calculate angle for MPRestrict %s\n" % str(r.record))
+
+        return "\n".join(output_sql)
+
+
 
 class MPGeometry(MPRecord):
     table_name = "mp_geometry"
@@ -605,6 +822,9 @@ class MPSegment(MPGeometry):
         ("mp_line_ogc_fid", "int NOT NULL references mp_line(ogc_fid)"),
         ("node_id_start", "int references mp_node(id)"),
         ("node_id_end", "int references mp_node(id)"),
+        # Both of these bearings are AWAY from the node in question.
+        ("bearing_from_start_node", "double precision"),
+        ("bearing_from_end_node", "double precision"),
         ("point_idx_start", "int NOT NULL"),
         ("point_idx_end", "int NOT NULL"),
 
@@ -646,7 +866,12 @@ class MPSegment(MPGeometry):
         self.record["node_id_end"] = node_end
         self.record["point_idx_start"] = point_start
         self.record["point_idx_end"] = point_end
-        self.record["wkb_geometry"] = geom[point_start:point_end+1]
+
+        seg_geom = geom[point_start:point_end+1]
+        self.record["wkb_geometry"] = seg_geom
+        self.record["bearing_from_start_node"] = bearing(seg_geom[0], seg_geom[1])
+        self.record["bearing_from_end_node"] = bearing(seg_geom[-1], seg_geom[-2])
+
         self.record["subtype"] = SEGMENT_TYPE_MAP.get(self.record["type"])[1]
 
         ip = interpret_label(self.record.get("label"))
@@ -717,6 +942,8 @@ class MPSegment(MPGeometry):
                 mp_file.err.write("\n=====================================================\n")
                 mp_file.err.write(repr(segment.record))
                 raise
+
+
 
         links = [seg for seg in seg_db if seg.is_link()]
         mp_file.err.write("There are %d nodes and %d segments of which %d are links\n" % (len(segs_for_node), len(seg_db), len(links)))
@@ -837,6 +1064,7 @@ class MPFile(object):
         self.parsing_record = False
         self.created_nodes = set()
         self.segments_db = []
+        self.restrictions_db = []
 
         # temporary records
         self.clear_temp_records()
@@ -987,12 +1215,13 @@ class MPFile(object):
 
 
 # Main flow
-if len(sys.argv) < 2:
-    print "Usage: python mp2postgis.py <file.mp>"
-    exit()
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print "Usage: python mp2postgis.py <file.mp>"
+        exit()
 
-# globals
-mp_file = MPFile(open(sys.argv[1]), sys.stdout, sys.stderr)
-mp_file.translate()
-exit()
+    # globals
+    mp_file = MPFile(open(sys.argv[1]), sys.stdout, sys.stderr)
+    mp_file.translate()
+    exit()
 
