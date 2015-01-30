@@ -245,7 +245,8 @@ def export_data_dict(request):
             "xml", chain(
                 Group.objects.order_by('name').all(),
                 Layer.objects.order_by('name').all(),
-                Tag.objects.order_by('layer', 'tag').all()),
+                Tag.objects.order_by('layer', 'tag').all(),
+                Member.objects.order_by('relation_layer', 'member_layer', 'role').all()),
             indent=4,
             content_type='application/xml'))
     response['Content-Type'] = "application/xml"

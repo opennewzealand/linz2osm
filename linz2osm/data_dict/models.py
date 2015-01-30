@@ -197,10 +197,16 @@ class Layer(models.Model):
     pkey_name = models.CharField(max_length=255, default='ogc_fid', choices=PKEY_CHOICES, help_text='Changing this on an existing dataset requires an update to existing workslice features in database')
     tags_ql = models.TextField(blank=True, null=True, help_text=('What tags to include in the OSM search. Separated with whitespace. In OSM Overpass API format ["name"="value"] ["name"~"valueish"] ["name"="this|that"] ["name"!="not-this"] etc.'), verbose_name='tags for overpass QL')
     # FIXME: do this with a flag on the relevant tags?
+    # You really don't want to use these unless you know what you're doing.
+    # They are intended for a carefully interlinked set of mp_node, mp_restrict and mp_segment_highway
+    # from NZOpenGPS data.
     special_node_reuse_logic = models.BooleanField(default=False)
-    special_start_node_field_name = models.CharField(max_length=255, blank=True, editable=False)
-    special_end_node_field_name = models.CharField(max_length=255, blank=True, editable=False)
+    special_way_reuse_logic = models.BooleanField(default=False)
+    special_start_node_field_name = models.CharField(max_length=255, blank=True, editable=False, help_text='For special node/way reuse logic: the field name for the first node (ways) or only node (points)')
+    special_end_node_field_name = models.CharField(max_length=255, blank=True, editable=False, help_text='For special node/way reuse logic: the field name for the last node (ways only)')
     special_node_tag_name = models.CharField(max_length=255, blank=True, editable=False)
+    special_way_field_name = models.CharField(max_length=255, blank=True, editable=False)
+    special_way_tag_name = models.CharField(max_length=255, blank=True, editable=False)
     special_dataset_name_tag = models.CharField(max_length=255, blank=True, editable=False)
     special_dataset_version_tag = models.CharField(max_length=255, blank=True, editable=False)
     wfs_type_name = models.CharField(max_length=255, blank=True, verbose_name='WFS typeName', help_text='Used for LDS or WFS updates')

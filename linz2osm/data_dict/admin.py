@@ -188,7 +188,7 @@ class LayerAdmin(admin.ModelAdmin):
         LayerMemberInline
     ]
     ordering = ('name', 'group',)
-    readonly_fields = ('special_node_reuse_logic',)
+    readonly_fields = ('special_node_reuse_logic', 'special_way_reuse_logic')
     search_fields = ('name', 'notes',)
     save_on_top = True
 
