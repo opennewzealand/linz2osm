@@ -32,8 +32,8 @@ Pydermonkey needs to build spidermonkey-1.8.1pre, and the URL is out of date. To
  * run `python setup.py build_spidermonkey`
  * go back to the virtualenv root and run `pip install --no-download pydermonkey`
  
-Install
--------
+Installing the app
+------------------
 
  * make a settings_site.py file and add overrides for things like:
    * `DATABASES`
@@ -57,22 +57,36 @@ Load data
  * run `manage.py loaddata v16_layers` to populate the layer models.
  * run `manage.py loaddata example_tags` to load some example tags for road_cl,
    and some defaults for all layers.
- * 
+
+OR, to clone an existing installation
+
+ * go to that existing installation (e.g. http://linz2osm.openstreetmap.org.nz), click
+   on "Layers", then click "Export layers and tags".
+ * download the file, and put it on your new machine
+ * on your new machine, run `manage.py loaddata <path_to_your_downloaded_file>`
+
+Then, either way:
 
  * run `manage.py generate_datasets` to configure the app for the datasets and layers you've added
+
+Running in development mode
+---------------------------
+
  * run `manage.py runserver`
  * from the linz2osm dir, run `../manage.py celery worker`
  * head to http://localhost:8000
  * have fun! :)
 
-New Datasets
-------------
+New Datasets and Layers
+-----------------------
 
 To load some other IFF data, use the linz_topo scripts from nz-geodata-scripts
 to populate a PostGIS DB. Then, add it as a database in the settings file,
-(make sure it has _description and _srid defined) and it should just work.
+(make sure it has _description and _srid defined).
 
  * http://code.google.com/p/nz-geodata-scripts/wiki/LinzTopo   
+
+Whenever you add a new dataset or layer, run `manage.py generate_datasets` to update the app.
 
 Support, Bugs, Ideas
 --------------------

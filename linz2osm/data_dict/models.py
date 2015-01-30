@@ -25,7 +25,6 @@ from functools import total_ordering
 
 from django.db import models, connections, transaction
 from django.db.models import Sum
-from django.utils import text
 from django.conf import settings
 from django.contrib.gis.db import models as geomodels
 from django.contrib.gis import geos
@@ -180,6 +179,7 @@ class Layer(models.Model):
         ('POINT', 'Point'),
         ('LINESTRING', 'Linestring'),
         ('POLYGON', 'Polygon'),
+        ('RELATION', 'Relation'),
         ]
     PKEY_CHOICES = [
         ('ogc_fid', 'ogc_fid'),
@@ -197,10 +197,16 @@ class Layer(models.Model):
     pkey_name = models.CharField(max_length=255, default='ogc_fid', choices=PKEY_CHOICES, help_text='Changing this on an existing dataset requires an update to existing workslice features in database')
     tags_ql = models.TextField(blank=True, null=True, help_text=('What tags to include in the OSM search. Separated with whitespace. In OSM Overpass API format ["name"="value"] ["name"~"valueish"] ["name"="this|that"] ["name"!="not-this"] etc.'), verbose_name='tags for overpass QL')
     # FIXME: do this with a flag on the relevant tags?
+    # You really don't want to use these unless you know what you're doing.
+    # They are intended for a carefully interlinked set of mp_node, mp_restrict and mp_segment_highway
+    # from NZOpenGPS data.
     special_node_reuse_logic = models.BooleanField(default=False)
-    special_start_node_field_name = models.CharField(max_length=255, blank=True, editable=False)
-    special_end_node_field_name = models.CharField(max_length=255, blank=True, editable=False)
+    special_way_reuse_logic = models.BooleanField(default=False)
+    special_start_node_field_name = models.CharField(max_length=255, blank=True, editable=False, help_text='For special node/way reuse logic: the field name for the first node (ways) or only node (points)')
+    special_end_node_field_name = models.CharField(max_length=255, blank=True, editable=False, help_text='For special node/way reuse logic: the field name for the last node (ways only)')
     special_node_tag_name = models.CharField(max_length=255, blank=True, editable=False)
+    special_way_field_name = models.CharField(max_length=255, blank=True, editable=False)
+    special_way_tag_name = models.CharField(max_length=255, blank=True, editable=False)
     special_dataset_name_tag = models.CharField(max_length=255, blank=True, editable=False)
     special_dataset_version_tag = models.CharField(max_length=255, blank=True, editable=False)
     wfs_type_name = models.CharField(max_length=255, blank=True, verbose_name='WFS typeName', help_text='Used for LDS or WFS updates')
@@ -225,10 +231,18 @@ class Layer(models.Model):
 
     @property
     def feature_limit(self):
+        # These are limits on the number of elements you can check out at once,
+        # so that progress on layers isn't delayed with very long-running merges.
+        # They are almost completely arbitrary, but designed to make sure that
+        # a workslice shouldn't be more than a hour's work.
         if self.geometry_type == 'POINT':
             return 1000
-        else:
+        elif self.geometry_type == 'LINESTRING':
             return 300
+        elif self.geometry_type == 'POLYGON':
+            return 150
+        elif self.geometry_type == 'RELATION':
+            return 50
 
     @property
     def linz_dictionary_url(self):
@@ -269,6 +283,19 @@ class Layer(models.Model):
                 p_list.append(p)
         return p_list
 
+    @property
+    def geometry_expression(self):
+        if self.geometry_type == 'RELATION':
+            return "ST_Collect(ARRAY[" + ", ".join(["%s.wkb_geometry" % m.table_alias for m in self.members.all()]) + "])"
+        else:
+            return "%s.wkb_geometry" % self.name
+
+    @property
+    def join_sql(self):
+        if self.geometry_type == 'RELATION':
+            return " " + " ".join([m.join_sql_fragment for m in self.members.all()])
+        else:
+            return " "
 
 class LayerInDatasetManager(geomodels.GeoManager):
     def create_layer_in_dataset(self, layer, dataset):
@@ -407,6 +434,44 @@ class LayerInDataset(geomodels.Model):
     def export_deletes_name(self):
         return "deletes-%s-%s-%s" % (self.layer.name, self.dataset.name, datetime.datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%S"))
 
+
+class MemberManager(models.Manager):
+    pass
+
+@total_ordering
+class Member(models.Model):
+    objects = MemberManager()
+
+    relation_layer = models.ForeignKey(Layer, blank=False, related_name='members')
+    member_layer = models.ForeignKey(Layer, blank=False, related_name='memberships')
+    role = models.CharField(max_length=100, help_text="OSM role name")
+    join_condition = models.TextField(help_text='fragment of SQL to use as an INNER JOIN. Layer names will be automatically aliased.')
+
+    class Meta:
+        unique_together = ('relation_layer', 'member_layer', 'role',)
+        verbose_name = 'Relation Member'
+        verbose_name_plural = 'Relation Members'
+
+    def __unicode__(self):
+        return self.role
+
+    def __lt__(self, other):
+        return self.role.__lt__(other.role)
+
+    def eval_member_layer_for_match_filter(self, fields):
+        tags = self.member_layer.tags.filter(match_search_tag=True).all()
+        return ''.join([t.eval_for_match_filter(fields) for t in tags])
+
+    # disambiguate tables in SQL if the same table is joined more than once
+    @property
+    def table_alias(self):
+        return "x%d" % self.pk
+
+    @property
+    def join_sql_fragment(self):
+        return "INNER JOIN %s AS %s ON %s" % (self.member_layer_id, self.table_alias, self.join_condition.replace(self.member_layer_id, self.table_alias))
+
+
 class TagManager(models.Manager):
     def eval(self, code, fields):
         eval_fields = {}
@@ -427,7 +492,9 @@ class TagManager(models.Manager):
             js.define_property(context, 'value', None);
             context_fields = js.new_object()
             for fk,fv in eval_fields.items():
-                js.define_property(context_fields, fk, fv)
+                # Exclude e.g. member_feature_ids
+                if not isinstance(fv, dict):
+                    js.define_property(context_fields, fk, fv)
             js.define_property(context, 'fields', context_fields)
 
             js.execute_script(context, script)
@@ -437,11 +504,14 @@ class TagManager(models.Manager):
                 value = None
             return value
         except (Exception,), e:
-            e_msg = js.get_property(e.args[0], 'message')
-            e_lineno = js.get_property(e.args[0], 'lineNumber')
-            en = Tag.ScriptError("%s (line %d)" % (e_msg, e_lineno))
-            en.data = eval_fields
-            raise en
+            if isinstance(e.args[0], pydermonkey.Object):
+                e_msg = js.get_property(e.args[0], 'message')
+                e_lineno = js.get_property(e.args[0], 'lineNumber')
+                en = Tag.ScriptError("%s (line %d)" % (e_msg, e_lineno))
+                en.data = eval_fields
+                raise en
+            else:
+                raise
 
     def default(self):
         return self.get_query_set().filter(layer__isnull=True, group__isnull=True)

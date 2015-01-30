@@ -31,28 +31,81 @@ def str_bounds_for(geobounds, proximity = OVERPASS_PROXIMITY):
         geobounds[2] + proximity,
         )
 
-def osm_node_match_query(layer_in_dataset, data_table):
-    return "[out:json];\n(\n" + "\n".join([osm_node_match_query_ql(layer_in_dataset, row_data) for row_data, row_geom in data_table]) + "\n);\nout;\n"
+def osm_way_match_query(layer_in_dataset, data_table):
+    return dedent("""
+        [out:json];
+        (
+        %s
+        );
+        (._; >;);
+        out;
+    """ % (
+        "\n".join([osm_way_match_query_ql(layer_in_dataset, row_data) for row_data, row_geom in data_table])
+    ))
 
-def osm_node_match_json(layer_in_dataset, data_table):
-    query = osm_node_match_query(layer_in_dataset, data_table)
-    # print "-----=====+++ < ( [ { XXX OVERPASS QUERY XXX } ] ) > +++=====-----"
-    # print query
+def osm_node_match_query(layer_in_dataset, data_table):
+    return dedent("""
+        [out:json];
+        (
+        %s
+        );
+        out;
+    """ % (
+        "\n".join([osm_node_match_query_ql(layer_in_dataset, row_data) for row_data, row_geom in data_table])
+    ))
+
+def osm_way_match_json(layer_in_dataset, data_table):
+    query = osm_way_match_query(layer_in_dataset, data_table)
+    #print "-----=====+++ < ( [ { XXX OVERPASS QUERY XXX } ] ) > +++=====-----"
+    #print query
     r = requests.post(OVERPASS_API_URL, data={
             'data': query
             })
+    #print "RESPONSE"
+    #print r.json()
     return r.json()
+
+def osm_node_match_json(layer_in_dataset, data_table):
+    query = osm_node_match_query(layer_in_dataset, data_table)
+    #print "-----=====+++ < ( [ { XXX OVERPASS QUERY XXX } ] ) > +++=====-----"
+    #print query
+    r = requests.post(OVERPASS_API_URL, data={
+            'data': query
+            })
+    #print "RESPONSE"
+    #print r.json()
+    return r.json()
+
+def osm_way_match_query_ql(layer_in_dataset, row_data):
+    layer = layer_in_dataset.layer
+    geotype = layer.geometry_type
+    if geotype == "LINESTRING":
+        return dedent("""
+            way
+            ["%(way_tag)s"="%(way_value)s"]
+            ["%(dataset_name_tag)s"="%(dataset_name_value)s"]
+            %(str_bounds)s
+            ;
+        """ % {
+            'way_tag': layer.special_way_tag_name,
+            'way_value': row_data[layer.special_way_field_name],
+            'dataset_name_tag': layer.special_dataset_name_tag,
+            'dataset_name_value': row_data['dataset_name'],
+            'str_bounds': str_bounds_for(layer_in_dataset.extent.extent),
+        })
 
 def osm_node_match_query_ql(layer_in_dataset, row_data):
     layer = layer_in_dataset.layer
     geotype = layer.geometry_type
-    if geotype != "LINESTRING":
+    if geotype == "LINESTRING":
+        return "\n".join([osm_node_match_query_ql_for_field(layer_in_dataset, layer.special_node_tag_name, v, row_data['dataset_name'], row_data['dataset_version'], ) for v in [
+                    row_data[layer.special_start_node_field_name],
+                    row_data[layer.special_end_node_field_name],
+                    ]])
+    elif geotype == "POINT":
+        return osm_node_match_query_ql_for_field(layer_in_dataset, layer.special_node_tag_name, row_data[layer.special_start_node_field_name], row_data['dataset_name'], row_data['dataset_version'])
+    else:
         raise ValueError("Cannot do node matching for %s" % geotype)
-
-    return "\n".join([osm_node_match_query_ql_for_field(layer_in_dataset, layer.special_node_tag_name, v, row_data['dataset_name'], row_data['dataset_version'], ) for v in [
-                row_data[layer.special_start_node_field_name],
-                row_data[layer.special_end_node_field_name],
-                ]])
 
 def osm_node_match_query_ql_for_field(layer_in_dataset, field_tag_name, field_value, dataset_name, dataset_version):
     layer = layer_in_dataset.layer
