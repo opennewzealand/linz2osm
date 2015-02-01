@@ -186,6 +186,7 @@ def get_layer_stats(database_id, layer):
     cursor.execute(sql)
     hexwkb = cursor.fetchone()[0]
     if not hexwkb:
+        print "%s - %s" % (database_id, layer.name)
         print sql
         raise ValueError("No geometry from SQL: %s" % sql)
     extent = geos.GEOSGeometry(hexwkb)
