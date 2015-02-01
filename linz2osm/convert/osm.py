@@ -191,9 +191,9 @@ def get_layer_stats(database_id, layer):
     else:
         extent = None
         et = (-180.0, -85.0, 180.0, 85.0)
-        print "%s - %s" % (database_id, layer.name)
-        print sql
-        raise ValueError("No geometry from SQL: %s" % sql)
+        # print "%s - %s" % (database_id, layer.name)
+        # print sql
+        # raise ValueError("No geometry from SQL: %s" % sql)
 
     r = {
         'feature_count': get_layer_feature_count(database_id, layer),
