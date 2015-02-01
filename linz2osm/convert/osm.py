@@ -184,7 +184,11 @@ def get_layer_stats(database_id, layer):
         expansion = "1001.0"
     sql = "SELECT ST_AsHexEWKB(ST_Transform(ST_SetSRID(ST_Envelope(ST_Buffer(ST_Extent(%s), %s)), %d), 4326)) FROM %s %s;" % (layer.geometry_expression, expansion, srid, layer.name, layer.join_sql)
     cursor.execute(sql)
-    extent = geos.GEOSGeometry(cursor.fetchone()[0])
+    hexwkb = cursor.fetchone()[0]
+    if not hexwkb:
+        print sql
+        raise ValueError("No geometry from SQL: %s" % sql)
+    extent = geos.GEOSGeometry(hexwkb)
     et = extent.extent
 
     r = {
