@@ -235,12 +235,15 @@ class Layer(models.Model):
         # so that progress on layers isn't delayed with very long-running merges.
         # They are almost completely arbitrary, but designed to make sure that
         # a workslice shouldn't be more than a hour's work.
+        # It's also important to avoid OSM's limit on changeset size, which is around
+        # 50,000 nodes per changeset. However, all of these limits should be
+        # way more restrictive than that.
         if self.geometry_type == 'POINT':
             return 1000
         elif self.geometry_type == 'LINESTRING':
             return 300
         elif self.geometry_type == 'POLYGON':
-            return 150
+            return 100
         elif self.geometry_type == 'RELATION':
             return 50
 
