@@ -780,6 +780,10 @@ class OSMCreateWriter(OSMWriter):
             # short single-ring polygons are built as ways
             return self.build_way(geom[0].tuple, tags)
 
+        elif isinstance(geom, geos.MultiPolygon) and (len(geom) == 1) and (len(geom[0]) == 1) and (len(geom[0][0]) <= self.WAY_SPLIT_SIZE):
+            # short single-ring polygons that were forced to multipolygon are also built as ways
+            return self.build_way(geom[0][0].tuple, tags)
+
         elif isinstance(geom, (geos.MultiPolygon, geos.Polygon)):
             return self.build_polygon(geom, tags)
 
