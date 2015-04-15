@@ -239,13 +239,13 @@ class Layer(models.Model):
         # 50,000 nodes per changeset. However, all of these limits should be
         # way more restrictive than that.
         if self.geometry_type == 'POINT':
-            return 1000
+            return 5000
         elif self.geometry_type == 'LINESTRING':
-            return 300
+            return 500
         elif self.geometry_type == 'POLYGON':
-            return 100
+            return 200
         elif self.geometry_type == 'RELATION':
-            return 50
+            return 100
 
     @property
     def linz_dictionary_url(self):
