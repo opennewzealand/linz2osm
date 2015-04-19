@@ -179,8 +179,9 @@ class CompletedListFilter(admin.SimpleListFilter):
 
         return queryset
 
+
 class LayerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'entity', 'geometry_type', 'group', 'stats_link', 'tag_count', 'dataset_descriptions', 'notes',)
+    list_display = ('name', 'entity', 'geometry_type', 'group', 'custom_feature_limit', 'stats_link', 'tag_count', 'dataset_descriptions', 'notes',)
     list_filter = (TaggingApprovedListFilter, CompletedListFilter, 'geometry_type', 'group', 'datasets', 'entity',)
     inlines = [
         LayerInDatasetInline,
@@ -194,7 +195,7 @@ class LayerAdmin(admin.ModelAdmin):
 
     # http://stackoverflow.com/questions/4343535/django-admin-make-a-field-read-only-when-modifying-obj-but-required-when-adding
     def get_readonly_fields(self, request, obj=None):
-        if obj: # editing an existing object
+        if obj:  # editing an existing object
             return self.readonly_fields + ('name', 'entity', 'geometry_type', 'pkey_name', 'wfs_type_name', 'wfs_cql_filter')
         return self.readonly_fields
 
