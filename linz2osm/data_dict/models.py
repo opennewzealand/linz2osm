@@ -35,12 +35,14 @@ from linz2osm.convert import processing, osm
 
 processor_list_html = '<ul class="help">' + ''.join(['<li><strong>%s</strong>: %s</li>' % p for p in sorted(processing.get_available().items())]) + '</ul>'
 
+
 class Group(models.Model):
     name = models.CharField(max_length=255, unique=True, primary_key=True)
     description = models.TextField()
 
     def __str__(self):
         return self.name
+
 
 class DatasetManager(models.Manager):
     def clear_datasets(self):
@@ -60,11 +62,11 @@ class DatasetManager(models.Manager):
                         raise ValueError("Dataset already exists with a different SRID (cannot update %d to %d)!" % (dataset.srid, new_srid))
                     dataset.save()
                 else:
-                    dataset = self.create(name = name,
-                                          database_name = details['NAME'],
-                                          description = details['_description'],
-                                          srid = int(details['_srid']),
-                                          version = details['_version'])
+                    dataset = self.create(name=name,
+                                          database_name=details['NAME'],
+                                          description=details['_description'],
+                                          srid=int(details['_srid']),
+                                          version=details['_version'])
 
                 for layer in Layer.objects.all():
                     if dataset.has_layer_in_schema(layer.name):
@@ -115,8 +117,10 @@ class Dataset(models.Model):
 
     objects = DatasetManager()
 
+
 class DatasetUpdateError(Exception):
     pass
+
 
 class DatasetUpdate(models.Model):
     dataset = models.ForeignKey(Dataset)
@@ -134,15 +138,15 @@ class DatasetUpdate(models.Model):
                 layer = lid.layer
                 table_name = "%s_update_%s" % (layer.name, self.to_version.replace("-", "_"))
                 import_proc = subprocess.Popen([
-                        settings.LINZ2OSM_SCRIPT_ROOT + '/load_lds_dataset.sh',
-                        'update',
-                        self.dataset.database_name,
-                        layer.wfs_type_name,
-                        table_name,
-                        settings.LINZ_DATA_SERVICE_API_KEY,
-                        'from:%s;to:%s' % (self.from_version, self.to_version),
-                        urllib.quote(layer.wfs_cql_filter)
-                        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                    settings.LINZ2OSM_SCRIPT_ROOT + '/load_lds_dataset.sh',
+                    'update',
+                    self.dataset.database_name,
+                    layer.wfs_type_name,
+                    table_name,
+                    settings.LINZ_DATA_SERVICE_API_KEY,
+                    'from:%s;to:%s' % (self.from_version, self.to_version),
+                    urllib.quote(layer.wfs_cql_filter)
+                    ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 import_proc.wait()
                 import_output = import_proc.stdout.read()
                 print import_output
@@ -174,6 +178,7 @@ class DatasetUpdate(models.Model):
         finally:
             self.save()
 
+
 class Layer(models.Model):
     GEOTYPE_CHOICES = [
         ('POINT', 'Point'),
@@ -196,6 +201,8 @@ class Layer(models.Model):
     group = models.ForeignKey(Group, blank=True, null=True)
     pkey_name = models.CharField(max_length=255, default='ogc_fid', choices=PKEY_CHOICES, help_text='Changing this on an existing dataset requires an update to existing workslice features in database')
     tags_ql = models.TextField(blank=True, null=True, help_text=('What tags to include in the OSM search. Separated with whitespace. In OSM Overpass API format ["name"="value"] ["name"~"valueish"] ["name"="this|that"] ["name"!="not-this"] etc.'), verbose_name='tags for overpass QL')
+    custom_feature_limit = models.IntegerField(blank=True, null=True, help_text=('Override the default feature limit for this layer (0 or blank = default)'))
+
     # FIXME: do this with a flag on the relevant tags?
     # You really don't want to use these unless you know what you're doing.
     # They are intended for a carefully interlinked set of mp_node, mp_restrict and mp_segment_highway
@@ -209,6 +216,8 @@ class Layer(models.Model):
     special_way_tag_name = models.CharField(max_length=255, blank=True, editable=False)
     special_dataset_name_tag = models.CharField(max_length=255, blank=True, editable=False)
     special_dataset_version_tag = models.CharField(max_length=255, blank=True, editable=False)
+
+    # For WFS-sourced layers
     wfs_type_name = models.CharField(max_length=255, blank=True, verbose_name='WFS typeName', help_text='Used for LDS or WFS updates')
     wfs_cql_filter = models.TextField(max_length=255, blank=True, verbose_name='WFS cql_filter', help_text='Used for LDS or WFS updates')
 
@@ -238,7 +247,10 @@ class Layer(models.Model):
         # It's also important to avoid OSM's limit on changeset size, which is around
         # 50,000 nodes per changeset. However, all of these limits should be
         # way more restrictive than that.
-        if self.geometry_type == 'POINT':
+        # You can override the limit on a per-layer basis, too, with custom_feature_limit
+        if self.custom_feature_limit and self.custom_feature_limit > 0:
+            return self.custom_feature_limit
+        elif self.geometry_type == 'POINT':
             return 5000
         elif self.geometry_type == 'LINESTRING':
             return 500
@@ -280,7 +292,7 @@ class Layer(models.Model):
         from linz2osm.convert.processing import get_class
         p_list = []
         if self.processors:
-            for p_id,p_opts in self.processors:
+            for p_id, p_opts in self.processors:
                 p_cls = get_class(p_id)
                 p = p_cls(**p_opts)
                 p_list.append(p)
@@ -300,6 +312,7 @@ class Layer(models.Model):
         else:
             return " "
 
+
 class LayerInDatasetManager(geomodels.GeoManager):
     def create_layer_in_dataset(self, layer, dataset):
         stats = osm.get_layer_stats(dataset.name, layer)
@@ -307,8 +320,8 @@ class LayerInDatasetManager(geomodels.GeoManager):
             return None
         if LayerInDataset.objects.filter(layer=layer, dataset=dataset).exists():
             lid = LayerInDataset.objects.get(layer=layer, dataset=dataset)
-            lid.features_total=stats['feature_count']
-            lid.extent=stats['extent']
+            lid.features_total = stats['feature_count']
+            lid.extent = stats['extent']
             lid.save()
         else:
             lid = self.create(layer=layer,
@@ -317,6 +330,7 @@ class LayerInDatasetManager(geomodels.GeoManager):
                               extent=stats['extent']
                               )
         return lid
+
 
 class LayerInDataset(geomodels.Model):
     objects = LayerInDatasetManager()
@@ -401,7 +415,7 @@ class LayerInDataset(geomodels.Model):
         } """ % self.extent.geojson
 
     def js_workslice_geojson(self):
-        shown_workslices = self.workslice_set.filter(state__in=('processing','out','complete','blocked',))
+        shown_workslices = self.workslice_set.filter(state__in=('processing', 'out', 'complete', 'blocked',))
 
         return """
             { "type": "FeatureCollection",
@@ -422,7 +436,7 @@ class LayerInDataset(geomodels.Model):
         return (100.0 * self.features_complete() / self.features_total)
 
     def features_in_progress(self):
-        return self.workslice_set.filter(state__in=('processing','out','blocked',)).aggregate(Sum('feature_count'))['feature_count__sum'] or 0
+        return self.workslice_set.filter(state__in=('processing', 'out', 'blocked',)).aggregate(Sum('feature_count'))['feature_count__sum'] or 0
 
     def features_in_progress_pct(self):
         return (100.0 * self.features_in_progress() / self.features_total)
@@ -442,6 +456,7 @@ class LayerInDataset(geomodels.Model):
 
 class MemberManager(models.Manager):
     pass
+
 
 @total_ordering
 class Member(models.Model):
@@ -480,7 +495,7 @@ class Member(models.Model):
 class TagManager(models.Manager):
     def eval(self, code, fields):
         eval_fields = {}
-        for fk,fv in fields.items():
+        for fk, fv in fields.items():
             if isinstance(fv, decimal.Decimal):
                 fv = float(fv)
             elif isinstance(fv, datetime.date):
@@ -494,9 +509,9 @@ class TagManager(models.Manager):
             context = js.new_object()
             js.init_standard_classes(context)
 
-            js.define_property(context, 'value', None);
+            js.define_property(context, 'value', None)
             context_fields = js.new_object()
-            for fk,fv in eval_fields.items():
+            for fk, fv in eval_fields.items():
                 # Exclude e.g. member_feature_ids
                 if not isinstance(fv, dict):
                     js.define_property(context_fields, fk, fv)
@@ -536,6 +551,7 @@ CONFLICT_SEARCH_CHOICES = [
     (2, 'Filter partial match'),
     (3, 'Filter tag name only'),
 ]
+
 
 @total_ordering
 class Tag(models.Model):
@@ -611,4 +627,3 @@ class Tag(models.Model):
             if self.tag.startswith("LINZ:"):
                 return False
         return self.tag.__lt__(other.tag)
-
